@@ -1,0 +1,180 @@
+{
+  "metadata": {
+    "spec-version": "1.5"
+  },
+  "display-name": "Google Drive source",
+  "configuration-groups": [
+    {
+      "label": "Basic",
+      "properties": [
+        {
+          "widget-type": "textbox",
+          "label": "Reference Name",
+          "name": "referenceName"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "App Id",
+          "name": "appId"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Access Token",
+          "name": "accessToken"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Directory identifier",
+          "name": "directoryIdentifier"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Filter",
+          "name": "filter"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Modification date range",
+          "name": "modificationDateRange"
+        },
+        {
+          "name": "metainfos",
+          "widget-type": "multi-select",
+          "widget-attributes": {
+            "delimiter": ",",
+            "defaultValue": [
+              "value1",
+              "value2"
+            ],
+            "options": [
+              {
+                "id": "id",
+                "label": "ID"
+              },
+              {
+                "id": "name",
+                "label": "Name"
+              },
+              {
+                "id": "mimeType",
+                "label": "MIME Type"
+              },
+              {
+                "id": "description",
+                "label": "Description"
+              },
+              {
+                "id": "starred",
+                "label": "Starred"
+              },
+              {
+                "id": "trashed",
+                "label": "Trashed"
+              },
+              {
+                "id": "explicitlyTrashed",
+                "label": "Explicitly trashed"
+              },
+              {
+                "id": "parents",
+                "label": "Parents"
+              },
+              {
+                "id": "properties",
+                "label": "Properties"
+              },
+              {
+                "id": "imageMediaMetadata.width",
+                "label": "Width"
+              },
+              {
+                "id": "imageMediaMetadata.height",
+                "label": "Height"
+              },
+              {
+                "id": "imageMediaMetadata.rotation",
+                "label": "Rotation"
+              },
+              {
+                "id": "imageMediaMetadata.location.latitude",
+                "label": "Latitude"
+              },
+              {
+                "id": "imageMediaMetadata.location.longitude",
+                "label": "Longitude"
+              },
+              {
+                "id": "imageMediaMetadata.location.altitude",
+                "label": "Altitude"
+              },
+              {
+                "id": "imageMediaMetadata.time",
+                "label": "Time"
+              },
+              {
+                "id": "imageMediaMetadata.cameraMake",
+                "label": "Camera"
+              },
+              {
+                "id": "imageMediaMetadata.cameraModel",
+                "label": "Camera model"
+              },
+              {
+                "id": "imageMediaMetadata.exposureTime",
+                "label": "Exposure"
+              },
+              {
+                "id": "imageMediaMetadata.aperture",
+                "label": "Aperture"
+              },
+              {
+                "id": "imageMediaMetadata.flashUsed",
+                "label": "Used flash"
+              },
+              {
+                "id": "imageMediaMetadata.focalLength",
+                "label": "Focal length"
+              },
+              {
+                "id": "imageMediaMetadata.isoSpeed",
+                "label": "ISO"
+              },
+              {
+                "id": "imageMediaMetadata.meteringMode",
+                "label": "Metering mode"
+              },
+              {
+                "id": "imageMediaMetadata.sensor",
+                "label": "Sensor"
+              },
+              {
+                "id": "imageMediaMetadata.exposureMode",
+                "label": "Exposure mode"
+              },
+              {
+                "id": "imageMediaMetadata.colorSpace",
+                "label": "Color space"
+              },
+              {
+                "id": "imageMediaMetadata.whiteBalance",
+                "label": "Color space"
+              },
+              {
+                "id": "imageMediaMetadata.exposureBias",
+                "label": "Color space"
+              }
+            ]
+          }
+        }
+
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "widget-type": "non-editable-schema-editor",
+      "schema": {
+      }
+    }
+  ]
+}
