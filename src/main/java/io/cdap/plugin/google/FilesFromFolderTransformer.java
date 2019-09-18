@@ -16,15 +16,25 @@
 
 package io.cdap.plugin.google;
 
+import com.google.api.services.drive.model.File;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
 
 public class FilesFromFolderTransformer {
 
-  public static StructuredRecord transform(FilesFromFolder filesFromFolder, Schema schema) {
+  public static StructuredRecord transform(FileFromFolder fileFromFolder, Schema schema) {
     StructuredRecord.Builder builder = StructuredRecord.builder(schema);
-    for (FileFromFolder fileFromFolder : filesFromFolder.getFiles()) {
-      builder.set("content", fileFromFolder.getContent());
+
+    for (Schema.Field field : schema.getFields()) {
+      String name = field.getName();
+      if (name.equals(SchemaBuilder.CONTENT_FIELD_NAME)) {
+        builder.set(SchemaBuilder.CONTENT_FIELD_NAME, fileFromFolder.getContent());
+      } else if (!field.getName().contains(".")) {
+        File file = fileFromFolder.getFile();
+        if (file != null) {
+          builder.set(name, file.get(name));
+        }
+      }
     }
     return builder.build();
   }

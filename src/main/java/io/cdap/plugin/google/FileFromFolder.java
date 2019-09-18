@@ -16,26 +16,22 @@
 
 package io.cdap.plugin.google;
 
+import com.google.api.services.drive.model.File;
+
 public class FileFromFolder {
   private final byte[] content;
-  private final String mimeType;
-  private final String name;
+  private final File file;
 
-  public FileFromFolder(byte[] content, String mimeType, String name) {
+  public FileFromFolder(byte[] content, File file) {
     this.content = content;
-    this.mimeType = mimeType;
-    this.name = name;
+    this.file = file;
   }
 
   public byte[] getContent() {
     return content;
   }
 
-  public String getMimeType() {
-    return mimeType;
-  }
-
-  public String getName() {
-    return name;
+  public File getFile() {
+    return file;
   }
 }

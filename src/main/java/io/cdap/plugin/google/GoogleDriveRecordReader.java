@@ -28,12 +28,10 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import java.io.IOException;
 
-public class GoogleDriveRecordReader extends RecordReader<NullWritable, FilesFromFolder> {
+public class GoogleDriveRecordReader extends RecordReader<NullWritable, FileFromFolder> {
   private static final Gson gson = new GsonBuilder().create();
 
-  private FilesFromFolder value;
   private GoogleDriveSourceClient googleDriveSourceClient;
-  private int counter = 0;
 
   @Override
   public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
@@ -45,12 +43,7 @@ public class GoogleDriveRecordReader extends RecordReader<NullWritable, FilesFro
 
   @Override
   public boolean nextKeyValue() throws IOException, InterruptedException {
-    if (counter < 2) {
-      value = googleDriveSourceClient.getFiles();
-      counter++;
-      return true;
-    }
-    return false;
+    return googleDriveSourceClient.hasFile();
   }
 
   @Override
@@ -59,8 +52,8 @@ public class GoogleDriveRecordReader extends RecordReader<NullWritable, FilesFro
   }
 
   @Override
-  public FilesFromFolder getCurrentValue() throws IOException, InterruptedException {
-    return value;
+  public FileFromFolder getCurrentValue() throws IOException, InterruptedException {
+    return googleDriveSourceClient.getFile();
   }
 
   @Override

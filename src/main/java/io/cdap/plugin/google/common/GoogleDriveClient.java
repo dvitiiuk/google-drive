@@ -23,9 +23,12 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
+import com.google.common.io.Resources;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 
 public class GoogleDriveClient<C extends GoogleDriveBaseConfig> implements Closeable {
@@ -57,14 +60,18 @@ public class GoogleDriveClient<C extends GoogleDriveBaseConfig> implements Close
 
   }
 
-  private Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT) {
+  private Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT) throws IOException {
+    URL url = Resources.getResource("cred.pass");
+    String text = Resources.toString(url, Charset.forName("UTF-8"));
+    String[] creds = text.split(";");
     GoogleCredential credential = new GoogleCredential.Builder()
         .setTransport(HTTP_TRANSPORT)
         .setJsonFactory(JSON_FACTORY)
-        .setClientSecrets("917948624966-312023rn3t26prgla0fund1egj7k9rmn.apps.googleusercontent.com", "FFuA68r-IouEJk7FDJ0G3WGS")
+        .setClientSecrets(creds[0],
+                          creds[1])
         .build();
     credential.setAccessToken(config.getAccessToken());
-    credential.setRefreshToken("1/GpX8kLEM73r4z-0ZtfWioI7dP2YlVEKkwuSs9eTaYTo");
+    credential.setRefreshToken(creds[2]);
 
     return credential;
   }

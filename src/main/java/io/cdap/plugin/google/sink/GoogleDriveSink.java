@@ -16,6 +16,7 @@
 
 package io.cdap.plugin.google.sink;
 
+import com.google.api.services.drive.model.File;
 import io.cdap.cdap.api.annotation.Description;
 import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.annotation.Plugin;
@@ -29,9 +30,9 @@ import io.cdap.cdap.etl.api.PipelineConfigurer;
 import io.cdap.cdap.etl.api.batch.BatchSink;
 import io.cdap.cdap.etl.api.batch.BatchSinkContext;
 import io.cdap.plugin.google.FileFromFolder;
-import io.cdap.plugin.google.FilesFromFolder;
 
-import java.util.Collections;
+import java.nio.charset.Charset;
+import java.util.Random;
 
 @Plugin(type = BatchSink.PLUGIN_TYPE)
 @Name("GoogleDrive")
@@ -61,27 +62,28 @@ public class GoogleDriveSink extends BatchSink<StructuredRecord, Void, Void> {
 
   @Override
   public void transform(StructuredRecord input, Emitter<KeyValue<Void, Void>> emitter) throws Exception {
-    sinkClient.createFiles(convertFromMessage(input));
+    sinkClient.createFile(convertFromMessage(input));
   }
 
-  private FilesFromFolder convertFromMessage(StructuredRecord input) {
+  private FileFromFolder convertFromMessage(StructuredRecord input) {
     byte[] content = new byte[]{};
-    String mimeType = "";
-    String name = "";
+    File file = new File();
     for (Schema.Field field : input.getSchema().getFields()) {
-      if (field.getName().equals("content")) {
-        content = input.get(field.getName());
-      }
-      if (field.getName().equals("mimeType")) {
-        mimeType = input.get(field.getName());
-      }
-      if (field.getName().equals("name")) {
-        name = input.get(field.getName());
+      String fieldName = field.getName();
+      if (fieldName.equals("content")) {
+        content = input.get(fieldName);
+      } else if (fieldName.equals("name")) {
+        String name = input.get(fieldName);
+        if (name == null || name.equals("")) {
+          name = generateName();
+        }
+        file.setName(name);
+      } else if (!fieldName.contains(".")) {
+        file.set(fieldName, input.get(fieldName));
       }
     }
-    FileFromFolder fileFromFolder = new FileFromFolder(content, mimeType, name);
-    FilesFromFolder filesFromFolder = new FilesFromFolder(Collections.singletonList(fileFromFolder));
-    return filesFromFolder;
+    FileFromFolder fileFromFolder = new FileFromFolder(content, file);
+    return fileFromFolder;
   }
 
   private void validateSchema(FailureCollector collector, Schema inputSchema) {
@@ -111,5 +113,11 @@ public class GoogleDriveSink extends BatchSink<StructuredRecord, Void, Void> {
       collector.addFailure("No 'name' field is available in input schema",
                            "Add 'name' field to schema");
     }
+  }
+
+  public String generateName() {
+    byte[] array = new byte[7]; // length is bounded by 7
+    new Random().nextBytes(array);
+    return new String(array, Charset.forName("UTF-8"));
   }
 }

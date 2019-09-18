@@ -23,10 +23,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class SchemaBuilder {
+  public static final String CONTENT_FIELD_NAME = "content";
+  //public static final String CONTENT_MIME_FIELD_NAME = "contentMime";
 
   public static Schema buildSchema(List<String> fields) {
     List<String> extendedFields = new ArrayList<>(fields);
-    extendedFields.add("content");
+    extendedFields.add(CONTENT_FIELD_NAME);
+    //extendedFields.add(CONTENT_MIME_FIELD_NAME);
     return Schema.recordOf(
       "FilesFromFolder",
       extendedFields.stream().map(SchemaBuilder::fromName).collect(Collectors.toList()));
@@ -34,8 +37,9 @@ public class SchemaBuilder {
 
   private static Schema.Field fromName(String name) {
     switch (name) {
-      case "content":
+      case CONTENT_FIELD_NAME:
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.BYTES)));
+      //case CONTENT_MIME_FIELD_NAME:
       case "kind":
       case "id":
       case "name":
@@ -54,7 +58,8 @@ public class SchemaBuilder {
 
   public static boolean isValidForFields(String fieldName) {
     switch (fieldName) {
-      case "content":
+      case CONTENT_FIELD_NAME:
+      //case CONTENT_MIME_FIELD_NAME:
       case "kind":
       case "id":
       case "name":

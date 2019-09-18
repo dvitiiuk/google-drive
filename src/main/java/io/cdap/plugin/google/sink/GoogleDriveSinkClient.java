@@ -19,7 +19,6 @@ package io.cdap.plugin.google.sink;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.services.drive.model.File;
 import io.cdap.plugin.google.FileFromFolder;
-import io.cdap.plugin.google.FilesFromFolder;
 import io.cdap.plugin.google.common.GoogleDriveClient;
 
 import java.io.IOException;
@@ -32,19 +31,18 @@ public class GoogleDriveSinkClient extends GoogleDriveClient<GoogleDriveSinkConf
     super(config);
   }
 
-  public void createFiles(FilesFromFolder filesFromFolder) throws GeneralSecurityException, IOException {
+  public void createFile(FileFromFolder fileFromFolder) throws GeneralSecurityException, IOException {
     String folderId = config.getDirectoryIdentifier();
 
     initialize();
 
-    for (FileFromFolder fileFromFolder : filesFromFolder.getFiles()) {
-      File fileToWrite = new File();
-      fileToWrite.setName(fileFromFolder.getName());
-      fileToWrite.setParents(Collections.singletonList(folderId));
-      ByteArrayContent fileContent = new ByteArrayContent(null, fileFromFolder.getContent());
-      File file = service.files().create(fileToWrite, fileContent)
-        //.setFields("id, parents")
-        .execute();
-    }
+    File fileToWrite = new File();
+
+    fileToWrite.setName(fileFromFolder.getFile().getName());
+    fileToWrite.setParents(Collections.singletonList(folderId));
+    ByteArrayContent fileContent = new ByteArrayContent(null, fileFromFolder.getContent());
+    File file = service.files().create(fileToWrite, fileContent)
+      //.setFields("id, parents")
+      .execute();
   }
 }

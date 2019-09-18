@@ -29,7 +29,7 @@ import io.cdap.cdap.etl.api.PipelineConfigurer;
 import io.cdap.cdap.etl.api.batch.BatchSource;
 import io.cdap.cdap.etl.api.batch.BatchSourceContext;
 import io.cdap.plugin.common.LineageRecorder;
-import io.cdap.plugin.google.FilesFromFolder;
+import io.cdap.plugin.google.FileFromFolder;
 import io.cdap.plugin.google.FilesFromFolderTransformer;
 import io.cdap.plugin.google.GoogleDriveInputFormatProvider;
 import org.apache.hadoop.io.NullWritable;
@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 @Plugin(type = BatchSource.PLUGIN_TYPE)
 @Name("GoogleDrive")
 @Description("Reads fileset from specified Google Drive directory.")
-public class GoogleDriveSource extends BatchSource<NullWritable, FilesFromFolder, StructuredRecord> {
+public class GoogleDriveSource extends BatchSource<NullWritable, FileFromFolder, StructuredRecord> {
 
   private final GoogleDriveSourceConfig config;
 
@@ -67,7 +67,7 @@ public class GoogleDriveSource extends BatchSource<NullWritable, FilesFromFolder
   }
 
   @Override
-  public void transform(KeyValue<NullWritable, FilesFromFolder> input, Emitter<StructuredRecord> emitter) throws Exception {
+  public void transform(KeyValue<NullWritable, FileFromFolder> input, Emitter<StructuredRecord> emitter) throws Exception {
     emitter.emit(FilesFromFolderTransformer.transform(input.getValue(), config.getSchema()));
   }
 }

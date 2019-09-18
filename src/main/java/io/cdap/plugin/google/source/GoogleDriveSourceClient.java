@@ -20,30 +20,34 @@ import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import io.cdap.plugin.google.FileFromFolder;
-import io.cdap.plugin.google.FilesFromFolder;
 import io.cdap.plugin.google.common.GoogleDriveClient;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Queue;
 
 public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSourceConfig> {
+
+  private String nextToken = "";
+  private Queue<File> currentQueue = new ArrayDeque<>();
+  private Drive.Files.List currentFilesRequest;
+  private File currentFile;
 
   public GoogleDriveSourceClient(GoogleDriveSourceConfig config) {
     super(config);
   }
 
-  public FilesFromFolder getFiles() throws IOException, InterruptedException {
+  /*public FilesFromFolder getFiles() throws IOException, InterruptedException {
     FilesFromFolder filesFromFolder = null;
     try {
       initialize();
 
       Drive.Files.List filesRequest = service.files().list()
         .setQ("'" + config.getDirectoryIdentifier() + "' in parents");
-      String nextToken = "";
       List<FileFromFolder> filesFromFolderList = new ArrayList<>();
       while (nextToken != null) {
         FileList result = filesRequest.execute();
@@ -62,7 +66,7 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
               service.files().get(file.getId()).executeMediaAndDownloadTo(outputStream);
               FileFromFolder fileFromFolder =
                 new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(),
-                                   mimeType, fileName);
+                                   mimeType, fileName, file);
               filesFromFolderList.add(fileFromFolder);
             }
           }
@@ -73,5 +77,56 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
       throw new InterruptedException(e.toString());
     }
     return filesFromFolder;
+  }*/
+
+  public boolean hasFile() throws IOException, InterruptedException {
+    currentFile = currentQueue.poll();
+    if (currentFile == null) {
+      try {
+        initialize();
+
+        if (currentFilesRequest == null) {
+          currentFilesRequest = service.files().list()
+            .setQ("'" + config.getDirectoryIdentifier() + "' in parents")
+            .setFields("*");
+        }
+
+        FileList result = currentFilesRequest.execute();
+        List<File> files = result.getFiles();
+        nextToken = result.getNextPageToken();
+        currentFilesRequest.setPageToken(nextToken);
+
+        if (files == null || files.isEmpty()) {
+          System.out.println("No files found.");
+        } else {
+          currentQueue.addAll(files);
+          currentFile = currentQueue.poll();
+        }
+      } catch (GeneralSecurityException e) {
+        throw new InterruptedException(e.toString());
+      }
+    }
+    if (currentFile == null) {
+      return false;
+    }
+
+    return true;
+  }
+
+  public FileFromFolder getFile() throws IOException, InterruptedException {
+    FileFromFolder fileFromFolder = null;
+
+    String mimeType = currentFile.getMimeType();
+    String fileName = currentFile.getName();
+    if (!mimeType.startsWith("application/vnd.google-apps.")) {
+      OutputStream outputStream = new ByteArrayOutputStream();
+      service.files().get(currentFile.getId()).executeMediaAndDownloadTo(outputStream);
+      fileFromFolder =
+        new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), currentFile);
+    } else {
+      fileFromFolder =
+        new FileFromFolder(new byte[]{}, currentFile);
+    }
+    return fileFromFolder;
   }
 }
