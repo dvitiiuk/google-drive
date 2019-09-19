@@ -20,6 +20,9 @@ import com.google.api.services.drive.model.File;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
 
+/**
+ * Transforms {@link FileFromFolder} wrapper to {@link StructuredRecord} instance.
+ */
 public class FilesFromFolderTransformer {
 
   public static StructuredRecord transform(FileFromFolder fileFromFolder, Schema schema) {

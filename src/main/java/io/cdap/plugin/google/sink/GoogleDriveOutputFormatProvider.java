@@ -22,7 +22,10 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GoogleDriveOutputformatProvider implements OutputFormatProvider {
+/**
+ * No-output output format provider..
+ */
+public class GoogleDriveOutputFormatProvider implements OutputFormatProvider {
   private Map<String, String> conf = new HashMap<>();
 
   @Override

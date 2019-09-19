@@ -40,12 +40,9 @@
         {
           "name": "metainfos",
           "widget-type": "multi-select",
+          "label": "File properties",
           "widget-attributes": {
             "delimiter": ",",
-            "defaultValue": [
-              "value1",
-              "value2"
-            ],
             "options": [
               {
                 "id": "id",
@@ -165,8 +162,111 @@
               }
             ]
           }
+        },
+        {
+          "name": "fileTypesToPull",
+          "widget-type": "multi-select",
+          "label": "File types to pull",
+          "widget-attributes": {
+            "delimiter": ",",
+            "default": [
+              "binary"
+            ],
+            "options": [
+              {
+                "id": "binary",
+                "label": "Binary"
+              },
+              {
+                "id": "documents",
+                "label": "Google Documents"
+              },
+              {
+                "id": "spreadsheets",
+                "label": "Google Spreadsheets"
+              },
+              {
+                "id": "drawings",
+                "label": "Google Drawings"
+              },
+              {
+                "id": "presentations",
+                "label": "Google Presentations"
+              },
+              {
+                "id": "appsScripts",
+                "label": "Google Apps Scripts"
+              }
+            ]
+          }
         }
-
+      ]
+    },
+    {
+      "label": "Exporting",
+      "properties": [
+        {
+          "widget-type": "select",
+          "label": "Google Documents export format",
+          "name": "docsExportingFormat",
+          "widget-attributes": {
+            "default": "text/plain",
+            "values": [
+              "text/html",
+              "application/zip",
+              "text/plain",
+              "application/rtf",
+              "application/vnd.oasis.opendocument.text",
+              "application/pdf",
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "application/epub+zip"
+            ]
+          }
+        },
+        {
+          "widget-type": "select",
+          "name": "sheetsExportingFormat",
+          "label": "Google Spreadsheets export format",
+          "widget-attributes": {
+            "default": "text/csv",
+            "values": [
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "application/x-vnd.oasis.opendocument.spreadsheet",
+              "application/pdf",
+              "text/csv",
+              "text/tab-separated-values",
+              "application/zip"
+            ]
+          }
+        },
+        {
+          "widget-type": "select",
+          "name": "drawingsExportingFormat",
+          "label": "Google Drawings export format",
+          "widget-attributes": {
+            "default": "image/svg+xml",
+            "values": [
+              "image/jpeg",
+              "image/png",
+              "image/svg+xml",
+              "application/pdf"
+            ]
+          }
+        },
+        {
+          "widget-type": "select",
+          "name": "presentationsExportingFormat",
+          "label": "Google Presentations export format",
+          "widget-attributes": {
+            "default": "text/plain",
+            "values": [
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+              "application/vnd.oasis.opendocument.presentation",
+              "application/pdf",
+              "text/plain"
+            ]
+          }
+        }
       ]
     }
   ],

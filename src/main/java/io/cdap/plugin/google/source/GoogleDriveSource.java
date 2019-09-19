@@ -36,6 +36,9 @@ import org.apache.hadoop.io.NullWritable;
 
 import java.util.stream.Collectors;
 
+/**
+ * Batch source to read multiple files from Google Drive directory.
+ */
 @Plugin(type = BatchSource.PLUGIN_TYPE)
 @Name("GoogleDrive")
 @Description("Reads fileset from specified Google Drive directory.")
@@ -59,15 +62,16 @@ public class GoogleDriveSource extends BatchSource<NullWritable, FileFromFolder,
     LineageRecorder lineageRecorder = new LineageRecorder(context, config.referenceName);
     lineageRecorder.createExternalDataset(config.getSchema());
     lineageRecorder.recordRead("Read", "Reading Google Drive files",
-        Preconditions.checkNotNull(config.getSchema().getFields()).stream()
-            .map(Schema.Field::getName)
-            .collect(Collectors.toList()));
+                               Preconditions.checkNotNull(config.getSchema().getFields()).stream()
+                                 .map(Schema.Field::getName)
+                                 .collect(Collectors.toList()));
 
     context.setInput(Input.of(config.referenceName, new GoogleDriveInputFormatProvider(config)));
   }
 
   @Override
-  public void transform(KeyValue<NullWritable, FileFromFolder> input, Emitter<StructuredRecord> emitter) throws Exception {
+  public void transform(KeyValue<NullWritable, FileFromFolder> input, Emitter<StructuredRecord> emitter)
+    throws Exception {
     emitter.emit(FilesFromFolderTransformer.transform(input.getValue(), config.getSchema()));
   }
 }

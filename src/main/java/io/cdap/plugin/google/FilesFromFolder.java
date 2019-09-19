@@ -19,7 +19,7 @@ package io.cdap.plugin.google;
 import java.util.List;
 
 /**
- *
+ * TODO Remove this.
  */
 public class FilesFromFolder {
   private final List<FileFromFolder> files;

@@ -31,13 +31,25 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 
+/**
+ * Base client for working with Google Drive API
+ *
+ * @param <C> configuration
+ */
 public class GoogleDriveClient<C extends GoogleDriveBaseConfig> implements Closeable {
 
-  private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
-  private static NetHttpTransport HTTP_TRANSPORT;
-  protected static Drive service;
+  protected static final String DRIVE_FOLDER_MIME = "application/vnd.google-apps.folder";
+  protected static final String DRIVE_DOCS_MIME_PREFIX = "application/vnd.google-apps.";
+  protected static final String DRIVE_DOCUMENTS_MIME = "application/vnd.google-apps.document";
+  protected static final String DRIVE_SPREADSHEETS_MIME = "application/vnd.google-apps.spreadsheet";
+  protected static final String DRIVE_DRAWINGS_MIME = "application/vnd.google-apps.drawing";
+  protected static final String DRIVE_PRESENTATIONS_MIME = "application/vnd.google-apps.presentation";
+  protected static final String DRIVE_APPS_SCRIPTS_MIME = "application/vnd.google-apps.script";
 
+  private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
+  protected static Drive service;
   protected final C config;
+  private NetHttpTransport httpTransport;
 
   public GoogleDriveClient(C config) {
     this.config = config;
@@ -45,11 +57,11 @@ public class GoogleDriveClient<C extends GoogleDriveBaseConfig> implements Close
 
 
   protected void initialize() throws GeneralSecurityException, IOException {
-    if (HTTP_TRANSPORT == null) {
-      HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+    if (httpTransport == null) {
+      httpTransport = GoogleNetHttpTransport.newTrustedTransport();
     }
     if (service == null) {
-      service = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
+      service = new Drive.Builder(httpTransport, JSON_FACTORY, getCredentials(httpTransport))
         .setApplicationName(config.getAppId())
         .build();
     }
@@ -60,16 +72,16 @@ public class GoogleDriveClient<C extends GoogleDriveBaseConfig> implements Close
 
   }
 
-  private Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT) throws IOException {
+  private Credential getCredentials(NetHttpTransport httpTransport) throws IOException {
     URL url = Resources.getResource("cred.pass");
     String text = Resources.toString(url, Charset.forName("UTF-8"));
     String[] creds = text.split(";");
     GoogleCredential credential = new GoogleCredential.Builder()
-        .setTransport(HTTP_TRANSPORT)
-        .setJsonFactory(JSON_FACTORY)
-        .setClientSecrets(creds[0],
-                          creds[1])
-        .build();
+      .setTransport(httpTransport)
+      .setJsonFactory(JSON_FACTORY)
+      .setClientSecrets(creds[0],
+                        creds[1])
+      .build();
     credential.setAccessToken(config.getAccessToken());
     credential.setRefreshToken(creds[2]);
 

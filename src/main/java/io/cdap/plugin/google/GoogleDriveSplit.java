@@ -21,17 +21,31 @@ import org.apache.hadoop.mapreduce.InputSplit;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.IOException;
 
+/**
+ * A split used for mapreduce.
+ */
 public class GoogleDriveSplit extends InputSplit implements Writable {
+  private String fileId;
+
+  @SuppressWarnings("unused")
   public GoogleDriveSplit() {
+    // For serialization
+  }
+
+  public GoogleDriveSplit(String name) {
+    this.fileId = name;
   }
 
   @Override
-  public void readFields(DataInput dataInput) {
+  public void readFields(DataInput dataInput) throws IOException {
+    fileId = dataInput.readUTF();
   }
 
   @Override
-  public void write(DataOutput dataOutput) {
+  public void write(DataOutput dataOutput) throws IOException {
+    dataOutput.writeUTF(fileId);
   }
 
   @Override
@@ -42,5 +56,9 @@ public class GoogleDriveSplit extends InputSplit implements Writable {
   @Override
   public String[] getLocations() {
     return new String[0];
+  }
+
+  public String getFileId() {
+    return fileId;
   }
 }

@@ -19,6 +19,9 @@ package io.cdap.plugin.google.sink;
 import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.plugin.google.common.GoogleDriveBaseConfig;
 
+/**
+ * Configurations for Google Drive Batch Sink plugin.
+ */
 public class GoogleDriveSinkConfig extends GoogleDriveBaseConfig {
 
   public GoogleDriveSinkConfig(String referenceName) {

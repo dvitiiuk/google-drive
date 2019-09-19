@@ -23,6 +23,9 @@ import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.plugin.common.ReferencePluginConfig;
 
+/**
+ * Base Google Drive batch config. Contains common configuration properties and methods.
+ */
 public abstract class GoogleDriveBaseConfig extends ReferencePluginConfig {
   public static final String APP_ID = "appId";
   public static final String ACCESS_TOKEN = "accessToken";
@@ -39,7 +42,7 @@ public abstract class GoogleDriveBaseConfig extends ReferencePluginConfig {
   protected String accessToken;
 
   @Name(DIRECTORY_IDENTIFIER)
-  @Description("ID is the last part of the URL, such as https://drive.google.com/drive/folders/0B2kqcwp2ycGZanhSR3JmREw5VTV.")
+  @Description("ID of target directory, the last part of the URL.")
   @Macro
   protected String directoryIdentifier;
 

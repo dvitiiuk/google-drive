@@ -34,6 +34,9 @@ import io.cdap.plugin.google.FileFromFolder;
 import java.nio.charset.Charset;
 import java.util.Random;
 
+/**
+ * Batch sink to writing multiple files to Google Drive directory.
+ */
 @Plugin(type = BatchSink.PLUGIN_TYPE)
 @Name("GoogleDrive")
 @Description("Sink plugin to save files from the pipeline to Google Drive directory.")
@@ -57,7 +60,7 @@ public class GoogleDriveSink extends BatchSink<StructuredRecord, Void, Void> {
 
   @Override
   public void prepareRun(BatchSinkContext batchSinkContext) throws Exception {
-    batchSinkContext.addOutput(Output.of(config.referenceName, new GoogleDriveOutputformatProvider()));
+    batchSinkContext.addOutput(Output.of(config.referenceName, new GoogleDriveOutputFormatProvider()));
   }
 
   @Override

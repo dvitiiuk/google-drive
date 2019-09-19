@@ -25,6 +25,9 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 
+/**
+ * Client for writing data via Google Drive API.
+ */
 public class GoogleDriveSinkClient extends GoogleDriveClient<GoogleDriveSinkConfig> {
 
   public GoogleDriveSinkClient(GoogleDriveSinkConfig config) {

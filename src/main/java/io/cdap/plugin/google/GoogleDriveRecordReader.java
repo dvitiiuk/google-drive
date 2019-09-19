@@ -16,8 +16,6 @@
 
 package io.cdap.plugin.google;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.cdap.plugin.google.source.GoogleDriveSourceClient;
 import io.cdap.plugin.google.source.GoogleDriveSourceConfig;
 import org.apache.hadoop.conf.Configuration;
@@ -28,22 +26,32 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import java.io.IOException;
 
+/**
+ * RecordReader implementation, which reads {@link FileFromFolder} wrappers from Google Drive using
+ * Google Drive API.
+ */
 public class GoogleDriveRecordReader extends RecordReader<NullWritable, FileFromFolder> {
-  private static final Gson gson = new GsonBuilder().create();
 
   private GoogleDriveSourceClient googleDriveSourceClient;
+  private String fileId;
 
   @Override
-  public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
+  public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException,
+    InterruptedException {
     Configuration conf = taskAttemptContext.getConfiguration();
     String configJson = conf.get(GoogleDriveInputFormatProvider.PROPERTY_CONFIG_JSON);
-    GoogleDriveSourceConfig googleDriveSourceConfig = gson.fromJson(configJson, GoogleDriveSourceConfig.class);
+    GoogleDriveSourceConfig googleDriveSourceConfig =
+      GoogleDriveInputFormat.GSON.fromJson(configJson, GoogleDriveSourceConfig.class);
     googleDriveSourceClient = new GoogleDriveSourceClient(googleDriveSourceConfig);
+
+    GoogleDriveSplit split = (GoogleDriveSplit) inputSplit;
+    this.fileId = split.getFileId();
   }
 
   @Override
   public boolean nextKeyValue() throws IOException, InterruptedException {
-    return googleDriveSourceClient.hasFile();
+    // read file with filename
+    return googleDriveSourceClient.hasFile(fileId);
   }
 
   @Override

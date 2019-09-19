@@ -24,6 +24,9 @@ import io.cdap.plugin.google.source.GoogleDriveSourceConfig;
 
 import java.util.Map;
 
+/**
+ * InputFormatProvider used by cdap to provide configurations to mapreduce job.
+ */
 public class GoogleDriveInputFormatProvider implements InputFormatProvider {
   public static final String PROPERTY_CONFIG_JSON = "cdap.google.config";
   private static final Gson gson = new GsonBuilder().create();
@@ -32,8 +35,8 @@ public class GoogleDriveInputFormatProvider implements InputFormatProvider {
 
   public GoogleDriveInputFormatProvider(GoogleDriveSourceConfig config) {
     this.conf = new ImmutableMap.Builder<String, String>()
-        .put(PROPERTY_CONFIG_JSON, gson.toJson(config))
-        .build();
+      .put(PROPERTY_CONFIG_JSON, gson.toJson(config))
+      .build();
   }
 
   @Override

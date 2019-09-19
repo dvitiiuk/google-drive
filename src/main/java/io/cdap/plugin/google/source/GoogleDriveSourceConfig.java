@@ -18,6 +18,7 @@ package io.cdap.plugin.google.source;
 
 import io.cdap.cdap.api.annotation.Description;
 import io.cdap.cdap.api.annotation.Macro;
+import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.plugin.google.SchemaBuilder;
@@ -28,24 +29,54 @@ import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
 
+/**
+ * Configurations for Google Drive Batch Source plugin.
+ */
 public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
-
-  private transient Schema schema = null;
-
+  public static final String FILE_TYPES_TO_PULL = "fileTypesToPull";
+  public static final String DOCS_EXPORTING_FORMAT = "docsExportingFormat";
+  public static final String SHEETS_EXPORTING_FORMAT = "sheetsExportingFormat";
+  public static final String DRAWINGS_EXPORTING_FORMAT = "drawingsExportingFormat";
+  public static final String PRESENTATIONS_EXPORTING_FORMAT = "presentationsExportingFormat";
   @Nullable
-  @Description("A filter that can be applied to the files in the selected directory. Filters follow the Google Drive Filter Syntax.")
+  @Description("A filter that can be applied to the files in the selected directory. " +
+    "Filters follow the Google Drive Filter Syntax.")
   @Macro
   protected String filter;
-
   @Nullable
-  @Description("In addition to the filter specified above, also filter files to only pull those that were modified between the date range.")
+  @Description("In addition to the filter specified above, also filter files to only pull those " +
+    "that were modified between the date range.")
   @Macro
   protected String modificationDateRange;
-
   @Nullable
   @Description("Metainfos")
   @Macro
   protected String metainfos;
+  @Name(FILE_TYPES_TO_PULL)
+  @Description("Types of files should be pulled from specified directory.")
+  @Macro
+  protected String fileTypesToPull;
+  @Nullable
+  @Name(DOCS_EXPORTING_FORMAT)
+  @Description("MIME type for Google Documents.")
+  @Macro
+  protected String docsExportingFormat;
+  @Nullable
+  @Name(SHEETS_EXPORTING_FORMAT)
+  @Description("MIME type for Google Spreadsheets.")
+  @Macro
+  protected String sheetsExportingFormat;
+  @Nullable
+  @Name(DRAWINGS_EXPORTING_FORMAT)
+  @Description("MIME type for Google Drawings.")
+  @Macro
+  protected String drawingsExportingFormat;
+  @Nullable
+  @Name(PRESENTATIONS_EXPORTING_FORMAT)
+  @Description("MIME type for Google Presentations.")
+  @Macro
+  protected String presentationsExportingFormat;
+  private transient Schema schema = null;
 
   public GoogleDriveSourceConfig(String referenceName) {
     super(referenceName);
@@ -91,5 +122,48 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
 
   public void setMetainfos(@Nullable String metainfos) {
     this.metainfos = metainfos;
+  }
+
+  public List<String> getFileTypesToPull() {
+    if (fileTypesToPull == null || "".equals(fileTypesToPull)) {
+      return Collections.emptyList();
+    }
+    return Arrays.asList(fileTypesToPull.split(","));
+  }
+
+  public void setFileTypesToPull(String fileTypesToPull) {
+    this.fileTypesToPull = fileTypesToPull;
+  }
+
+  public String getDocsExportingFormat() {
+    return docsExportingFormat;
+  }
+
+  public void setDocsExportingFormat(String docsExportingFormat) {
+    this.docsExportingFormat = docsExportingFormat;
+  }
+
+  public String getSheetsExportingFormat() {
+    return sheetsExportingFormat;
+  }
+
+  public void setSheetsExportingFormat(String sheetsExportingFormat) {
+    this.sheetsExportingFormat = sheetsExportingFormat;
+  }
+
+  public String getDrawingsExportingFormat() {
+    return drawingsExportingFormat;
+  }
+
+  public void setDrawingsExportingFormat(String drawingsExportingFormat) {
+    this.drawingsExportingFormat = drawingsExportingFormat;
+  }
+
+  public String getPresentationsExportingFormat() {
+    return presentationsExportingFormat;
+  }
+
+  public void setPresentationsExportingFormat(String presentationsExportingFormat) {
+    this.presentationsExportingFormat = presentationsExportingFormat;
   }
 }

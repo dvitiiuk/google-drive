@@ -22,6 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Util class for building pipeline schema.
+ */
 public class SchemaBuilder {
   public static final String CONTENT_FIELD_NAME = "content";
   //public static final String CONTENT_MIME_FIELD_NAME = "contentMime";
@@ -59,7 +62,7 @@ public class SchemaBuilder {
   public static boolean isValidForFields(String fieldName) {
     switch (fieldName) {
       case CONTENT_FIELD_NAME:
-      //case CONTENT_MIME_FIELD_NAME:
+        //case CONTENT_MIME_FIELD_NAME:
       case "kind":
       case "id":
       case "name":

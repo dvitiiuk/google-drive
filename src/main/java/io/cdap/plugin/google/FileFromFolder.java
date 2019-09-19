@@ -18,6 +18,9 @@ package io.cdap.plugin.google;
 
 import com.google.api.services.drive.model.File;
 
+/**
+ * Wrapper for {@link File}, representation of file from Google Drive.
+ */
 public class FileFromFolder {
   private final byte[] content;
   private final File file;

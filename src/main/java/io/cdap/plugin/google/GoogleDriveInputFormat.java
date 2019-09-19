@@ -16,19 +16,38 @@
 
 package io.cdap.plugin.google;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import io.cdap.plugin.google.source.GoogleDriveSourceClient;
+import io.cdap.plugin.google.source.GoogleDriveSourceConfig;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
+/**
+ * Input format class which generates splits for each query.
+ */
 public class GoogleDriveInputFormat extends InputFormat {
+  public static final Gson GSON = new GsonBuilder().create();
+
   @Override
   public List<InputSplit> getSplits(JobContext jobContext) {
-    return Collections.singletonList(new GoogleDriveSplit());
+    Configuration conf = jobContext.getConfiguration();
+    String configJson = conf.get(GoogleDriveInputFormatProvider.PROPERTY_CONFIG_JSON);
+    GoogleDriveSourceConfig googleDriveSourceConfig = GSON.fromJson(configJson, GoogleDriveSourceConfig.class);
+
+    GoogleDriveSourceClient client = new GoogleDriveSourceClient(googleDriveSourceConfig);
+    /*List<InputSplit> splits = new ArrayList<>();
+    for (File file : client.getFiles()) {
+      splits.add(new GoogleDriveSplit(file.getId()));
+    }*/
+    return client.getFiles().stream().map(f -> new GoogleDriveSplit(f.getId())).collect(Collectors.toList());
   }
 
   @Override
