@@ -58,6 +58,10 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     }
   }
 
+  public FileFromFolder getFile() throws IOException, InterruptedException {
+    return getFilePartition(null, null);
+  }
+
   public FileFromFolder getFilePartition(Long bytesFrom, Long bytesTo) throws IOException, InterruptedException {
     FileFromFolder fileFromFolder;
 
@@ -65,8 +69,12 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     if (!mimeType.startsWith("application/vnd.google-apps.")) {
       OutputStream outputStream = new ByteArrayOutputStream();
       Drive.Files.Get get = service.files().get(currentFile.getId());
-      get.getMediaHttpDownloader().setDirectDownloadEnabled(true);
-      get.getRequestHeaders().setRange(String.format("bytes=%d-%d", bytesFrom, bytesTo));
+
+      if (bytesFrom != null && bytesTo != null) {
+        get.getMediaHttpDownloader().setDirectDownloadEnabled(true);
+        get.getRequestHeaders().setRange(String.format("bytes=%d-%d", bytesFrom, bytesTo));
+      }
+
       get.executeMediaAndDownloadTo(outputStream);
       fileFromFolder =
         new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), bytesFrom, currentFile);

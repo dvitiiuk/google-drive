@@ -64,7 +64,7 @@ public class GoogleDriveInputFormat extends InputFormat {
   }
 
   private GoogleDriveSplit getSplitWithUnlimitedPartitionSize(String fileId) {
-    return new GoogleDriveSplit(fileId, 0L, 0L);
+    return new GoogleDriveSplit(fileId);
   }
 
   @Override

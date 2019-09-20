@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class GoogleDriveInputFormatTest {
 
@@ -58,14 +60,17 @@ public class GoogleDriveInputFormatTest {
     assertEquals(1, splitsById.get(FILE_NAME_2).size());
     assertEquals(1, splitsById.get(FILE_NAME_3).size());
 
-    assertEquals(new Long(0), splitsById.get(FILE_NAME_1).get(0).getBytesFrom());
-    assertEquals(new Long(0), splitsById.get(FILE_NAME_1).get(0).getBytesTo());
+    assertEquals(0, splitsById.get(FILE_NAME_1).get(0).getBytesFrom());
+    assertEquals(0, splitsById.get(FILE_NAME_1).get(0).getBytesTo());
+    assertFalse(splitsById.get(FILE_NAME_1).get(0).isPartitioned());
 
-    assertEquals(new Long(0), splitsById.get(FILE_NAME_2).get(0).getBytesFrom());
-    assertEquals(new Long(0), splitsById.get(FILE_NAME_2).get(0).getBytesTo());
+    assertEquals(0, splitsById.get(FILE_NAME_2).get(0).getBytesFrom());
+    assertEquals(0, splitsById.get(FILE_NAME_2).get(0).getBytesTo());
+    assertFalse(splitsById.get(FILE_NAME_2).get(0).isPartitioned());
 
-    assertEquals(new Long(0), splitsById.get(FILE_NAME_2).get(0).getBytesFrom());
-    assertEquals(new Long(0), splitsById.get(FILE_NAME_2).get(0).getBytesTo());
+    assertEquals(0, splitsById.get(FILE_NAME_2).get(0).getBytesFrom());
+    assertEquals(0, splitsById.get(FILE_NAME_2).get(0).getBytesTo());
+    assertFalse(splitsById.get(FILE_NAME_2).get(0).isPartitioned());
   }
 
   @Test
@@ -81,16 +86,20 @@ public class GoogleDriveInputFormatTest {
     assertEquals(1, splitsById.get(FILE_NAME_2).size());
     assertEquals(1, splitsById.get(FILE_NAME_3).size());
 
-    assertEquals(new Long(0), splitsById.get(FILE_NAME_1).get(0).getBytesFrom());
-    assertEquals(new Long(49), splitsById.get(FILE_NAME_1).get(0).getBytesTo());
-    assertEquals(new Long(50), splitsById.get(FILE_NAME_1).get(1).getBytesFrom());
-    assertEquals(new Long(50), splitsById.get(FILE_NAME_1).get(1).getBytesTo());
+    assertEquals(0, splitsById.get(FILE_NAME_1).get(0).getBytesFrom());
+    assertEquals(49, splitsById.get(FILE_NAME_1).get(0).getBytesTo());
+    assertTrue(splitsById.get(FILE_NAME_1).get(0).isPartitioned());
+    assertEquals(50, splitsById.get(FILE_NAME_1).get(1).getBytesFrom());
+    assertEquals(50, splitsById.get(FILE_NAME_1).get(1).getBytesTo());
+    assertTrue(splitsById.get(FILE_NAME_1).get(1).isPartitioned());
 
-    assertEquals(new Long(0), splitsById.get(FILE_NAME_2).get(0).getBytesFrom());
-    assertEquals(new Long(0), splitsById.get(FILE_NAME_2).get(0).getBytesTo());
+    assertEquals(0, splitsById.get(FILE_NAME_2).get(0).getBytesFrom());
+    assertEquals(0, splitsById.get(FILE_NAME_2).get(0).getBytesTo());
+    assertFalse(splitsById.get(FILE_NAME_2).get(0).isPartitioned());
 
-    assertEquals(new Long(0), splitsById.get(FILE_NAME_2).get(0).getBytesFrom());
-    assertEquals(new Long(0), splitsById.get(FILE_NAME_2).get(0).getBytesTo());
+    assertEquals(0, splitsById.get(FILE_NAME_3).get(0).getBytesFrom());
+    assertEquals(0, splitsById.get(FILE_NAME_3).get(0).getBytesTo());
+    assertFalse(splitsById.get(FILE_NAME_3).get(0).isPartitioned());
   }
 
   private List<File> getTestFiles() {

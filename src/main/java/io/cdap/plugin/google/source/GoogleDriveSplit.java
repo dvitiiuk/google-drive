@@ -28,8 +28,9 @@ import java.io.IOException;
  */
 public class GoogleDriveSplit extends InputSplit implements Writable {
   private String fileId;
-  private Long bytesFrom;
-  private Long bytesTo;
+  private long bytesFrom;
+  private long bytesTo;
+  private boolean isPartitioned = false;
 
   @SuppressWarnings("unused")
   public GoogleDriveSplit() {
@@ -40,6 +41,11 @@ public class GoogleDriveSplit extends InputSplit implements Writable {
     this.fileId = fileId;
     this.bytesFrom = bytesFrom;
     this.bytesTo = bytesTo;
+    this.isPartitioned = true;
+  }
+
+  public GoogleDriveSplit(String fileId) {
+    this.fileId = fileId;
   }
 
   @Override
@@ -70,11 +76,15 @@ public class GoogleDriveSplit extends InputSplit implements Writable {
     return fileId;
   }
 
-  public Long getBytesFrom() {
+  public long getBytesFrom() {
     return bytesFrom;
   }
 
-  public Long getBytesTo() {
+  public long getBytesTo() {
     return bytesTo;
+  }
+
+  public boolean isPartitioned() {
+    return isPartitioned;
   }
 }
