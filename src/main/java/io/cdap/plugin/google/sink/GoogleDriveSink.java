@@ -71,7 +71,8 @@ public class GoogleDriveSink extends BatchSink<StructuredRecord, Void, Void> {
 
   private FileFromFolder convertFromMessage(StructuredRecord input) {
     byte[] content = new byte[]{};
-    Long offset = 0L;
+    Long offset = null;
+    String name = null;
     File file = new File();
     for (Schema.Field field : input.getSchema().getFields()) {
       String fieldName = field.getName();
@@ -81,16 +82,20 @@ public class GoogleDriveSink extends BatchSink<StructuredRecord, Void, Void> {
         offset = input.get(fieldName);
       }
       if (fieldName.equals("name")) {
-        String name = input.get(fieldName);
-        if (name == null || name.equals("")) {
-          name = generateName();
-        }
-        file.setName(name);
+        name = input.get(fieldName);
+
       } else if (!fieldName.contains(".")) {
         file.set(fieldName, input.get(fieldName));
       }
     }
-    FileFromFolder fileFromFolder = new FileFromFolder(content, offset, file);
+    if (name == null || name.equals("")) {
+      name = generateName();
+    }
+    if (offset != null) {
+      name = offset.toString() + "_" + name;
+    }
+    file.setName(name);
+    FileFromFolder fileFromFolder = new FileFromFolder(content, null, file);
     return fileFromFolder;
   }
 

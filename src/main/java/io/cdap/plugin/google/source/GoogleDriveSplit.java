@@ -53,6 +53,7 @@ public class GoogleDriveSplit extends InputSplit implements Writable {
     fileId = dataInput.readUTF();
     bytesFrom = dataInput.readLong();
     bytesTo = dataInput.readLong();
+    isPartitioned = dataInput.readBoolean();
   }
 
   @Override
@@ -60,6 +61,7 @@ public class GoogleDriveSplit extends InputSplit implements Writable {
     dataOutput.writeUTF(fileId);
     dataOutput.writeLong(bytesFrom);
     dataOutput.writeLong(bytesTo);
+    dataOutput.writeBoolean(isPartitioned);
   }
 
   @Override

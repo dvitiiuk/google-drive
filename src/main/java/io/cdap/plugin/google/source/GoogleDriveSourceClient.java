@@ -67,6 +67,7 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
 
     String mimeType = currentFile.getMimeType();
     if (!mimeType.startsWith("application/vnd.google-apps.")) {
+      Long offset = bytesFrom == null ? 0L : bytesFrom;
       OutputStream outputStream = new ByteArrayOutputStream();
       Drive.Files.Get get = service.files().get(currentFile.getId());
 
@@ -77,7 +78,7 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
 
       get.executeMediaAndDownloadTo(outputStream);
       fileFromFolder =
-        new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), bytesFrom, currentFile);
+        new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), offset, currentFile);
     } else if (mimeType.equals(DRIVE_DOCUMENTS_MIME)) {
       fileFromFolder = exportGoogleDocFile(service, currentFile, config.getDocsExportingFormat());
     } else if (mimeType.equals(DRIVE_SPREADSHEETS_MIME)) {
