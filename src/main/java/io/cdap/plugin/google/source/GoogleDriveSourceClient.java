@@ -19,7 +19,7 @@ package io.cdap.plugin.google.source;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
-import io.cdap.plugin.google.FileFromFolder;
+import io.cdap.plugin.google.common.FileFromFolder;
 import io.cdap.plugin.google.common.GoogleDriveClient;
 
 import java.io.ByteArrayOutputStream;
@@ -33,10 +33,6 @@ import java.util.List;
  * Client for getting data via Google Drive API.
  */
 public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSourceConfig> {
-
-  //private String nextToken = "";
-  //private Queue<File> currentQueue = new ArrayDeque<>();
-  //private Drive.Files.List currentFilesRequest;
   private File currentFile;
   private boolean hasFileRetrieved = false;
 
@@ -51,10 +47,6 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     try {
       initialize();
       Drive.Files.Get request = service.files().get(fileId).setFields("*");
-        /*.setQ(/*"'" + config.getDirectoryIdentifier() + "' in parents and " +
-                  "mimeType != '" + DRIVE_FOLDER_MIME + "' and " +
-                  "id = '" + fileId + "'"
-          generateFilter(fileId))*/
       currentFile = request.execute();
       hasFileRetrieved = true;
       if (currentFile == null) {
@@ -66,80 +58,41 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     }
   }
 
-
-  /*public boolean hasFile() throws IOException, InterruptedException {
-    currentFile = currentQueue.poll();
-    if (currentFile == null) {
-      try {
-        initialize();
-
-        if (currentFilesRequest == null) {
-          currentFilesRequest = service.files().list()
-            .setQ("'" + config.getDirectoryIdentifier() + "' in parents and " +
-                    "mimeType != 'application/vnd.google-apps.folder'")
-            .setFields("*");
-        }
-
-        if (nextToken == null) {
-          return false;
-        }
-
-        FileList result = currentFilesRequest.execute();
-        List<File> files = result.getFiles();
-        nextToken = result.getNextPageToken();
-        currentFilesRequest.setPageToken(nextToken);
-
-        if (files == null || files.isEmpty()) {
-          System.out.println("No files found.");
-        } else {
-          currentQueue.addAll(files);
-          currentFile = currentQueue.poll();
-        }
-      } catch (GeneralSecurityException e) {
-        throw new InterruptedException(e.toString());
-      }
-    }
-    if (currentFile == null) {
-      return false;
-    }
-
-    return true;
-  }*/
-
-  public FileFromFolder getFile() throws IOException, InterruptedException {
+  public FileFromFolder getFilePartition(Long bytesFrom, Long bytesTo) throws IOException, InterruptedException {
     FileFromFolder fileFromFolder;
 
     String mimeType = currentFile.getMimeType();
     if (!mimeType.startsWith("application/vnd.google-apps.")) {
       OutputStream outputStream = new ByteArrayOutputStream();
-      service.files().get(currentFile.getId()).executeMediaAndDownloadTo(outputStream);
+      Drive.Files.Get get = service.files().get(currentFile.getId());
+      get.getMediaHttpDownloader().setDirectDownloadEnabled(true);
+      get.getRequestHeaders().setRange(String.format("bytes=%d-%d", bytesFrom, bytesTo));
+      get.executeMediaAndDownloadTo(outputStream);
       fileFromFolder =
-        new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), currentFile);
-    } else if (mimeType.startsWith(DRIVE_DOCUMENTS_MIME)) {
+        new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), bytesFrom, currentFile);
+    } else if (mimeType.equals(DRIVE_DOCUMENTS_MIME)) {
       fileFromFolder = exportGoogleDocFile(service, currentFile, config.getDocsExportingFormat());
-    } else if (mimeType.startsWith(DRIVE_SPREADSHEETS_MIME)) {
+    } else if (mimeType.equals(DRIVE_SPREADSHEETS_MIME)) {
       fileFromFolder = exportGoogleDocFile(service, currentFile, config.getSheetsExportingFormat());
-    } else if (mimeType.startsWith(DRIVE_DRAWINGS_MIME)) {
+    } else if (mimeType.equals(DRIVE_DRAWINGS_MIME)) {
       fileFromFolder = exportGoogleDocFile(service, currentFile, config.getDrawingsExportingFormat());
-    } else if (mimeType.startsWith(DRIVE_PRESENTATIONS_MIME)) {
+    } else if (mimeType.equals(DRIVE_PRESENTATIONS_MIME)) {
       fileFromFolder = exportGoogleDocFile(service, currentFile, config.getPresentationsExportingFormat());
     } else {
       fileFromFolder =
-        new FileFromFolder(new byte[]{}, currentFile);
+        new FileFromFolder(new byte[]{}, bytesFrom, currentFile);
     }
     return fileFromFolder;
   }
 
-  public List<File> getFiles() {
+  public List<File> getFiles() throws InterruptedException {
     try {
       initialize();
       List<File> files = new ArrayList<>();
       String nextToken = "";
       Drive.Files.List request = service.files().list()
-        .setQ(/*"'" + config.getDirectoryIdentifier() + "' in parents and " +
-                "mimeType != 'application/vnd.google-apps.folder'"*/
-          generateFilter(null))
-        .setFields("nextPageToken, files(id)");
+        .setQ(generateFilter())
+        .setFields("nextPageToken, files(id, size)");
       while (nextToken != null) {
         FileList result = request.execute();
         files.addAll(result.getFiles());
@@ -148,21 +101,22 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
       }
       return files;
     } catch (GeneralSecurityException e) {
-      throw new RuntimeException(e.toString());
+      throw new InterruptedException(e.toString());
     } catch (IOException e) {
-      throw new RuntimeException(e.toString());
+      throw new InterruptedException(e.toString());
     } catch (InterruptedException e) {
-      throw new RuntimeException(e.toString());
+      throw new InterruptedException(e.toString());
     }
   }
 
+  // TODO Google Drive API does not support partitioning exported Google Docs, implement external partitioning
   private FileFromFolder exportGoogleDocFile(Drive service, File currentFile, String exportFormat) throws IOException {
     OutputStream outputStream = new ByteArrayOutputStream();
     service.files().export(currentFile.getId(), exportFormat).executeMediaAndDownloadTo(outputStream);
-    return new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), currentFile);
+    return new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), 0L, currentFile);
   }
 
-  private String generateFilter(String fileId) throws InterruptedException {
+  private String generateFilter() throws InterruptedException {
     StringBuilder sb = new StringBuilder();
 
     // prepare parent
@@ -175,23 +129,16 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     sb.append(DRIVE_FOLDER_MIME);
     sb.append("'");
 
-    // add fileId if needed
-    if (fileId != null) {
-      sb.append(" and fileId = '");
-      sb.append(fileId);
-      sb.append("'");
-    }
-
     List<String> formats = config.getFileTypesToPull();
     if (!formats.isEmpty()) {
       sb.append(" and (");
       for (String format : formats) {
         if (format.equals("binary")) {
-          sb.append("not mimeType contains '");
+          sb.append(" not mimeType contains '");
           sb.append(mimeFromType(format));
           sb.append("' or");
         } else {
-          sb.append("mimeType = '");
+          sb.append(" mimeType = '");
           sb.append(mimeFromType(format));
           sb.append("' or");
         }
@@ -225,7 +172,7 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
       case "appsScripts":
         return DRIVE_APPS_SCRIPTS_MIME;
       default:
-        throw new InterruptedException("Invalid MIME");
+        throw new InterruptedException("Invalid MIME type");
     }
   }
 }

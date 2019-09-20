@@ -14,13 +14,12 @@
  * the License.
  */
 
-package io.cdap.plugin.google;
+package io.cdap.plugin.google.source;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import io.cdap.cdap.api.data.batch.InputFormatProvider;
-import io.cdap.plugin.google.source.GoogleDriveSourceConfig;
 
 import java.util.Map;
 
@@ -29,13 +28,13 @@ import java.util.Map;
  */
 public class GoogleDriveInputFormatProvider implements InputFormatProvider {
   public static final String PROPERTY_CONFIG_JSON = "cdap.google.config";
-  private static final Gson gson = new GsonBuilder().create();
+  public static final Gson GSON = new GsonBuilder().create();
 
   private final Map<String, String> conf;
 
   public GoogleDriveInputFormatProvider(GoogleDriveSourceConfig config) {
     this.conf = new ImmutableMap.Builder<String, String>()
-      .put(PROPERTY_CONFIG_JSON, gson.toJson(config))
+      .put(PROPERTY_CONFIG_JSON, GSON.toJson(config))
       .build();
   }
 

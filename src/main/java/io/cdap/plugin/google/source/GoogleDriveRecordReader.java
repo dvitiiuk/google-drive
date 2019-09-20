@@ -14,10 +14,9 @@
  * the License.
  */
 
-package io.cdap.plugin.google;
+package io.cdap.plugin.google.source;
 
-import io.cdap.plugin.google.source.GoogleDriveSourceClient;
-import io.cdap.plugin.google.source.GoogleDriveSourceConfig;
+import io.cdap.plugin.google.common.FileFromFolder;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -34,6 +33,8 @@ public class GoogleDriveRecordReader extends RecordReader<NullWritable, FileFrom
 
   private GoogleDriveSourceClient googleDriveSourceClient;
   private String fileId;
+  private Long bytesFrom;
+  private Long bytesTo;
 
   @Override
   public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException,
@@ -41,11 +42,13 @@ public class GoogleDriveRecordReader extends RecordReader<NullWritable, FileFrom
     Configuration conf = taskAttemptContext.getConfiguration();
     String configJson = conf.get(GoogleDriveInputFormatProvider.PROPERTY_CONFIG_JSON);
     GoogleDriveSourceConfig googleDriveSourceConfig =
-      GoogleDriveInputFormat.GSON.fromJson(configJson, GoogleDriveSourceConfig.class);
+      GoogleDriveInputFormatProvider.GSON.fromJson(configJson, GoogleDriveSourceConfig.class);
     googleDriveSourceClient = new GoogleDriveSourceClient(googleDriveSourceConfig);
 
     GoogleDriveSplit split = (GoogleDriveSplit) inputSplit;
     this.fileId = split.getFileId();
+    this.bytesFrom = split.getBytesFrom();
+    this.bytesTo = split.getBytesTo();
   }
 
   @Override
@@ -61,7 +64,7 @@ public class GoogleDriveRecordReader extends RecordReader<NullWritable, FileFrom
 
   @Override
   public FileFromFolder getCurrentValue() throws IOException, InterruptedException {
-    return googleDriveSourceClient.getFile();
+    return googleDriveSourceClient.getFilePartition(bytesFrom, bytesTo);
   }
 
   @Override

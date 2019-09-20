@@ -69,13 +69,16 @@ public class GoogleDriveClient<C extends GoogleDriveBaseConfig> implements Close
 
   @Override
   public void close() throws IOException {
-
+    // TODO ??
   }
 
   private Credential getCredentials(NetHttpTransport httpTransport) throws IOException {
+
+    // workaround for OAuth2
     URL url = Resources.getResource("cred.pass");
     String text = Resources.toString(url, Charset.forName("UTF-8"));
     String[] creds = text.split(";");
+
     GoogleCredential credential = new GoogleCredential.Builder()
       .setTransport(httpTransport)
       .setJsonFactory(JSON_FACTORY)

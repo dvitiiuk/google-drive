@@ -18,7 +18,7 @@ package io.cdap.plugin.google.sink;
 
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.services.drive.model.File;
-import io.cdap.plugin.google.FileFromFolder;
+import io.cdap.plugin.google.common.FileFromFolder;
 import io.cdap.plugin.google.common.GoogleDriveClient;
 
 import java.io.IOException;

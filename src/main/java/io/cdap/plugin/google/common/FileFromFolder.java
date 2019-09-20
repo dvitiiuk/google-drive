@@ -14,7 +14,7 @@
  * the License.
  */
 
-package io.cdap.plugin.google;
+package io.cdap.plugin.google.common;
 
 import com.google.api.services.drive.model.File;
 
@@ -23,10 +23,12 @@ import com.google.api.services.drive.model.File;
  */
 public class FileFromFolder {
   private final byte[] content;
+  private final Long offset;
   private final File file;
 
-  public FileFromFolder(byte[] content, File file) {
+  public FileFromFolder(byte[] content, Long offset, File file) {
     this.content = content;
+    this.offset = offset;
     this.file = file;
   }
 
@@ -36,5 +38,9 @@ public class FileFromFolder {
 
   public File getFile() {
     return file;
+  }
+
+  public Long getOffset() {
+    return offset;
   }
 }

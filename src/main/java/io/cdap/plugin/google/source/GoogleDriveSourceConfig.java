@@ -16,12 +16,12 @@
 
 package io.cdap.plugin.google.source;
 
+import com.google.common.base.Strings;
 import io.cdap.cdap.api.annotation.Description;
 import io.cdap.cdap.api.annotation.Macro;
 import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
-import io.cdap.plugin.google.SchemaBuilder;
 import io.cdap.plugin.google.common.GoogleDriveBaseConfig;
 
 import java.util.Arrays;
@@ -33,44 +33,64 @@ import javax.annotation.Nullable;
  * Configurations for Google Drive Batch Source plugin.
  */
 public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
+  public static final String FILTER = "filter";
+  public static final String MODIFICATION_DATE_RANGE = "modificationDateRange";
+  public static final String FILE_PROPERTIES = "fileProperties";
   public static final String FILE_TYPES_TO_PULL = "fileTypesToPull";
+  public static final String MAX_BODY_SIZE = "maxBodySize";
   public static final String DOCS_EXPORTING_FORMAT = "docsExportingFormat";
   public static final String SHEETS_EXPORTING_FORMAT = "sheetsExportingFormat";
   public static final String DRAWINGS_EXPORTING_FORMAT = "drawingsExportingFormat";
   public static final String PRESENTATIONS_EXPORTING_FORMAT = "presentationsExportingFormat";
+
   @Nullable
+  @Name(FILTER)
   @Description("A filter that can be applied to the files in the selected directory. " +
     "Filters follow the Google Drive Filter Syntax.")
   @Macro
   protected String filter;
+
   @Nullable
+  @Name(MODIFICATION_DATE_RANGE)
   @Description("In addition to the filter specified above, also filter files to only pull those " +
     "that were modified between the date range.")
   @Macro
   protected String modificationDateRange;
+
   @Nullable
-  @Description("Metainfos")
+  @Name(FILE_PROPERTIES)
+  @Description("Properties which should be get for each file in directory.")
   @Macro
-  protected String metainfos;
+  protected String fileProperties;
+
   @Name(FILE_TYPES_TO_PULL)
   @Description("Types of files should be pulled from specified directory.")
   @Macro
   protected String fileTypesToPull;
+
+  @Name(MAX_BODY_SIZE)
+  @Description("Maximum body size for each partition specified in bytes. Default 0 value means unlimited.")
+  @Macro
+  protected String maxBodySize;
+
   @Nullable
   @Name(DOCS_EXPORTING_FORMAT)
   @Description("MIME type for Google Documents.")
   @Macro
   protected String docsExportingFormat;
+
   @Nullable
   @Name(SHEETS_EXPORTING_FORMAT)
   @Description("MIME type for Google Spreadsheets.")
   @Macro
   protected String sheetsExportingFormat;
+
   @Nullable
   @Name(DRAWINGS_EXPORTING_FORMAT)
   @Description("MIME type for Google Drawings.")
   @Macro
   protected String drawingsExportingFormat;
+
   @Nullable
   @Name(PRESENTATIONS_EXPORTING_FORMAT)
   @Description("MIME type for Google Presentations.")
@@ -84,15 +104,27 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
 
   public Schema getSchema() {
     if (schema == null) {
-      /*schema = Schema.recordOf("FilesFromFolder",
-          Schema.Field.of("content", Schema.of(Schema.Type.STRING)));*/
-      schema = SchemaBuilder.buildSchema(getMetainfos());
+      schema = SchemaBuilder.buildSchema(getFileProperties());
     }
     return schema;
   }
 
   public void validate(FailureCollector collector) {
     super.validate(collector);
+    if (!containsMacro(FILE_TYPES_TO_PULL)) {
+      if (Strings.isNullOrEmpty(fileTypesToPull)) {
+        collector.addFailure("fileTypesToPull is empty or macro is not available",
+                             "fileTypesToPull must be not empty")
+          .withConfigProperty(FILE_TYPES_TO_PULL);
+      }
+    }
+    if (!containsMacro(MAX_BODY_SIZE)) {
+      if (Strings.isNullOrEmpty(maxBodySize)) {
+        collector.addFailure("maxBodySize is empty or macro is not available",
+                             "maxBodySize must be not empty")
+          .withConfigProperty(MAX_BODY_SIZE);
+      }
+    }
   }
 
   @Nullable
@@ -113,15 +145,15 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
     this.modificationDateRange = modificationDateRange;
   }
 
-  List<String> getMetainfos() {
-    if (metainfos == null || "".equals(metainfos)) {
+  List<String> getFileProperties() {
+    if (fileProperties == null || "".equals(fileProperties)) {
       return Collections.emptyList();
     }
-    return Arrays.asList(metainfos.split(","));
+    return Arrays.asList(fileProperties.split(","));
   }
 
-  public void setMetainfos(@Nullable String metainfos) {
-    this.metainfos = metainfos;
+  public void setFileProperties(@Nullable String fileProperties) {
+    this.fileProperties = fileProperties;
   }
 
   public List<String> getFileTypesToPull() {
@@ -133,6 +165,14 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
 
   public void setFileTypesToPull(String fileTypesToPull) {
     this.fileTypesToPull = fileTypesToPull;
+  }
+
+  public Long getMaxBodySize() {
+    return Long.parseLong(maxBodySize);
+  }
+
+  public void setMaxBodySize(String maxBodySize) {
+    this.maxBodySize = maxBodySize;
   }
 
   public String getDocsExportingFormat() {

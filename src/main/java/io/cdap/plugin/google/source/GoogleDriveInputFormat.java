@@ -14,12 +14,9 @@
  * the License.
  */
 
-package io.cdap.plugin.google;
+package io.cdap.plugin.google.source;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import io.cdap.plugin.google.source.GoogleDriveSourceClient;
-import io.cdap.plugin.google.source.GoogleDriveSourceConfig;
+import com.google.api.services.drive.model.File;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -27,27 +24,47 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Input format class which generates splits for each query.
  */
 public class GoogleDriveInputFormat extends InputFormat {
-  public static final Gson GSON = new GsonBuilder().create();
 
   @Override
-  public List<InputSplit> getSplits(JobContext jobContext) {
+  public List<InputSplit> getSplits(JobContext jobContext) throws InterruptedException {
     Configuration conf = jobContext.getConfiguration();
     String configJson = conf.get(GoogleDriveInputFormatProvider.PROPERTY_CONFIG_JSON);
-    GoogleDriveSourceConfig googleDriveSourceConfig = GSON.fromJson(configJson, GoogleDriveSourceConfig.class);
+    GoogleDriveSourceConfig googleDriveSourceConfig =
+      GoogleDriveInputFormatProvider.GSON.fromJson(configJson, GoogleDriveSourceConfig.class);
 
     GoogleDriveSourceClient client = new GoogleDriveSourceClient(googleDriveSourceConfig);
-    /*List<InputSplit> splits = new ArrayList<>();
-    for (File file : client.getFiles()) {
-      splits.add(new GoogleDriveSplit(file.getId()));
-    }*/
-    return client.getFiles().stream().map(f -> new GoogleDriveSplit(f.getId())).collect(Collectors.toList());
+    Long maxBodySize = googleDriveSourceConfig.getMaxBodySize();
+
+    return getSplitsFromFiles(client.getFiles(), maxBodySize);
+  }
+
+  private List<InputSplit> getSplitsFromFiles(List<File> files, Long maxBodySize) {
+    List<InputSplit> splits = new ArrayList<>();
+    for (File file : files) {
+      Long fileSize = file.getSize();
+      if (maxBodySize == 0L || fileSize <= maxBodySize) {
+        splits.add(getSplitWithUnlimitedPartitionSize(file.getId()));
+      } else {
+        long currentPoint = 0L;
+        while (currentPoint < fileSize) {
+          splits.add(new GoogleDriveSplit(file.getId(), currentPoint,
+                                          Math.min(fileSize, currentPoint + maxBodySize) - 1));
+          currentPoint += maxBodySize;
+        }
+      }
+    }
+    return splits;
+  }
+
+  private GoogleDriveSplit getSplitWithUnlimitedPartitionSize(String fileId) {
+    return new GoogleDriveSplit(fileId, 0L, 0L);
   }
 
   @Override

@@ -29,9 +29,7 @@ import io.cdap.cdap.etl.api.PipelineConfigurer;
 import io.cdap.cdap.etl.api.batch.BatchSource;
 import io.cdap.cdap.etl.api.batch.BatchSourceContext;
 import io.cdap.plugin.common.LineageRecorder;
-import io.cdap.plugin.google.FileFromFolder;
-import io.cdap.plugin.google.FilesFromFolderTransformer;
-import io.cdap.plugin.google.GoogleDriveInputFormatProvider;
+import io.cdap.plugin.google.common.FileFromFolder;
 import org.apache.hadoop.io.NullWritable;
 
 import java.util.stream.Collectors;

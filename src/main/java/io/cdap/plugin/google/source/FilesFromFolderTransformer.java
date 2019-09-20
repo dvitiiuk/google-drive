@@ -14,11 +14,12 @@
  * the License.
  */
 
-package io.cdap.plugin.google;
+package io.cdap.plugin.google.source;
 
 import com.google.api.services.drive.model.File;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
+import io.cdap.plugin.google.common.FileFromFolder;
 
 /**
  * Transforms {@link FileFromFolder} wrapper to {@link StructuredRecord} instance.
@@ -30,8 +31,10 @@ public class FilesFromFolderTransformer {
 
     for (Schema.Field field : schema.getFields()) {
       String name = field.getName();
-      if (name.equals(SchemaBuilder.CONTENT_FIELD_NAME)) {
-        builder.set(SchemaBuilder.CONTENT_FIELD_NAME, fileFromFolder.getContent());
+      if (name.equals(SchemaBuilder.BODY_FIELD_NAME)) {
+        builder.set(SchemaBuilder.BODY_FIELD_NAME, fileFromFolder.getContent());
+      } else if (name.equals(SchemaBuilder.OFFSET_FIELD_NAME)) {
+        builder.set(SchemaBuilder.OFFSET_FIELD_NAME, fileFromFolder.getOffset());
       } else if (!field.getName().contains(".")) {
         File file = fileFromFolder.getFile();
         if (file != null) {

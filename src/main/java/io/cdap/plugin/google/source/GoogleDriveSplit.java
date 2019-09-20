@@ -14,7 +14,7 @@
  * the License.
  */
 
-package io.cdap.plugin.google;
+package io.cdap.plugin.google.source;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -28,24 +28,32 @@ import java.io.IOException;
  */
 public class GoogleDriveSplit extends InputSplit implements Writable {
   private String fileId;
+  private Long bytesFrom;
+  private Long bytesTo;
 
   @SuppressWarnings("unused")
   public GoogleDriveSplit() {
     // For serialization
   }
 
-  public GoogleDriveSplit(String name) {
-    this.fileId = name;
+  public GoogleDriveSplit(String fileId, Long bytesFrom, Long bytesTo) {
+    this.fileId = fileId;
+    this.bytesFrom = bytesFrom;
+    this.bytesTo = bytesTo;
   }
 
   @Override
   public void readFields(DataInput dataInput) throws IOException {
     fileId = dataInput.readUTF();
+    bytesFrom = dataInput.readLong();
+    bytesTo = dataInput.readLong();
   }
 
   @Override
   public void write(DataOutput dataOutput) throws IOException {
     dataOutput.writeUTF(fileId);
+    dataOutput.writeLong(bytesFrom);
+    dataOutput.writeLong(bytesTo);
   }
 
   @Override
@@ -60,5 +68,13 @@ public class GoogleDriveSplit extends InputSplit implements Writable {
 
   public String getFileId() {
     return fileId;
+  }
+
+  public Long getBytesFrom() {
+    return bytesFrom;
+  }
+
+  public Long getBytesTo() {
+    return bytesTo;
   }
 }

@@ -38,7 +38,7 @@
           "name": "modificationDateRange"
         },
         {
-          "name": "metainfos",
+          "name": "fileProperties",
           "widget-type": "multi-select",
           "label": "File properties",
           "widget-attributes": {
@@ -71,94 +71,6 @@
               {
                 "id": "explicitlyTrashed",
                 "label": "Explicitly trashed"
-              },
-              {
-                "id": "parents",
-                "label": "Parents"
-              },
-              {
-                "id": "properties",
-                "label": "Properties"
-              },
-              {
-                "id": "imageMediaMetadata.width",
-                "label": "Width"
-              },
-              {
-                "id": "imageMediaMetadata.height",
-                "label": "Height"
-              },
-              {
-                "id": "imageMediaMetadata.rotation",
-                "label": "Rotation"
-              },
-              {
-                "id": "imageMediaMetadata.location.latitude",
-                "label": "Latitude"
-              },
-              {
-                "id": "imageMediaMetadata.location.longitude",
-                "label": "Longitude"
-              },
-              {
-                "id": "imageMediaMetadata.location.altitude",
-                "label": "Altitude"
-              },
-              {
-                "id": "imageMediaMetadata.time",
-                "label": "Time"
-              },
-              {
-                "id": "imageMediaMetadata.cameraMake",
-                "label": "Camera"
-              },
-              {
-                "id": "imageMediaMetadata.cameraModel",
-                "label": "Camera model"
-              },
-              {
-                "id": "imageMediaMetadata.exposureTime",
-                "label": "Exposure"
-              },
-              {
-                "id": "imageMediaMetadata.aperture",
-                "label": "Aperture"
-              },
-              {
-                "id": "imageMediaMetadata.flashUsed",
-                "label": "Used flash"
-              },
-              {
-                "id": "imageMediaMetadata.focalLength",
-                "label": "Focal length"
-              },
-              {
-                "id": "imageMediaMetadata.isoSpeed",
-                "label": "ISO"
-              },
-              {
-                "id": "imageMediaMetadata.meteringMode",
-                "label": "Metering mode"
-              },
-              {
-                "id": "imageMediaMetadata.sensor",
-                "label": "Sensor"
-              },
-              {
-                "id": "imageMediaMetadata.exposureMode",
-                "label": "Exposure mode"
-              },
-              {
-                "id": "imageMediaMetadata.colorSpace",
-                "label": "Color space"
-              },
-              {
-                "id": "imageMediaMetadata.whiteBalance",
-                "label": "Color space"
-              },
-              {
-                "id": "imageMediaMetadata.exposureBias",
-                "label": "Color space"
               }
             ]
           }
@@ -198,6 +110,21 @@
                 "label": "Google Apps Scripts"
               }
             ]
+          }
+        }
+      ]
+    },
+    {
+      "label": "Advanced",
+      "properties": [
+        {
+          "widget-type": "number",
+          "label": "Maximum body size per split",
+          "name": "maxBodySize",
+          "widget-attributes": {
+            "default": "0",
+            "min": "0",
+            "max": "1000000000"
           }
         }
       ]
