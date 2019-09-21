@@ -33,9 +33,32 @@
           "name": "filter"
         },
         {
-          "widget-type": "textbox",
+          "widget-type": "select",
           "label": "Modification date range",
-          "name": "modificationDateRange"
+          "name": "modificationDateRange",
+          "widget-attributes": {
+            "default": "None",
+            "values": [
+              "None",
+              "Last 7 Days",
+              "Last 30 days",
+              "Previous Quarter",
+              "Current Quarter",
+              "Last Year",
+              "Current Year",
+              "Custom"
+            ]
+          }
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Start Date",
+          "name": "endDate"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "End Date",
+          "name": "endDate"
         },
         {
           "name": "fileProperties",
@@ -119,8 +142,8 @@
       "properties": [
         {
           "widget-type": "number",
-          "label": "Maximum body size per split",
-          "name": "maxBodySize",
+          "label": "Maximum partition size specified in bytes.",
+          "name": "maxPartitionSize",
           "widget-attributes": {
             "default": "0",
             "min": "0",
@@ -202,6 +225,24 @@
       "widget-type": "non-editable-schema-editor",
       "schema": {
       }
+    }
+  ],
+  "filters": [
+    {
+      "name": "Select modification date range",
+      "condition": {
+        "expression": "modificationDateRange == 'Custom'"
+      },
+      "show": [
+        {
+          "name": "startDate",
+          "type": "property"
+        },
+        {
+          "name": "endDate",
+          "type": "property"
+        }
+      ]
     }
   ]
 }

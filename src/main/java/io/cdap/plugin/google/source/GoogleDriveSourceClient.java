@@ -21,6 +21,9 @@ import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import io.cdap.plugin.google.common.FileFromFolder;
 import io.cdap.plugin.google.common.GoogleDriveClient;
+import io.cdap.plugin.google.source.utils.DateRange;
+import io.cdap.plugin.google.source.utils.ExportedType;
+import io.cdap.plugin.google.source.utils.ModifiedDateRangeUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -66,7 +69,7 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     FileFromFolder fileFromFolder;
 
     String mimeType = currentFile.getMimeType();
-    if (!mimeType.startsWith("application/vnd.google-apps.")) {
+    if (!mimeType.startsWith(DRIVE_DOCS_MIME_PREFIX)) {
       Long offset = bytesFrom == null ? 0L : bytesFrom;
       OutputStream outputStream = new ByteArrayOutputStream();
       Drive.Files.Get get = service.files().get(currentFile.getId());
@@ -87,6 +90,8 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
       fileFromFolder = exportGoogleDocFile(service, currentFile, config.getDrawingsExportingFormat());
     } else if (mimeType.equals(DRIVE_PRESENTATIONS_MIME)) {
       fileFromFolder = exportGoogleDocFile(service, currentFile, config.getPresentationsExportingFormat());
+    } else if (mimeType.equals(DRIVE_APPS_SCRIPTS_MIME)) {
+      fileFromFolder = exportGoogleDocFile(service, currentFile, DEFAULT_APPS_SCRIPTS_EXPORT_MIME);
     } else {
       fileFromFolder =
         new FileFromFolder(new byte[]{}, bytesFrom, currentFile);
@@ -138,17 +143,17 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     sb.append(DRIVE_FOLDER_MIME);
     sb.append("'");
 
-    List<String> formats = config.getFileTypesToPull();
-    if (!formats.isEmpty()) {
+    List<ExportedType> exportedTypes = config.getFileTypesToPull();
+    if (!exportedTypes.isEmpty()) {
       sb.append(" and (");
-      for (String format : formats) {
-        if (format.equals("binary")) {
+      for (ExportedType exportedType : exportedTypes) {
+        if (exportedType.equals(ExportedType.BINARY)) {
           sb.append(" not mimeType contains '");
-          sb.append(mimeFromType(format));
+          sb.append(exportedType.getRelatedMIME());
           sb.append("' or");
         } else {
           sb.append(" mimeType = '");
-          sb.append(mimeFromType(format));
+          sb.append(exportedType.getRelatedMIME());
           sb.append("' or");
         }
       }
@@ -163,25 +168,13 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
       sb.append(filter);
     }
 
-    return sb.toString();
-  }
-
-  private String mimeFromType(String type) throws InterruptedException {
-    switch (type) {
-      case "binary":
-        return DRIVE_DOCS_MIME_PREFIX;
-      case "documents":
-        return DRIVE_DOCUMENTS_MIME;
-      case "spreadsheets":
-        return DRIVE_SPREADSHEETS_MIME;
-      case "drawings":
-        return DRIVE_DRAWINGS_MIME;
-      case "presentations":
-        return DRIVE_PRESENTATIONS_MIME;
-      case "appsScripts":
-        return DRIVE_APPS_SCRIPTS_MIME;
-      default:
-        throw new InterruptedException("Invalid MIME type");
+    DateRange modifiedDateRange = ModifiedDateRangeUtils.getDataRange(config);
+    if (modifiedDateRange != null) {
+      sb.append(" and ");
+      sb.append(ModifiedDateRangeUtils.getFilterValue(modifiedDateRange));
     }
+
+
+    return sb.toString();
   }
 }

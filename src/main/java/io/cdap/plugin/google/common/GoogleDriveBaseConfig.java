@@ -51,27 +51,36 @@ public abstract class GoogleDriveBaseConfig extends ReferencePluginConfig {
   }
 
   public void validate(FailureCollector collector) {
-    if (!containsMacro(APP_ID)) {
-      if (Strings.isNullOrEmpty(appId)) {
-        collector.addFailure("appId  is empty or macro is not available",
-                             "appId must be not empty")
-          .withConfigProperty(APP_ID);
+    checkPropertyIsSet(collector, appId, APP_ID);
+    checkPropertyIsSet(collector, accessToken, ACCESS_TOKEN);
+    checkPropertyIsSet(collector, directoryIdentifier, DIRECTORY_IDENTIFIER);
+  }
+
+  protected void checkPropertyIsSet(FailureCollector collector, String propertyValue, String propertyName) {
+    if (!containsMacro(propertyName)) {
+      if (Strings.isNullOrEmpty(propertyValue)) {
+        collector.addFailure(getValidationFailedMessage(propertyName),
+                             getValidationFailedCorrectiveAction(propertyName))
+          .withConfigProperty(propertyName);
       }
     }
-    if (!containsMacro(ACCESS_TOKEN)) {
-      if (Strings.isNullOrEmpty(accessToken)) {
-        collector.addFailure("accessToken is empty or macro is not available",
-                             "accessToken must be not empty")
-          .withConfigProperty(ACCESS_TOKEN);
-      }
+  }
+
+  protected void checkPropertyIsValid(FailureCollector collector, boolean isPropertyValid, String propertyName) {
+    if (isPropertyValid) {
+      return;
     }
-    if (!containsMacro(DIRECTORY_IDENTIFIER)) {
-      if (Strings.isNullOrEmpty(directoryIdentifier)) {
-        collector.addFailure("directoryIdentifier is empty or macro is not available",
-                             "directoryIdentifier must be not empty")
-          .withConfigProperty(DIRECTORY_IDENTIFIER);
-      }
-    }
+    collector.addFailure(propertyName + " has invalid value",
+                         getValidationFailedCorrectiveAction(propertyName))
+      .withConfigProperty(propertyName);
+  }
+
+  protected String getValidationFailedMessage(String propertyName) {
+    return propertyName + " is empty or macro is not available";
+  }
+
+  protected String getValidationFailedCorrectiveAction(String propertyName) {
+    return "Enter valid " + propertyName;
   }
 
   public String getAppId() {

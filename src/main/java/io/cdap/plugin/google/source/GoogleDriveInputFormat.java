@@ -40,7 +40,7 @@ public class GoogleDriveInputFormat extends InputFormat {
       GoogleDriveInputFormatProvider.GSON.fromJson(configJson, GoogleDriveSourceConfig.class);
 
     GoogleDriveSourceClient client = new GoogleDriveSourceClient(googleDriveSourceConfig);
-    Long maxBodySize = googleDriveSourceConfig.getMaxBodySize();
+    Long maxBodySize = googleDriveSourceConfig.getMaxPartitionSize();
 
     return getSplitsFromFiles(client.getFiles(), maxBodySize);
   }

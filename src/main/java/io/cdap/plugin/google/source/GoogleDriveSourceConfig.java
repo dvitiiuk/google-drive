@@ -16,17 +16,21 @@
 
 package io.cdap.plugin.google.source;
 
-import com.google.common.base.Strings;
 import io.cdap.cdap.api.annotation.Description;
 import io.cdap.cdap.api.annotation.Macro;
 import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.plugin.google.common.GoogleDriveBaseConfig;
+import io.cdap.plugin.google.source.utils.ExportedType;
+import io.cdap.plugin.google.source.utils.ModifiedDateRangeType;
+import io.cdap.plugin.google.source.utils.ModifiedDateRangeUtils;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 /**
@@ -35,9 +39,11 @@ import javax.annotation.Nullable;
 public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   public static final String FILTER = "filter";
   public static final String MODIFICATION_DATE_RANGE = "modificationDateRange";
+  public static final String START_DATE = "startDate";
+  public static final String END_DATE = "endDate";
   public static final String FILE_PROPERTIES = "fileProperties";
   public static final String FILE_TYPES_TO_PULL = "fileTypesToPull";
-  public static final String MAX_BODY_SIZE = "maxBodySize";
+  public static final String MAX_PARTITION_SIZE = "maxPartitionSize";
   public static final String DOCS_EXPORTING_FORMAT = "docsExportingFormat";
   public static final String SHEETS_EXPORTING_FORMAT = "sheetsExportingFormat";
   public static final String DRAWINGS_EXPORTING_FORMAT = "drawingsExportingFormat";
@@ -58,6 +64,20 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   protected String modificationDateRange;
 
   @Nullable
+  @Name(START_DATE)
+  @Description("Accepts start date for modification date range. " +
+    "RFC3339 format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
+  @Macro
+  protected String startDate;
+
+  @Nullable
+  @Name(END_DATE)
+  @Description("Accepts end date for modification date range. " +
+    "RFC3339 format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
+  @Macro
+  protected String endDate;
+
+  @Nullable
   @Name(FILE_PROPERTIES)
   @Description("Properties which should be get for each file in directory.")
   @Macro
@@ -68,10 +88,10 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   @Macro
   protected String fileTypesToPull;
 
-  @Name(MAX_BODY_SIZE)
+  @Name(MAX_PARTITION_SIZE)
   @Description("Maximum body size for each partition specified in bytes. Default 0 value means unlimited.")
   @Macro
-  protected String maxBodySize;
+  protected String maxPartitionSize;
 
   @Nullable
   @Name(DOCS_EXPORTING_FORMAT)
@@ -111,20 +131,27 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
 
   public void validate(FailureCollector collector) {
     super.validate(collector);
-    if (!containsMacro(FILE_TYPES_TO_PULL)) {
-      if (Strings.isNullOrEmpty(fileTypesToPull)) {
-        collector.addFailure("fileTypesToPull is empty or macro is not available",
-                             "fileTypesToPull must be not empty")
-          .withConfigProperty(FILE_TYPES_TO_PULL);
-      }
+    checkPropertyIsSet(collector, fileTypesToPull, FILE_TYPES_TO_PULL);
+    checkPropertyIsSet(collector, maxPartitionSize, MAX_PARTITION_SIZE);
+
+    checkPropertyIsValid(collector, getModificationDateRangeType() != null, MODIFICATION_DATE_RANGE);
+    if (getModificationDateRangeType().equals(ModifiedDateRangeType.CUSTOM)) {
+      checkPropertyIsSet(collector, startDate, START_DATE);
+      checkPropertyIsSet(collector, endDate, END_DATE);
+      checkPropertyIsValid(collector, ModifiedDateRangeUtils.isValidDateString(startDate), START_DATE);
+      checkPropertyIsValid(collector, ModifiedDateRangeUtils.isValidDateString(endDate), END_DATE);
     }
-    if (!containsMacro(MAX_BODY_SIZE)) {
-      if (Strings.isNullOrEmpty(maxBodySize)) {
-        collector.addFailure("maxBodySize is empty or macro is not available",
-                             "maxBodySize must be not empty")
-          .withConfigProperty(MAX_BODY_SIZE);
-      }
+
+    for (ExportedType exportedType : getFileTypesToPull()) {
+      checkPropertyIsValid(collector, exportedType != null, FILE_TYPES_TO_PULL);
     }
+  }
+
+  public ModifiedDateRangeType getModificationDateRangeType() {
+    return Stream.of(ModifiedDateRangeType.values())
+      .filter(keyType -> keyType.getValue().equalsIgnoreCase(modificationDateRange))
+      .findAny()
+      .orElse(null);
   }
 
   @Nullable
@@ -156,23 +183,24 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
     this.fileProperties = fileProperties;
   }
 
-  public List<String> getFileTypesToPull() {
+  public List<ExportedType> getFileTypesToPull() {
     if (fileTypesToPull == null || "".equals(fileTypesToPull)) {
       return Collections.emptyList();
     }
-    return Arrays.asList(fileTypesToPull.split(","));
+    return Arrays.stream(fileTypesToPull.split(","))
+      .map(type -> ExportedType.fromValue(type)).collect(Collectors.toList());
   }
 
   public void setFileTypesToPull(String fileTypesToPull) {
     this.fileTypesToPull = fileTypesToPull;
   }
 
-  public Long getMaxBodySize() {
-    return Long.parseLong(maxBodySize);
+  public Long getMaxPartitionSize() {
+    return Long.parseLong(maxPartitionSize);
   }
 
-  public void setMaxBodySize(String maxBodySize) {
-    this.maxBodySize = maxBodySize;
+  public void setMaxPartitionSize(String maxPartitionSize) {
+    this.maxPartitionSize = maxPartitionSize;
   }
 
   public String getDocsExportingFormat() {
@@ -205,5 +233,23 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
 
   public void setPresentationsExportingFormat(String presentationsExportingFormat) {
     this.presentationsExportingFormat = presentationsExportingFormat;
+  }
+
+  @Nullable
+  public String getStartDate() {
+    return startDate;
+  }
+
+  public void setStartDate(@Nullable String startDate) {
+    this.startDate = startDate;
+  }
+
+  @Nullable
+  public String getEndDate() {
+    return endDate;
+  }
+
+  public void setEndDate(@Nullable String endDate) {
+    this.endDate = endDate;
   }
 }

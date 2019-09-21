@@ -38,13 +38,17 @@ import java.security.GeneralSecurityException;
  */
 public class GoogleDriveClient<C extends GoogleDriveBaseConfig> implements Closeable {
 
-  protected static final String DRIVE_FOLDER_MIME = "application/vnd.google-apps.folder";
-  protected static final String DRIVE_DOCS_MIME_PREFIX = "application/vnd.google-apps.";
-  protected static final String DRIVE_DOCUMENTS_MIME = "application/vnd.google-apps.document";
-  protected static final String DRIVE_SPREADSHEETS_MIME = "application/vnd.google-apps.spreadsheet";
-  protected static final String DRIVE_DRAWINGS_MIME = "application/vnd.google-apps.drawing";
-  protected static final String DRIVE_PRESENTATIONS_MIME = "application/vnd.google-apps.presentation";
-  protected static final String DRIVE_APPS_SCRIPTS_MIME = "application/vnd.google-apps.script";
+  public static final String MODIFIED_TIME_TERM = "modifiedTime";
+
+  public static final String DRIVE_FOLDER_MIME = "application/vnd.google-apps.folder";
+  public static final String DRIVE_DOCS_MIME_PREFIX = "application/vnd.google-apps.";
+  public static final String DRIVE_DOCUMENTS_MIME = "application/vnd.google-apps.document";
+  public static final String DRIVE_SPREADSHEETS_MIME = "application/vnd.google-apps.spreadsheet";
+  public static final String DRIVE_DRAWINGS_MIME = "application/vnd.google-apps.drawing";
+  public static final String DRIVE_PRESENTATIONS_MIME = "application/vnd.google-apps.presentation";
+  public static final String DRIVE_APPS_SCRIPTS_MIME = "application/vnd.google-apps.script";
+
+  public static final String DEFAULT_APPS_SCRIPTS_EXPORT_MIME = "application/vnd.google-apps.script+json";
 
   private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
   protected static Drive service;
