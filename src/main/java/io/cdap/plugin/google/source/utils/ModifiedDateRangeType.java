@@ -16,6 +16,10 @@
 
 package io.cdap.plugin.google.source.utils;
 
+import io.cdap.plugin.google.common.exceptions.InvalidModifiedDateRangeException;
+
+import java.util.stream.Stream;
+
 /**
  * An enum which represent a type of dare range of file modification.
  */
@@ -37,5 +41,12 @@ public enum ModifiedDateRangeType {
 
   public String getValue() {
     return value;
+  }
+
+  public static ModifiedDateRangeType fromValue(String value) {
+    return Stream.of(ModifiedDateRangeType.values())
+      .filter(keyType -> keyType.getValue().equalsIgnoreCase(value))
+      .findAny()
+      .orElseThrow(() -> new InvalidModifiedDateRangeException(value));
   }
 }

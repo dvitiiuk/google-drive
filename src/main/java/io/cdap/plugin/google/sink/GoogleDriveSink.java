@@ -43,6 +43,8 @@ import java.util.Random;
 @Description("Sink plugin to save files from the pipeline to Google Drive directory.")
 public class GoogleDriveSink extends BatchSink<StructuredRecord, Void, Void> {
 
+  private static final String NAME_FIELD_NAME = "name";
+
   private final GoogleDriveSinkConfig config;
   private final GoogleDriveSinkClient sinkClient;
 
@@ -60,7 +62,7 @@ public class GoogleDriveSink extends BatchSink<StructuredRecord, Void, Void> {
   }
 
   @Override
-  public void prepareRun(BatchSinkContext batchSinkContext) throws Exception {
+  public void prepareRun(BatchSinkContext batchSinkContext) {
     batchSinkContext.addOutput(Output.of(config.referenceName, new GoogleDriveOutputFormatProvider()));
   }
 
@@ -71,6 +73,7 @@ public class GoogleDriveSink extends BatchSink<StructuredRecord, Void, Void> {
 
   private FileFromFolder convertFromMessage(StructuredRecord input) {
     byte[] content = new byte[]{};
+    // is not used, just retrieve to not set as file metadata
     Long offset = null;
     String name = null;
     File file = new File();
@@ -81,9 +84,8 @@ public class GoogleDriveSink extends BatchSink<StructuredRecord, Void, Void> {
       } else if (fieldName.equals(SchemaBuilder.OFFSET_FIELD_NAME)) {
         offset = input.get(fieldName);
       }
-      if (fieldName.equals("name")) {
+      if (fieldName.equals(NAME_FIELD_NAME)) {
         name = input.get(fieldName);
-
       } else if (!fieldName.contains(".")) {
         file.set(fieldName, input.get(fieldName));
       }
@@ -91,45 +93,26 @@ public class GoogleDriveSink extends BatchSink<StructuredRecord, Void, Void> {
     if (name == null || name.equals("")) {
       name = generateName();
     }
-    if (offset != null) {
-      name = offset.toString() + "_" + name;
-    }
     file.setName(name);
-    FileFromFolder fileFromFolder = new FileFromFolder(content, null, file);
+    FileFromFolder fileFromFolder = new FileFromFolder(content, offset, file);
     return fileFromFolder;
   }
 
   private void validateSchema(FailureCollector collector, Schema inputSchema) {
     boolean bodyPresent = false;
-    boolean offsetPresent = false;
-    boolean namePresent = false;
     for (Schema.Field field : inputSchema.getFields()) {
       if (field.getName().equals(SchemaBuilder.BODY_FIELD_NAME)) {
         bodyPresent = true;
-      }
-      if (field.getName().equals(SchemaBuilder.OFFSET_FIELD_NAME)) {
-        offsetPresent = true;
-      }
-      if (field.getName().equals("name")) {
-        namePresent = true;
       }
     }
     if (!bodyPresent) {
       collector.addFailure("No 'body' field is available in input schema",
                            "Add 'content' field to schema");
     }
-    if (!offsetPresent) {
-      collector.addFailure("No 'offset' field is available in input schema",
-                           "Add 'offset' field to schema");
-    }
-    if (!namePresent) {
-      collector.addFailure("No 'name' field is available in input schema",
-                           "Add 'name' field to schema");
-    }
   }
 
   public String generateName() {
-    byte[] array = new byte[7]; // length is bounded by 7
+    byte[] array = new byte[7];
     new Random().nextBytes(array);
     return new String(array, Charset.forName("UTF-8"));
   }

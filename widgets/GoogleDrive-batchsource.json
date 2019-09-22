@@ -53,7 +53,7 @@
         {
           "widget-type": "textbox",
           "label": "Start Date",
-          "name": "endDate"
+          "name": "startDate"
         },
         {
           "widget-type": "textbox",

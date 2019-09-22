@@ -17,6 +17,7 @@
 package io.cdap.plugin.google.source.utils;
 
 import io.cdap.plugin.google.common.GoogleDriveClient;
+import io.cdap.plugin.google.common.exceptions.InvalidExportedTypeException;
 
 import java.util.Arrays;
 
@@ -49,6 +50,6 @@ public enum ExportedType {
 
   public static ExportedType fromValue(String value) {
     return Arrays.stream(ExportedType.values()).filter(exportedType -> exportedType.getValue().equals(value))
-      .findAny().orElse(null);
+      .findAny().orElseThrow(() -> new InvalidExportedTypeException(value));
   }
 }

@@ -23,12 +23,9 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
-import com.google.common.io.Resources;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 
 /**
@@ -53,14 +50,14 @@ public class GoogleDriveClient<C extends GoogleDriveBaseConfig> implements Close
   private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
   protected static Drive service;
   protected final C config;
-  private NetHttpTransport httpTransport;
+  private static NetHttpTransport httpTransport;
 
   public GoogleDriveClient(C config) {
     this.config = config;
   }
 
 
-  protected void initialize() throws GeneralSecurityException, IOException {
+  protected void initialize() throws GeneralSecurityException, IOException, InterruptedException {
     if (httpTransport == null) {
       httpTransport = GoogleNetHttpTransport.newTrustedTransport();
     }
@@ -73,24 +70,33 @@ public class GoogleDriveClient<C extends GoogleDriveBaseConfig> implements Close
 
   @Override
   public void close() throws IOException {
-    // TODO ??
+    // no-op
   }
 
-  private Credential getCredentials(NetHttpTransport httpTransport) throws IOException {
+  private Credential getCredentials(NetHttpTransport httpTransport) throws IOException, InterruptedException {
 
-    // workaround for OAuth2
-    URL url = Resources.getResource("cred.pass");
-    String text = Resources.toString(url, Charset.forName("UTF-8"));
-    String[] creds = text.split(";");
+    // TODO fix authentication after OAuth2 will be provided by cdap
+    // So for now we use Access Token property for all needed credentials transmitting in following format:
+    // <clientId>;<clientSecret>;<refreshToken>
+    // start of workaround
+    String credentialsString = config.getAccessToken();
+    String[] parts = credentialsString.split(";");
+    if (parts.length != 3) {
+      throw new InterruptedException("No enough content for accessToken, please populate " +
+                                       "<clientId>;<clientSecret>;<refreshToken> there");
+    }
+    String clientId = parts[0];
+    String clientSecret = parts[1];
+    String refreshToken = parts[2];
+    // end of workaround
 
     GoogleCredential credential = new GoogleCredential.Builder()
       .setTransport(httpTransport)
       .setJsonFactory(JSON_FACTORY)
-      .setClientSecrets(creds[0],
-                        creds[1])
+      .setClientSecrets(clientId,
+                        clientSecret)
       .build();
-    credential.setAccessToken(config.getAccessToken());
-    credential.setRefreshToken(creds[2]);
+    credential.setRefreshToken(refreshToken);
 
     return credential;
   }

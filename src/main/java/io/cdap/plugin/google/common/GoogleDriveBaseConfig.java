@@ -31,6 +31,10 @@ public abstract class GoogleDriveBaseConfig extends ReferencePluginConfig {
   public static final String ACCESS_TOKEN = "accessToken";
   public static final String DIRECTORY_IDENTIFIER = "directoryIdentifier";
 
+  private static final String IS_VALID_FAILURE_MESSAGE_PATTERN = "%s has invalid value %s";
+  private static final String IS_SET_FAILURE_MESSAGE_PATTERN = "%s is empty or macro is not available";
+  private static final String CHECK_CORRECTIVE_MESSAGE_PATTERN = "Enter valid %s";
+
   @Name(APP_ID)
   @Description("Oauth2 app id")
   @Macro
@@ -56,31 +60,36 @@ public abstract class GoogleDriveBaseConfig extends ReferencePluginConfig {
     checkPropertyIsSet(collector, directoryIdentifier, DIRECTORY_IDENTIFIER);
   }
 
-  protected void checkPropertyIsSet(FailureCollector collector, String propertyValue, String propertyName) {
-    if (!containsMacro(propertyName)) {
-      if (Strings.isNullOrEmpty(propertyValue)) {
-        collector.addFailure(getValidationFailedMessage(propertyName),
-                             getValidationFailedCorrectiveAction(propertyName))
-          .withConfigProperty(propertyName);
-      }
+  protected boolean checkPropertyIsSet(FailureCollector collector, String propertyValue, String propertyName) {
+    if (Strings.isNullOrEmpty(propertyValue)) {
+      collector.addFailure(getIsSetValidationFailedMessage(propertyName),
+                           getValidationFailedCorrectiveAction(propertyName))
+        .withConfigProperty(propertyName);
+      return false;
     }
+    return true;
   }
 
-  protected void checkPropertyIsValid(FailureCollector collector, boolean isPropertyValid, String propertyName) {
+  protected void checkPropertyIsValid(FailureCollector collector, boolean isPropertyValid, String propertyName,
+                                      String propertyValue) {
     if (isPropertyValid) {
       return;
     }
-    collector.addFailure(propertyName + " has invalid value",
+    collector.addFailure(String.format(IS_VALID_FAILURE_MESSAGE_PATTERN, propertyName, propertyValue),
                          getValidationFailedCorrectiveAction(propertyName))
       .withConfigProperty(propertyName);
   }
 
-  protected String getValidationFailedMessage(String propertyName) {
-    return propertyName + " is empty or macro is not available";
+  protected void collectInvalidProperty(FailureCollector collector, String propertyName, String propertyValue) {
+    checkPropertyIsValid(collector, false, propertyName, propertyValue);
+  }
+
+  protected String getIsSetValidationFailedMessage(String propertyName) {
+    return String.format(IS_SET_FAILURE_MESSAGE_PATTERN, propertyName);
   }
 
   protected String getValidationFailedCorrectiveAction(String propertyName) {
-    return "Enter valid " + propertyName;
+    return String.format(CHECK_CORRECTIVE_MESSAGE_PATTERN, propertyName);
   }
 
   public String getAppId() {

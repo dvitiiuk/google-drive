@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
  */
 public class ModifiedDateRangeUtils {
 
+  // TODO cover with tests
   private static final Pattern DATE_PATTERN =
     // RFC 3339 regex : year-month-dayT part
     Pattern.compile("^([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]" +
@@ -40,7 +41,7 @@ public class ModifiedDateRangeUtils {
       // .microseconds or partial-time
                       "(\\.[0-9]+)?(([Zz])|([\\+|\\-]([01][0-9]|2[0-3]):[0-5][0-9]))$\n");
 
-  // TODO test this
+  // TODO cover with tests
   public static DateRange getDataRange(GoogleDriveSourceConfig config) throws InterruptedException {
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     LocalDateTime now = LocalDateTime.now();

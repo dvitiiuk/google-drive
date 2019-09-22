@@ -39,6 +39,8 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
   private File currentFile;
   private boolean hasFileRetrieved = false;
 
+  private static final String RANGE_PATTERN = "bytes=%d-%d";
+
   public GoogleDriveSourceClient(GoogleDriveSourceConfig config) {
     super(config);
   }
@@ -70,13 +72,13 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
 
     String mimeType = currentFile.getMimeType();
     if (!mimeType.startsWith(DRIVE_DOCS_MIME_PREFIX)) {
-      Long offset = bytesFrom == null ? 0L : bytesFrom;
+      Long offset = bytesFrom;
       OutputStream outputStream = new ByteArrayOutputStream();
       Drive.Files.Get get = service.files().get(currentFile.getId());
 
       if (bytesFrom != null && bytesTo != null) {
         get.getMediaHttpDownloader().setDirectDownloadEnabled(true);
-        get.getRequestHeaders().setRange(String.format("bytes=%d-%d", bytesFrom, bytesTo));
+        get.getRequestHeaders().setRange(String.format(RANGE_PATTERN, bytesFrom, bytesTo));
       }
 
       get.executeMediaAndDownloadTo(outputStream);
@@ -173,7 +175,6 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
       sb.append(" and ");
       sb.append(ModifiedDateRangeUtils.getFilterValue(modifiedDateRange));
     }
-
 
     return sb.toString();
   }

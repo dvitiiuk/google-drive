@@ -16,12 +16,16 @@
 
 package io.cdap.plugin.google.source;
 
+import com.google.common.base.Strings;
 import io.cdap.cdap.api.annotation.Description;
 import io.cdap.cdap.api.annotation.Macro;
 import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.plugin.google.common.GoogleDriveBaseConfig;
+import io.cdap.plugin.google.common.exceptions.InvalidExportedTypeException;
+import io.cdap.plugin.google.common.exceptions.InvalidFilePropertyException;
+import io.cdap.plugin.google.common.exceptions.InvalidModifiedDateRangeException;
 import io.cdap.plugin.google.source.utils.ExportedType;
 import io.cdap.plugin.google.source.utils.ModifiedDateRangeType;
 import io.cdap.plugin.google.source.utils.ModifiedDateRangeUtils;
@@ -30,7 +34,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 /**
@@ -52,14 +55,13 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   @Nullable
   @Name(FILTER)
   @Description("A filter that can be applied to the files in the selected directory. " +
-    "Filters follow the Google Drive Filter Syntax.")
+    "Filters follow the Google Drive filter syntax.")
   @Macro
   protected String filter;
 
   @Nullable
   @Name(MODIFICATION_DATE_RANGE)
-  @Description("In addition to the filter specified above, also filter files to only pull those " +
-    "that were modified between the date range.")
+  @Description("Filters files to only pull those that were modified between the date range.")
   @Macro
   protected String modificationDateRange;
 
@@ -131,27 +133,58 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
 
   public void validate(FailureCollector collector) {
     super.validate(collector);
-    checkPropertyIsSet(collector, fileTypesToPull, FILE_TYPES_TO_PULL);
+    if (checkPropertyIsSet(collector, fileTypesToPull, FILE_TYPES_TO_PULL)) {
+      validateFileTypesToPull(collector);
+    }
     checkPropertyIsSet(collector, maxPartitionSize, MAX_PARTITION_SIZE);
 
-    checkPropertyIsValid(collector, getModificationDateRangeType() != null, MODIFICATION_DATE_RANGE);
-    if (getModificationDateRangeType().equals(ModifiedDateRangeType.CUSTOM)) {
-      checkPropertyIsSet(collector, startDate, START_DATE);
-      checkPropertyIsSet(collector, endDate, END_DATE);
-      checkPropertyIsValid(collector, ModifiedDateRangeUtils.isValidDateString(startDate), START_DATE);
-      checkPropertyIsValid(collector, ModifiedDateRangeUtils.isValidDateString(endDate), END_DATE);
+    if (checkPropertyIsSet(collector, modificationDateRange, MODIFICATION_DATE_RANGE)
+      && validateModificationDateRange(collector)) {
+      if (getModificationDateRangeType().equals(ModifiedDateRangeType.CUSTOM)) {
+        checkPropertyIsSet(collector, startDate, START_DATE);
+        checkPropertyIsSet(collector, endDate, END_DATE);
+        checkPropertyIsValid(collector, ModifiedDateRangeUtils.isValidDateString(startDate), startDate, START_DATE);
+        checkPropertyIsValid(collector, ModifiedDateRangeUtils.isValidDateString(endDate), startDate, END_DATE);
+      }
     }
+    validateFileProperties(collector);
+  }
 
-    for (ExportedType exportedType : getFileTypesToPull()) {
-      checkPropertyIsValid(collector, exportedType != null, FILE_TYPES_TO_PULL);
+  private void validateFileTypesToPull(FailureCollector collector) {
+    List<String> exportedTypeStrings = Arrays.asList(fileTypesToPull.split(","));
+    exportedTypeStrings.forEach(exportedTypeString -> {
+      try {
+        ExportedType.fromValue(exportedTypeString);
+      } catch (InvalidExportedTypeException e) {
+        collectInvalidProperty(collector, e.getTypeValue(), MODIFICATION_DATE_RANGE);
+      }
+    });
+  }
+
+  private boolean validateModificationDateRange(FailureCollector collector) {
+    try {
+      getModificationDateRangeType();
+    } catch (InvalidModifiedDateRangeException e) {
+      collectInvalidProperty(collector, modificationDateRange, MODIFICATION_DATE_RANGE);
+      return false;
+    }
+    return true;
+  }
+
+  private void validateFileProperties(FailureCollector collector) {
+    if (!Strings.isNullOrEmpty(fileProperties)) {
+      getFileProperties().forEach(property -> {
+        try {
+          SchemaBuilder.fromName(property);
+        } catch (InvalidFilePropertyException e) {
+          collectInvalidProperty(collector, property, FILE_PROPERTIES);
+        }
+      });
     }
   }
 
   public ModifiedDateRangeType getModificationDateRangeType() {
-    return Stream.of(ModifiedDateRangeType.values())
-      .filter(keyType -> keyType.getValue().equalsIgnoreCase(modificationDateRange))
-      .findAny()
-      .orElse(null);
+    return ModifiedDateRangeType.fromValue(modificationDateRange);
   }
 
   @Nullable

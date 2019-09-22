@@ -35,6 +35,7 @@ public class FilesFromFolderTransformer {
         builder.set(SchemaBuilder.BODY_FIELD_NAME, fileFromFolder.getContent());
       } else if (name.equals(SchemaBuilder.OFFSET_FIELD_NAME)) {
         builder.set(SchemaBuilder.OFFSET_FIELD_NAME, fileFromFolder.getOffset());
+        // TODO complete for complex fields *.*
       } else if (!field.getName().contains(".")) {
         File file = fileFromFolder.getFile();
         if (file != null) {

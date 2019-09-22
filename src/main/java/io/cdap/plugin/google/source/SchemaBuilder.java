@@ -17,6 +17,7 @@
 package io.cdap.plugin.google.source;
 
 import io.cdap.cdap.api.data.schema.Schema;
+import io.cdap.plugin.google.common.exceptions.InvalidFilePropertyException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,7 @@ public class SchemaBuilder {
   }
 
   // TODO complete metadata fields set
-  private static Schema.Field fromName(String name) {
+  public static Schema.Field fromName(String name) {
     switch (name) {
       case BODY_FIELD_NAME:
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.BYTES)));
@@ -56,6 +57,6 @@ public class SchemaBuilder {
       case "explicitlyTrashed":
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.BOOLEAN)));
     }
-    throw new IllegalArgumentException(String.format("'%s' is not a valid field to select", name));
+    throw new InvalidFilePropertyException(name);
   }
 }

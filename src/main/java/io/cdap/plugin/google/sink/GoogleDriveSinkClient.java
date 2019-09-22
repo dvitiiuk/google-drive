@@ -34,7 +34,8 @@ public class GoogleDriveSinkClient extends GoogleDriveClient<GoogleDriveSinkConf
     super(config);
   }
 
-  public void createFile(FileFromFolder fileFromFolder) throws GeneralSecurityException, IOException {
+  public void createFile(FileFromFolder fileFromFolder) throws GeneralSecurityException, IOException,
+    InterruptedException {
     String folderId = config.getDirectoryIdentifier();
 
     initialize();
