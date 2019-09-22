@@ -31,9 +31,7 @@ import io.cdap.cdap.etl.api.batch.BatchSink;
 import io.cdap.cdap.etl.api.batch.BatchSinkContext;
 import io.cdap.plugin.google.common.FileFromFolder;
 import io.cdap.plugin.google.source.SchemaBuilder;
-
-import java.nio.charset.Charset;
-import java.util.Random;
+import org.apache.commons.lang3.RandomStringUtils;
 
 /**
  * Batch sink to writing multiple files to Google Drive directory.
@@ -91,7 +89,7 @@ public class GoogleDriveSink extends BatchSink<StructuredRecord, Void, Void> {
       }
     }
     if (name == null || name.equals("")) {
-      name = generateName();
+      name = generateRandomName();
     }
     file.setName(name);
     FileFromFolder fileFromFolder = new FileFromFolder(content, offset, file);
@@ -111,9 +109,7 @@ public class GoogleDriveSink extends BatchSink<StructuredRecord, Void, Void> {
     }
   }
 
-  public String generateName() {
-    byte[] array = new byte[7];
-    new Random().nextBytes(array);
-    return new String(array, Charset.forName("UTF-8"));
+  public String generateRandomName() {
+    return RandomStringUtils.randomAlphanumeric(16);
   }
 }
