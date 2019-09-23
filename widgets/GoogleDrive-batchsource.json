@@ -1,0 +1,263 @@
+{
+  "metadata": {
+    "spec-version": "1.5"
+  },
+  "display-name": "Google Drive source",
+  "configuration-groups": [
+    {
+      "label": "Basic",
+      "properties": [
+        {
+          "widget-type": "textbox",
+          "label": "Reference Name",
+          "name": "referenceName"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "App Id",
+          "name": "appId"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Client ID",
+          "name": "clientId"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Client secret",
+          "name": "clientSecret"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Refresh Token",
+          "name": "refreshToken"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Access Token",
+          "name": "accessToken"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Directory identifier",
+          "name": "directoryIdentifier"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Filter",
+          "name": "filter"
+        },
+        {
+          "widget-type": "select",
+          "label": "Modification date range",
+          "name": "modificationDateRange",
+          "widget-attributes": {
+            "default": "None",
+            "values": [
+              "None",
+              "Last 7 Days",
+              "Last 30 days",
+              "Previous Quarter",
+              "Current Quarter",
+              "Last Year",
+              "Current Year",
+              "Custom"
+            ]
+          }
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Start Date",
+          "name": "startDate"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "End Date",
+          "name": "endDate"
+        },
+        {
+          "name": "fileProperties",
+          "widget-type": "multi-select",
+          "label": "File properties",
+          "widget-attributes": {
+            "delimiter": ",",
+            "options": [
+              {
+                "id": "id",
+                "label": "ID"
+              },
+              {
+                "id": "name",
+                "label": "Name"
+              },
+              {
+                "id": "mimeType",
+                "label": "MIME Type"
+              },
+              {
+                "id": "description",
+                "label": "Description"
+              },
+              {
+                "id": "starred",
+                "label": "Starred"
+              },
+              {
+                "id": "trashed",
+                "label": "Trashed"
+              },
+              {
+                "id": "explicitlyTrashed",
+                "label": "Explicitly trashed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fileTypesToPull",
+          "widget-type": "multi-select",
+          "label": "File types to pull",
+          "widget-attributes": {
+            "delimiter": ",",
+            "default": [
+              "binary"
+            ],
+            "options": [
+              {
+                "id": "binary",
+                "label": "Binary"
+              },
+              {
+                "id": "documents",
+                "label": "Google Documents"
+              },
+              {
+                "id": "spreadsheets",
+                "label": "Google Spreadsheets"
+              },
+              {
+                "id": "drawings",
+                "label": "Google Drawings"
+              },
+              {
+                "id": "presentations",
+                "label": "Google Presentations"
+              },
+              {
+                "id": "appsScripts",
+                "label": "Google Apps Scripts"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "label": "Advanced",
+      "properties": [
+        {
+          "widget-type": "number",
+          "label": "Maximum partition size specified in bytes.",
+          "name": "maxPartitionSize",
+          "widget-attributes": {
+            "default": "0",
+            "min": "0",
+            "max": "1000000000"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Exporting",
+      "properties": [
+        {
+          "widget-type": "select",
+          "label": "Google Documents export format",
+          "name": "docsExportingFormat",
+          "widget-attributes": {
+            "default": "text/plain",
+            "values": [
+              "text/html",
+              "application/zip",
+              "text/plain",
+              "application/rtf",
+              "application/vnd.oasis.opendocument.text",
+              "application/pdf",
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "application/epub+zip"
+            ]
+          }
+        },
+        {
+          "widget-type": "select",
+          "name": "sheetsExportingFormat",
+          "label": "Google Spreadsheets export format",
+          "widget-attributes": {
+            "default": "text/csv",
+            "values": [
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "application/x-vnd.oasis.opendocument.spreadsheet",
+              "application/pdf",
+              "text/csv",
+              "text/tab-separated-values",
+              "application/zip"
+            ]
+          }
+        },
+        {
+          "widget-type": "select",
+          "name": "drawingsExportingFormat",
+          "label": "Google Drawings export format",
+          "widget-attributes": {
+            "default": "image/svg+xml",
+            "values": [
+              "image/jpeg",
+              "image/png",
+              "image/svg+xml",
+              "application/pdf"
+            ]
+          }
+        },
+        {
+          "widget-type": "select",
+          "name": "presentationsExportingFormat",
+          "label": "Google Presentations export format",
+          "widget-attributes": {
+            "default": "text/plain",
+            "values": [
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+              "application/vnd.oasis.opendocument.presentation",
+              "application/pdf",
+              "text/plain"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "widget-type": "non-editable-schema-editor",
+      "schema": {
+      }
+    }
+  ],
+  "filters": [
+    {
+      "name": "Select modification date range",
+      "condition": {
+        "expression": "modificationDateRange == 'Custom'"
+      },
+      "show": [
+        {
+          "name": "startDate",
+          "type": "property"
+        },
+        {
+          "name": "endDate",
+          "type": "property"
+        }
+      ]
+    }
+  ]
+}
