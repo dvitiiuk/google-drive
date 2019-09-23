@@ -1,9 +1,9 @@
-# Google Drive Batch Source
+# Google Drive Batch Sink
 
 
 Description
 -----------
-Sink plugin to save files from the pipeline to Google Drive directory.
+Sink plugin to save files from the pipeline to Google Drive directory via Google Drive API.
 
 Properties
 ----------
@@ -12,4 +12,4 @@ Properties
 
 **accessToken** OAuth2 access token
 
-**directoryIdentifier** ID is the last part of the URL, such as https://drive.google.com/drive/folders/0B2kqcwp2ycGZanhSR3JmREw5VTV
+**directoryIdentifier** ID of the destination folder

@@ -28,6 +28,9 @@ import io.cdap.plugin.common.ReferencePluginConfig;
  */
 public abstract class GoogleDriveBaseConfig extends ReferencePluginConfig {
   public static final String APP_ID = "appId";
+  public static final String CLIENT_ID = "clientId";
+  public static final String CLIENT_SECRET = "clientSecret";
+  public static final String REFRESH_TOKEN = "refreshToken";
   public static final String ACCESS_TOKEN = "accessToken";
   public static final String DIRECTORY_IDENTIFIER = "directoryIdentifier";
 
@@ -39,6 +42,24 @@ public abstract class GoogleDriveBaseConfig extends ReferencePluginConfig {
   @Description("Oauth2 app id")
   @Macro
   protected String appId;
+
+  // TODO remove these properties after OAuth2 will be provided by cdap
+  // start of workaround
+  @Name(CLIENT_ID)
+  @Description("OAuth2 client id.")
+  @Macro
+  protected String clientId;
+
+  @Name(CLIENT_SECRET)
+  @Description("OAuth2 client secret.")
+  @Macro
+  protected String clientSecret;
+
+  @Name(REFRESH_TOKEN)
+  @Description("OAuth2 refresh token.")
+  @Macro
+  protected String refreshToken;
+  // end of workaround
 
   @Name(ACCESS_TOKEN)
   @Description("OAuth2 access token.")
@@ -56,6 +77,9 @@ public abstract class GoogleDriveBaseConfig extends ReferencePluginConfig {
 
   public void validate(FailureCollector collector) {
     checkPropertyIsSet(collector, appId, APP_ID);
+    checkPropertyIsSet(collector, clientId, CLIENT_ID);
+    checkPropertyIsSet(collector, clientSecret, CLIENT_SECRET);
+    checkPropertyIsSet(collector, refreshToken, REFRESH_TOKEN);
     checkPropertyIsSet(collector, accessToken, ACCESS_TOKEN);
     checkPropertyIsSet(collector, directoryIdentifier, DIRECTORY_IDENTIFIER);
   }
@@ -114,5 +138,29 @@ public abstract class GoogleDriveBaseConfig extends ReferencePluginConfig {
 
   public void setDirectoryIdentifier(String directoryIdentifier) {
     this.directoryIdentifier = directoryIdentifier;
+  }
+
+  public String getClientId() {
+    return clientId;
+  }
+
+  public void setClientId(String clientId) {
+    this.clientId = clientId;
+  }
+
+  public String getClientSecret() {
+    return clientSecret;
+  }
+
+  public void setClientSecret(String clientSecret) {
+    this.clientSecret = clientSecret;
+  }
+
+  public String getRefreshToken() {
+    return refreshToken;
+  }
+
+  public void setRefreshToken(String refreshToken) {
+    this.refreshToken = refreshToken;
   }
 }

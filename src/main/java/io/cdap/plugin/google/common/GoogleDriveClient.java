@@ -76,18 +76,11 @@ public class GoogleDriveClient<C extends GoogleDriveBaseConfig> implements Close
   private Credential getCredentials(NetHttpTransport httpTransport) throws IOException, InterruptedException {
 
     // TODO fix authentication after OAuth2 will be provided by cdap
-    // So for now we use Access Token property for all needed credentials transmitting in following format:
-    // <clientId>;<clientSecret>;<refreshToken>
+    // So for now plugins require all needed info for auth: clientId, clientSecret, refreshToken, accessToken
     // start of workaround
-    String credentialsString = config.getAccessToken();
-    String[] parts = credentialsString.split(";");
-    if (parts.length != 3) {
-      throw new InterruptedException("No enough content for accessToken, please populate " +
-                                       "<clientId>;<clientSecret>;<refreshToken> there");
-    }
-    String clientId = parts[0];
-    String clientSecret = parts[1];
-    String refreshToken = parts[2];
+    String clientId = config.getClientId();
+    String clientSecret = config.getClientSecret();
+    String refreshToken = config.getRefreshToken();
     // end of workaround
 
     GoogleCredential credential = new GoogleCredential.Builder()
@@ -97,6 +90,7 @@ public class GoogleDriveClient<C extends GoogleDriveBaseConfig> implements Close
                         clientSecret)
       .build();
     credential.setRefreshToken(refreshToken);
+    credential.setAccessToken(config.getAccessToken());
 
     return credential;
   }
