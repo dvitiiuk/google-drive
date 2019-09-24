@@ -21,10 +21,18 @@ package io.cdap.plugin.google.common;
  */
 public class FileFromFolder {
   private final byte[] content;
+  private final long offset;
   private final String name;
+
+  public FileFromFolder(byte[] content, long offset, String name) {
+    this.content = content;
+    this.offset = offset;
+    this.name = name;
+  }
 
   public FileFromFolder(byte[] content, String name) {
     this.content = content;
+    this.offset = 0L;
     this.name = name;
   }
 
@@ -34,5 +42,9 @@ public class FileFromFolder {
 
   public String getName() {
     return name;
+  }
+
+  public long getOffset() {
+    return offset;
   }
 }

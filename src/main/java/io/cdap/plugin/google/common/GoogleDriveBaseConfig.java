@@ -17,6 +17,7 @@
 package io.cdap.plugin.google.common;
 
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.common.base.Strings;
 import io.cdap.cdap.api.annotation.Description;
 import io.cdap.cdap.api.annotation.Macro;
 import io.cdap.cdap.api.annotation.Name;
@@ -36,6 +37,10 @@ public abstract class GoogleDriveBaseConfig extends PluginConfig {
   public static final String REFRESH_TOKEN = "refreshToken";
   public static final String ACCESS_TOKEN = "accessToken";
   public static final String DIRECTORY_IDENTIFIER = "directoryIdentifier";
+
+  private static final String IS_VALID_FAILURE_MESSAGE_PATTERN = "%s has invalid value %s";
+  private static final String IS_SET_FAILURE_MESSAGE_PATTERN = "'%s' property is empty or macro is not available";
+  private static final String CHECK_CORRECTIVE_MESSAGE_PATTERN = "Enter valid '%s' property";
 
   @Name(REFERENCE_NAME)
   @Description("Reference Name")
@@ -117,6 +122,43 @@ public abstract class GoogleDriveBaseConfig extends PluginConfig {
           .withStacktrace(e.getStackTrace());
       }
     }
+  }
+
+  protected boolean checkPropertyIsSet(FailureCollector collector, String propertyValue, String propertyName,
+                                       String propertyLabel) {
+    if (!containsMacro(propertyName)) {
+      if (Strings.isNullOrEmpty(propertyValue)) {
+        collector.addFailure(getIsSetValidationFailedMessage(propertyLabel),
+                             getValidationFailedCorrectiveAction(propertyLabel))
+          .withConfigProperty(propertyName);
+      } else {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  protected void checkPropertyIsValid(FailureCollector collector, boolean isPropertyValid, String propertyName,
+                                      String propertyValue, String propertyLabel) {
+    if (isPropertyValid) {
+      return;
+    }
+    collector.addFailure(String.format(IS_VALID_FAILURE_MESSAGE_PATTERN, propertyName, propertyValue),
+                         getValidationFailedCorrectiveAction(propertyLabel))
+      .withConfigProperty(propertyName);
+  }
+
+  protected void collectInvalidProperty(FailureCollector collector, String propertyName, String propertyValue,
+                                        String propertyLabel) {
+    checkPropertyIsValid(collector, false, propertyName, propertyValue, propertyLabel);
+  }
+
+  protected String getIsSetValidationFailedMessage(String propertyLabel) {
+    return String.format(IS_SET_FAILURE_MESSAGE_PATTERN, propertyLabel);
+  }
+
+  protected String getValidationFailedCorrectiveAction(String propertyLabel) {
+    return String.format(CHECK_CORRECTIVE_MESSAGE_PATTERN, propertyLabel);
   }
 
   public String getReferenceName() {
