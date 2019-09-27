@@ -16,6 +16,9 @@ The minimal input schema should contain only this field.
 **File name field:** Name of the schema field (should be STRING type) which will be used as name of file. 
 Is optional. In the case it is not set files have randomly generated 16-symbols names.
 
+**File mime field:** Name of the schema field (should be STRING type) which will be used as MIME type of file. 
+Is optional. In the case it is not set Google API will try to recognize file's MIME type automatically.
+
 **Directory identifier:** Identifier of the destination folder.
 
 ### Authentication
