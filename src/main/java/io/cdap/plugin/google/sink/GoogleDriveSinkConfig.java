@@ -50,6 +50,7 @@ public class GoogleDriveSinkConfig extends GoogleDriveBaseConfig {
   @Nullable
   @Name(SCHEMA_MIME_FIELD_NAME)
   @Description("Name of the schema field (should be STRING type) which will be used as MIME type of file. \n" +
+    "All MIME types are supported except Google Drive types: https://developers.google.com/drive/api/v3/mime-types.\n" +
     "Is optional. In the case it is not set Google API will try to recognize file's MIME type automatically.")
   @Macro
   protected String schemaMimeFieldName;
