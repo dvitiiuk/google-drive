@@ -30,7 +30,7 @@ RFC3339 format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.
 **File types to pull:** Types of files should be pulled from specified directory. 
 Are supported following values: binary (all no-Google Drive formats), Google Documents, Google Spreadsheets, 
 Google Drawings, Google Presentations and Google Apps Scripts. 
-For Google Docs user should specify exporting format in **Exporting** section.
+For Google Drive formats user should specify exporting format in **Exporting** section.
 
 ### Authentication
 

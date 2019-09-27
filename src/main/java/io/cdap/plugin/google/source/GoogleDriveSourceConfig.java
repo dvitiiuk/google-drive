@@ -72,7 +72,6 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   @Macro
   protected String filter;
 
-  @Nullable
   @Name(MODIFICATION_DATE_RANGE)
   @Description("Filter that narrows set of files by modified date range. " +
     "User can select either some preset range or input range manually in the RFC3339 format")
@@ -114,25 +113,21 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   @Macro
   protected String bodyFormat;
 
-  @Nullable
   @Name(DOCS_EXPORTING_FORMAT)
   @Description("MIME type for exporting Google Documents. Default value is 'text/plain'.")
   @Macro
   protected String docsExportingFormat;
 
-  @Nullable
   @Name(SHEETS_EXPORTING_FORMAT)
   @Description("MIME type for exporting Google Spreadsheets. Default value is 'text/csv'.")
   @Macro
   protected String sheetsExportingFormat;
 
-  @Nullable
   @Name(DRAWINGS_EXPORTING_FORMAT)
   @Description("MIME type for exporting Google Drawings. Default value is 'image/svg+xml'.")
   @Macro
   protected String drawingsExportingFormat;
 
-  @Nullable
   @Name(PRESENTATIONS_EXPORTING_FORMAT)
   @Description("MIME type for exporting Google Presentations. Default value is 'text/plain'.")
   @Macro

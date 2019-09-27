@@ -31,6 +31,7 @@ import java.util.Map;
  */
 public class FilesFromFolderTransformer {
 
+  // TODO: check for "properties" fiel
   public static StructuredRecord transform(FileFromFolder fileFromFolder, Schema schema) {
     StructuredRecord.Builder builder = StructuredRecord.builder(schema);
     File file = fileFromFolder.getFile();

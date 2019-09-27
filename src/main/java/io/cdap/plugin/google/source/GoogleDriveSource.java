@@ -25,6 +25,7 @@ import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.api.dataset.lib.KeyValue;
 import io.cdap.cdap.etl.api.Emitter;
+import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.cdap.etl.api.PipelineConfigurer;
 import io.cdap.cdap.etl.api.batch.BatchSource;
 import io.cdap.cdap.etl.api.batch.BatchSourceContext;
@@ -50,13 +51,19 @@ public class GoogleDriveSource extends BatchSource<NullWritable, FileFromFolder,
 
   @Override
   public void configurePipeline(PipelineConfigurer pipelineConfigurer) {
-    config.validate(pipelineConfigurer.getStageConfigurer().getFailureCollector());
+    FailureCollector failureCollector = pipelineConfigurer.getStageConfigurer().getFailureCollector();
+    config.validate(failureCollector);
+    failureCollector.getOrThrowException();
+
     pipelineConfigurer.getStageConfigurer().setOutputSchema(config.getSchema());
   }
 
   @Override
   public void prepareRun(BatchSourceContext context) {
-    config.validate(context.getFailureCollector());
+    FailureCollector failureCollector = context.getFailureCollector();
+    config.validate(failureCollector);
+    failureCollector.getOrThrowException();
+
     LineageRecorder lineageRecorder = new LineageRecorder(context, config.getReferenceName());
     lineageRecorder.createExternalDataset(config.getSchema());
     lineageRecorder.recordRead("Read", "Reading Google Drive files",
