@@ -18,11 +18,14 @@ package io.cdap.plugin.google.source;
 
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.plugin.google.source.utils.BodyFormat;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 // TODO complete tests
 public class SchemaBuilderTest {
@@ -30,12 +33,46 @@ public class SchemaBuilderTest {
   @Test
   public void testGetImageMediaMetadata() {
     List<String> fields = new ArrayList<>();
-    fields.add("imageMediaMetadata.width");
-    fields.add("imageMediaMetadata.height");
-    fields.add("imageMediaMetadata.location.latitude");
+    fields.add(getFullImageName(SchemaBuilder.IMAGE_WIDTH_FIELD_NAME));
+    fields.add(getFullImageName(SchemaBuilder.IMAGE_CAMERA_MODEL_FIELD_NAME));
+    fields.add(getFullImageName(SchemaBuilder.IMAGE_APERTURE_FIELD_NAME));
+    fields.add(getFullImageName(SchemaBuilder.IMAGE_FLASH_USED_FIELD_NAME));
+    fields.add(getFullImageLocationName(SchemaBuilder.IMAGE_LATITUDE_FIELD_NAME));
+    fields.add(getFullImageLocationName(SchemaBuilder.IMAGE_LONGITUDE_FIELD_NAME));
 
-    List<Schema.Field> schemaFields = new ArrayList<>();
-    SchemaBuilder.processImageMediaMetadata(fields, schemaFields);
+    Schema schema = SchemaBuilder.buildSchema(fields, BodyFormat.BYTES);
+
+    // expected fields for body and offset and record for all image metadata fields
+    assertEquals(3, schema.getFields().size());
+
+    assertNotNull(schema.getField(SchemaBuilder.IMAGE_METADATA_FIELD_NAME));
+    assertEquals(Schema.Type.RECORD, schema.getField(SchemaBuilder.IMAGE_METADATA_FIELD_NAME)
+      .getSchema().getNonNullable().getType());
+
+    Schema imageMetadataRecord = schema.getField(SchemaBuilder.IMAGE_METADATA_FIELD_NAME)
+      .getSchema().getNonNullable();
+
+    assertEquals(5, imageMetadataRecord.getFields().size());
+    assertEquals(Schema.Type.INT, imageMetadataRecord.getField(SchemaBuilder.IMAGE_WIDTH_FIELD_NAME)
+      .getSchema().getNonNullable().getType());
+    assertTrue(imageMetadataRecord.getField(SchemaBuilder.IMAGE_WIDTH_FIELD_NAME)
+      .getSchema().isNullable());
+
+    assertEquals(Schema.Type.STRING, imageMetadataRecord.getField(SchemaBuilder.IMAGE_CAMERA_MODEL_FIELD_NAME)
+      .getSchema().getNonNullable().getType());
+    assertTrue(imageMetadataRecord.getField(SchemaBuilder.IMAGE_CAMERA_MODEL_FIELD_NAME)
+      .getSchema().isNullable());
+
+    assertEquals(Schema.Type.FLOAT, imageMetadataRecord.getField(SchemaBuilder.IMAGE_APERTURE_FIELD_NAME)
+      .getSchema().getNonNullable().getType());
+    assertTrue(imageMetadataRecord.getField(SchemaBuilder.IMAGE_APERTURE_FIELD_NAME)
+      .getSchema().isNullable());
+
+    assertEquals(Schema.Type.BOOLEAN, imageMetadataRecord.getField(SchemaBuilder.IMAGE_FLASH_USED_FIELD_NAME)
+      .getSchema().getNonNullable().getType());
+    assertTrue(imageMetadataRecord.getField(SchemaBuilder.IMAGE_FLASH_USED_FIELD_NAME)
+      .getSchema().isNullable());
+
   }
 
   @Test
@@ -45,25 +82,33 @@ public class SchemaBuilderTest {
     // bytes body
     Schema schema = SchemaBuilder.buildSchema(fields, BodyFormat.BYTES);
 
-    Assert.assertEquals(2, schema.getFields().size());
-    Assert.assertNotNull(schema.getField(SchemaBuilder.BODY_FIELD_NAME));
-    Assert.assertEquals(Schema.Type.BYTES, schema.getField(SchemaBuilder.BODY_FIELD_NAME)
+    assertEquals(2, schema.getFields().size());
+    assertNotNull(schema.getField(SchemaBuilder.BODY_FIELD_NAME));
+    assertEquals(Schema.Type.BYTES, schema.getField(SchemaBuilder.BODY_FIELD_NAME)
       .getSchema().getNonNullable().getType());
 
-    Assert.assertNotNull(schema.getField(SchemaBuilder.OFFSET_FIELD_NAME));
-    Assert.assertEquals(Schema.Type.LONG, schema.getField(SchemaBuilder.OFFSET_FIELD_NAME)
+    assertNotNull(schema.getField(SchemaBuilder.OFFSET_FIELD_NAME));
+    assertEquals(Schema.Type.LONG, schema.getField(SchemaBuilder.OFFSET_FIELD_NAME)
       .getSchema().getNonNullable().getType());
 
     // string body
     schema = SchemaBuilder.buildSchema(fields, BodyFormat.STRING);
 
-    Assert.assertEquals(2, schema.getFields().size());
-    Assert.assertNotNull(schema.getField(SchemaBuilder.BODY_FIELD_NAME));
-    Assert.assertEquals(Schema.Type.STRING, schema.getField(SchemaBuilder.BODY_FIELD_NAME)
+    assertEquals(2, schema.getFields().size());
+    assertNotNull(schema.getField(SchemaBuilder.BODY_FIELD_NAME));
+    assertEquals(Schema.Type.STRING, schema.getField(SchemaBuilder.BODY_FIELD_NAME)
       .getSchema().getNonNullable().getType());
 
-    Assert.assertNotNull(schema.getField(SchemaBuilder.OFFSET_FIELD_NAME));
-    Assert.assertEquals(Schema.Type.LONG, schema.getField(SchemaBuilder.OFFSET_FIELD_NAME)
+    assertNotNull(schema.getField(SchemaBuilder.OFFSET_FIELD_NAME));
+    assertEquals(Schema.Type.LONG, schema.getField(SchemaBuilder.OFFSET_FIELD_NAME)
       .getSchema().getNonNullable().getType());
+  }
+
+  private String getFullImageName(String fieldName) {
+    return SchemaBuilder.IMAGE_METADATA_FIELD_NAME + "." + fieldName;
+  }
+
+  private String getFullImageLocationName(String fieldName) {
+    return SchemaBuilder.IMAGE_METADATA_FIELD_NAME + "." + SchemaBuilder.LOCATION_FIELD_NAME + "." + fieldName;
   }
 }
