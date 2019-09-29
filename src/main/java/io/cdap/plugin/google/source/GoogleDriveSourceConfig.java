@@ -67,8 +67,8 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
 
   @Nullable
   @Name(FILTER)
-  @Description("Filter that can be applied to the files in the selected directory. " +
-    "Filters follow the Google Drive filter syntax.")
+  @Description("Filter that can be applied to the files in the selected directory. \n" +
+    "Filters follow the [Google Drive filters syntax](https://developers.google.com/drive/api/v3/ref-search-terms).")
   @Macro
   protected String filter;
 

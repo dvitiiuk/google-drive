@@ -11,7 +11,8 @@ Properties
 
 **Directory identifier:** Identifier of the source folder.
 
-**Filter:** Filter that can be applied to the files in the selected directory. Filters follow the Google Drive filter syntax.
+**Filter:** Filter that can be applied to the files in the selected directory. 
+Filters follow the [Google Drive filters syntax](https://developers.google.com/drive/api/v3/ref-search-terms).
 
 **Modification date range:** Filter that narrows set of files by modified date range. 
 User can select either among predefined or custom entered ranges. 

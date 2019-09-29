@@ -104,38 +104,38 @@ public class SchemaBuilder {
       case BODY_FIELD_NAME:
         switch (bodyFormat) {
           case BYTES:
-            return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.BYTES)));
+            return Schema.Field.of(name, Schema.of(Schema.Type.BYTES));
           case STRING:
-            return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.STRING)));
+            return Schema.Field.of(name, Schema.of(Schema.Type.STRING));
         }
       case OFFSET_FIELD_NAME:
       case SIZE_FIELD_NAME:
-        return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.LONG)));
+        return Schema.Field.of(name, Schema.of(Schema.Type.LONG));
       case ID_FIELD_NAME:
       case NAME_FIELD_NAME:
       case MIME_TYPE_FIELD_NAME:
-      case DESCRIPTION_FIELD_NAME:
       case DRIVE_ID_FIELD_NAME:
       case ORIGINAL_FILENAME_FIELD_NAME:
       case FULL_FILE_EXTENSION_FIELD_NAME:
       case MD_5_CHECKSUM_FIELD_NAME:
+        return Schema.Field.of(name, Schema.of(Schema.Type.STRING));
+      case DESCRIPTION_FIELD_NAME:
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.STRING)));
       case STARRED_FIELD_NAME:
       case TRASHED_FIELD_NAME:
       case EXPLICITLY_TRASHED_FIELD_NAME:
-        return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.BOOLEAN)));
+        return Schema.Field.of(name, Schema.of(Schema.Type.BOOLEAN));
       case TRASHED_TIME_FIELD_NAME:
+        return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.LogicalType.TIMESTAMP_MILLIS)));
       case CREATED_TIME_FIELD_NAME:
       case MODIFIED_TIME_FIELD_NAME:
-        return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.LogicalType.TIMESTAMP_MILLIS)));
+        return Schema.Field.of(name, Schema.of(Schema.LogicalType.TIMESTAMP_MILLIS));
       case PARENTS_FIELD_NAME:
       case SPACES_FIELD_NAME:
         return Schema.Field.of(name, Schema.nullableOf(Schema.arrayOf(Schema.of(Schema.Type.STRING))));
       case PROPERTIES_FIELD_NAME:
-        return Schema.Field.of(name, Schema.nullableOf(Schema.arrayOf(
-          Schema.recordOf("property",
-                          Schema.Field.of("key", Schema.of(Schema.Type.STRING)),
-                          Schema.Field.of("value", Schema.of(Schema.Type.STRING))))));
+        return Schema.Field.of(name, Schema.nullableOf(Schema.mapOf(
+                          Schema.of(Schema.Type.STRING), Schema.of(Schema.Type.STRING))));
       default:
         if (!name.startsWith(IMAGE_METADATA_NAME_PREFIX) && !name.startsWith(VIDEO_METADATA_NAME_PREFIX)) {
           throw new InvalidFilePropertyException(name);
@@ -228,7 +228,7 @@ public class SchemaBuilder {
       case VIDEO_HEIGHT_FIELD_NAME:
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.INT)));
       case VIDEO_DURATION_MILLIS_FIELD_NAME:
-        return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.STRING)));
+        return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.LONG)));
       default:
         throw new InvalidFilePropertyException(name);
     }

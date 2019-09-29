@@ -30,6 +30,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -110,13 +111,31 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     return fileFromFolder;
   }
 
-  // TODO: Two requests are needed when several file types are used
+  // We should separate binary and Google Drive formats between two requests
   public List<File> getFiles() throws InterruptedException {
+    List<ExportedType> exportedTypes = new ArrayList<>(config.getFileTypesToPull());
+    List<List<ExportedType>> exportedTypeGroups = new ArrayList<>();
+    if (exportedTypes.contains(ExportedType.BINARY)) {
+      exportedTypeGroups.add(Collections.singletonList(ExportedType.BINARY));
+
+      exportedTypes.remove(ExportedType.BINARY);
+      exportedTypeGroups.add(exportedTypes);
+    }
+    List<File> files = new ArrayList<>();
+    for (List<ExportedType> group : exportedTypeGroups) {
+      if (!group.isEmpty()) {
+        files.addAll(getFiles(group));
+      }
+    }
+    return files;
+  }
+
+  public List<File> getFiles(List<ExportedType> exportedTypes) throws InterruptedException {
     try {
       List<File> files = new ArrayList<>();
       String nextToken = "";
       Drive.Files.List request = service.files().list()
-        .setQ(generateFilter())
+        .setQ(generateFilter(exportedTypes))
         .setFields("nextPageToken, files(id, size)");
       while (nextToken != null) {
         FileList result = request.execute();
@@ -130,6 +149,7 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     }
   }
 
+
   // Google Drive API does not support partitioning for exporting Google Docs
   private FileFromFolder exportGoogleDocFile(Drive service, File currentFile, String exportFormat) throws IOException {
     OutputStream outputStream = new ByteArrayOutputStream();
@@ -137,7 +157,7 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     return new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), 0L, currentFile);
   }
 
-  private String generateFilter() throws InterruptedException {
+  private String generateFilter(List<ExportedType> exportedTypes) throws InterruptedException {
     StringBuilder sb = new StringBuilder();
 
     // prepare parent
@@ -150,7 +170,6 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     sb.append(DRIVE_FOLDER_MIME);
     sb.append("'");
 
-    List<ExportedType> exportedTypes = config.getFileTypesToPull();
     if (!exportedTypes.isEmpty()) {
       sb.append(" and (");
       for (ExportedType exportedType : exportedTypes) {

@@ -17,6 +17,7 @@
 package io.cdap.plugin.google.source;
 
 import com.google.api.client.json.GenericJson;
+import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.model.File;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
@@ -31,7 +32,6 @@ import java.util.Map;
  */
 public class FilesFromFolderTransformer {
 
-  // TODO: check for "properties" field
   public static StructuredRecord transform(FileFromFolder fileFromFolder, Schema schema) {
     StructuredRecord.Builder builder = StructuredRecord.builder(schema);
     File file = fileFromFolder.getFile();
@@ -39,7 +39,7 @@ public class FilesFromFolderTransformer {
     for (Schema.Field field : schema.getFields()) {
       String name = field.getName();
       if (name.equals(SchemaBuilder.BODY_FIELD_NAME)) {
-        if (Schema.Type.STRING == field.getSchema().getNonNullable().getType()) {
+        if (Schema.Type.STRING == field.getSchema().getType()) {
           builder.set(SchemaBuilder.BODY_FIELD_NAME, new String(fileFromFolder.getContent()));
         } else {
           builder.set(SchemaBuilder.BODY_FIELD_NAME, fileFromFolder.getContent());
@@ -60,7 +60,8 @@ public class FilesFromFolderTransformer {
                         parseSubSchema(field.getSchema().getNonNullable(), videoMediaMetadata));
           }
         } else if (Schema.LogicalType.TIMESTAMP_MILLIS.equals(field.getSchema().getLogicalType())) {
-          builder.setTimestamp(name, ZonedDateTime.parse((CharSequence) file.get(name)));
+          DateTime dateTime = (DateTime) file.get(name);
+          builder.setTimestamp(name, ZonedDateTime.parse(dateTime.toStringRfc3339()));
         } else {
           builder.set(name, file.get(name));
         }
@@ -72,7 +73,11 @@ public class FilesFromFolderTransformer {
   private static Map<String, Object> parseSubSchema(Schema subSchema, GenericJson info) {
     Map<String, Object> fieldsMap = new HashMap<>();
     for (Schema.Field imageFiled : subSchema.getFields()) {
-      fieldsMap.put(imageFiled.getName(), info.get(imageFiled.getName()));
+      Object value = info.get(imageFiled.getName());
+      if (value instanceof GenericJson) {
+        fieldsMap.put(imageFiled.getName(),
+                      parseSubSchema(imageFiled.getSchema().getNonNullable(), (GenericJson) value));
+      }
     }
     return fieldsMap;
   }
