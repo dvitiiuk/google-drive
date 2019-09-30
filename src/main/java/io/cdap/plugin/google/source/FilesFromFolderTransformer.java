@@ -72,11 +72,13 @@ public class FilesFromFolderTransformer {
 
   private static Map<String, Object> parseSubSchema(Schema subSchema, GenericJson info) {
     Map<String, Object> fieldsMap = new HashMap<>();
-    for (Schema.Field imageFiled : subSchema.getFields()) {
-      Object value = info.get(imageFiled.getName());
+    for (Schema.Field field : subSchema.getFields()) {
+      Object value = info.get(field.getName());
       if (value instanceof GenericJson) {
-        fieldsMap.put(imageFiled.getName(),
-                      parseSubSchema(imageFiled.getSchema().getNonNullable(), (GenericJson) value));
+        fieldsMap.put(field.getName(),
+                      parseSubSchema(field.getSchema().getNonNullable(), (GenericJson) value));
+      } else {
+        fieldsMap.put(field.getName(), info.get(field.getName()));
       }
     }
     return fieldsMap;

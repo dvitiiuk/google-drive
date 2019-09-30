@@ -22,7 +22,6 @@ import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.plugin.google.common.FileFromFolder;
 import io.cdap.plugin.google.source.utils.BodyFormat;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -31,11 +30,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 public class FilesFromFolderTransformerTest {
   private static final byte[] TEST_BYTES = new byte[]{-6, 67, 101, -65, -9};
   private static final Long TEST_OFFSET = 34L;
   private static final String TEST_ID = "FDGtewSvftr5r";
-  private static final Map<String, String> TEST_PROPERTIES = new HashMap<String, String>(){{
+  private static final Map<String, String> TEST_PROPERTIES = new HashMap<String, String>() {{
     put("p0", "v0");
     put("p1", "v1");
     put("p2", "v2");
@@ -82,23 +84,33 @@ public class FilesFromFolderTransformerTest {
 
     StructuredRecord record = FilesFromFolderTransformer.transform(fileFromFolder, schema);
 
-    Assert.assertNotNull(record.get(SchemaBuilder.ID_FIELD_NAME));
-    Assert.assertNotNull(record.get(SchemaBuilder.BODY_FIELD_NAME));
-    Assert.assertNotNull(record.get(SchemaBuilder.OFFSET_FIELD_NAME));
+    assertNotNull(record.get(SchemaBuilder.ID_FIELD_NAME));
+    assertNotNull(record.get(SchemaBuilder.BODY_FIELD_NAME));
+    assertNotNull(record.get(SchemaBuilder.OFFSET_FIELD_NAME));
 
     Map<String, String> retrievedProperties = record.get(SchemaBuilder.PROPERTIES_FIELD_NAME);
-    Assert.assertNotNull(retrievedProperties);
-    Assert.assertEquals(TEST_PROPERTIES, retrievedProperties);
+    assertNotNull(retrievedProperties);
+    assertEquals(TEST_PROPERTIES, retrievedProperties);
 
-    Assert.assertNotNull(record.get(SchemaBuilder.IMAGE_METADATA_FIELD_NAME));
-    Assert.assertNotNull(record.get(SchemaBuilder.VIDEO_METADATA_FIELD_NAME));
+    Map<String, Object> imageMetadataResult = record.get(SchemaBuilder.IMAGE_METADATA_FIELD_NAME);
+    assertNotNull(imageMetadataResult);
+    assertEquals(2, imageMetadataResult.size());
+    assertEquals(TEST_WIDTH, imageMetadataResult.get(SchemaBuilder.IMAGE_WIDTH_FIELD_NAME));
+
+    Map<String, Double> locationResult =
+      (Map<String, Double>) imageMetadataResult.get(SchemaBuilder.LOCATION_FIELD_NAME);
+    assertEquals(TEST_LATITUDE, locationResult.get(SchemaBuilder.IMAGE_LATITUDE_FIELD_NAME));
+
+    Map<String, Object> videoMetadataResult = record.get(SchemaBuilder.VIDEO_METADATA_FIELD_NAME);
+    assertNotNull(videoMetadataResult);
+    assertEquals(TEST_DURATION, videoMetadataResult.get(SchemaBuilder.VIDEO_DURATION_MILLIS_FIELD_NAME));
 
     List<String> parents = record.get(SchemaBuilder.PARENTS_FIELD_NAME);
-    Assert.assertNotNull(parents);
-    Assert.assertEquals(TEST_PARENTS, parents);
+    assertNotNull(parents);
+    assertEquals(TEST_PARENTS, parents);
 
     Long resultCreatedTime = record.get(SchemaBuilder.CREATED_TIME_FIELD_NAME);
-    Assert.assertNotNull(resultCreatedTime);
-    Assert.assertEquals((Long) TEST_CREATED_TIME.getValue(), resultCreatedTime);
+    assertNotNull(resultCreatedTime);
+    assertEquals((Long) TEST_CREATED_TIME.getValue(), resultCreatedTime);
   }
 }

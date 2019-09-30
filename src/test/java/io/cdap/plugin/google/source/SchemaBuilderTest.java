@@ -85,7 +85,7 @@ public class SchemaBuilderTest {
     assertEquals(3, videoMetadataRecord.getFields().size());
     testField(videoMetadataRecord, Schema.Type.INT, SchemaBuilder.VIDEO_WIDTH_FIELD_NAME, true);
     testField(videoMetadataRecord, Schema.Type.INT, SchemaBuilder.VIDEO_HEIGHT_FIELD_NAME, true);
-    testField(videoMetadataRecord, Schema.Type.STRING, SchemaBuilder.VIDEO_DURATION_MILLIS_FIELD_NAME, true);
+    testField(videoMetadataRecord, Schema.Type.LONG, SchemaBuilder.VIDEO_DURATION_MILLIS_FIELD_NAME, true);
   }
 
   @Test
