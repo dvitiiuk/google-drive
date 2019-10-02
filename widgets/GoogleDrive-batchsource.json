@@ -27,28 +27,28 @@
           "label": "Modification date range",
           "name": "modificationDateRange",
           "widget-attributes": {
-            "default": "None",
+            "default": "today",
             "values": [
-              "None",
-              "Last 7 Days",
-              "Last 30 days",
-              "Previous Quarter",
-              "Current Quarter",
-              "Last Year",
-              "Current Year",
-              "Custom"
+              "today",
+              "yesterday",
+              "this_week_sun_today",
+              "this_week_mon_today",
+              "last_week_sun_sat",
+              "last_week_mon_sun",
+              "this_month",
+              "last_month",
+              "this_quarter",
+              "last_3d",
+              "last_7d",
+              "last_14d",
+              "last_28d",
+              "last_30d",
+              "last_90d",
+              "this_year",
+              "last_year",
+              "lifetime"
             ]
           }
-        },
-        {
-          "widget-type": "textbox",
-          "label": "Start Date",
-          "name": "startDate"
-        },
-        {
-          "widget-type": "textbox",
-          "label": "End Date",
-          "name": "endDate"
         },
         {
           "name": "fileProperties",
@@ -242,9 +242,7 @@
           "label": "File types to pull",
           "widget-attributes": {
             "delimiter": ",",
-            "default": [
-              "binary"
-            ],
+            "default": "binary",
             "options": [
               {
                 "id": "binary",
@@ -396,24 +394,6 @@
       "widget-type": "non-editable-schema-editor",
       "schema": {
       }
-    }
-  ],
-  "filters": [
-    {
-      "name": "Select modification date range",
-      "condition": {
-        "expression": "modificationDateRange == 'Custom'"
-      },
-      "show": [
-        {
-          "name": "startDate",
-          "type": "property"
-        },
-        {
-          "name": "endDate",
-          "type": "property"
-        }
-      ]
     }
   ]
 }

@@ -18,77 +18,108 @@ package io.cdap.plugin.google.source.utils;
 
 import io.cdap.plugin.google.source.GoogleDriveSourceClient;
 
-import java.time.LocalDateTime;
+import java.time.DayOfWeek;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
-import java.util.regex.Pattern;
 
 /**
  * Builds data range from {@link io.cdap.plugin.google.source.GoogleDriveSourceConfig} instance
  */
 public class ModifiedDateRangeUtils {
 
-  private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSS");
-  private static final Pattern DATE_PATTERN =
-    // RFC 3339 regex : year-month-dayT part
-    Pattern.compile("^([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])" +
-      // hour:minute:second part
-                      "([Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)" +
-      // .microseconds or partial-time
-                      "(\\.[0-9]+)?(([Zz])|([\\+|\\-]([01][0-9]|2[0-3]):[0-5][0-9]))?)?$");
+  private static final DateTimeFormatter DATE_TIME_FORMATTER =
+    DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSXXX");
 
-  public static DateRange getDataRange(ModifiedDateRangeType modifiedDateRangeType, String startDate, String endDate)
+  public static DateRange getDataRange(ModifiedDateRangeType modifiedDateRangeType)
     throws InterruptedException {
-    LocalDateTime now = LocalDateTime.now();
+    ZoneId zoneId = ZoneId.systemDefault();
+    ZonedDateTime now = ZonedDateTime.now();
     switch (modifiedDateRangeType) {
-      case NONE:
-        return null;
-      case LAST_7_DAYS:
-        LocalDateTime weekBefore = now.minusWeeks(1);
-        return convertFromLocalDateTimes(weekBefore, now);
-      case LAST_30_DAYS:
-        LocalDateTime monthBefore = now.minusDays(30);
-        return convertFromLocalDateTimes(monthBefore, now);
-      case PREVIOUS_QUARTER:
-        LocalDateTime currentBeforeQuarter = now.minusMonths(3);
-        LocalDateTime startOfPreviousQuarter = currentBeforeQuarter
-          .with(currentBeforeQuarter.getMonth().firstMonthOfQuarter())
+      case TODAY:
+        ZonedDateTime startOfDay = now.toLocalDate().atStartOfDay(zoneId);
+        return convertFromLocalDateTimes(startOfDay, now);
+      case YESTERDAY:
+        ZonedDateTime startOfPreviousDay = now.minusDays(1).toLocalDate().atStartOfDay(zoneId);
+        ZonedDateTime endOfPreviousDay = now.minusDays(1).toLocalDate().atTime(LocalTime.MAX).atZone(zoneId);
+        return convertFromLocalDateTimes(startOfPreviousDay, endOfPreviousDay);
+      case THIS_WEEK_SUN_TODAY:
+        ZonedDateTime startOfRecentSun = now.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+          .toLocalDate().atStartOfDay(zoneId);
+        return convertFromLocalDateTimes(startOfRecentSun, now);
+      case THIS_WEEK_MON_TODAY:
+        ZonedDateTime startOfRecentMon = now.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+          .toLocalDate().atStartOfDay(zoneId);
+        return convertFromLocalDateTimes(startOfRecentMon, now);
+      case LAST_WEEK_SUN_SAT:
+        ZonedDateTime endOfRecentSat = now.with(TemporalAdjusters.previous(DayOfWeek.SATURDAY))
+          .toLocalDate().atTime(LocalTime.MAX).atZone(zoneId);
+        ZonedDateTime startOfPreRecentSun = endOfRecentSat.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+          .toLocalDate().atStartOfDay(zoneId);
+        return convertFromLocalDateTimes(startOfPreRecentSun, endOfRecentSat);
+      case LAST_WEEK_MON_SUN:
+        ZonedDateTime endOfRecentSun = now.with(TemporalAdjusters.previous(DayOfWeek.SUNDAY))
+          .toLocalDate().atTime(LocalTime.MAX).atZone(zoneId);
+        ZonedDateTime startOfPreRecentMon = endOfRecentSun.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+          .toLocalDate().atStartOfDay(zoneId);
+        return convertFromLocalDateTimes(startOfPreRecentMon, endOfRecentSun);
+      case THIS_MONTH:
+        ZonedDateTime startOfMonth = now.with(TemporalAdjusters.firstDayOfMonth())
+          .toLocalDate().atTime(LocalTime.MIDNIGHT).atZone(zoneId);
+        return convertFromLocalDateTimes(startOfMonth, now);
+      case LAST_MONTH:
+        ZonedDateTime startOfPreviousMonth = now.minusMonths(1).with(TemporalAdjusters.firstDayOfMonth())
+          .toLocalDate().atTime(LocalTime.MIDNIGHT).atZone(zoneId);
+        ZonedDateTime endOfPreviousMonth = now.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth())
+          .toLocalDate().atTime(LocalTime.MAX).atZone(zoneId);
+        return convertFromLocalDateTimes(startOfPreviousMonth, endOfPreviousMonth);
+      case THIS_QUARTER:
+        ZonedDateTime startOfQuarter = now.with(now.getMonth().firstMonthOfQuarter())
           .with(TemporalAdjusters.firstDayOfMonth())
-          .toLocalDate().atTime(LocalTime.MIDNIGHT);
-        LocalDateTime endOfPreviousQuarter = startOfPreviousQuarter.plusMonths(2)
-          .with(TemporalAdjusters.lastDayOfMonth())
-          .toLocalDate().atTime(LocalTime.MAX);
-        return convertFromLocalDateTimes(startOfPreviousQuarter, endOfPreviousQuarter);
-      case CURRENT_QUARTER:
-        LocalDateTime startOfCurrentQuarter = now.with(now.getMonth().firstMonthOfQuarter())
-          .with(TemporalAdjusters.firstDayOfMonth())
-          .toLocalDate().atTime(LocalTime.MIDNIGHT);
-        return convertFromLocalDateTimes(startOfCurrentQuarter, now);
+          .toLocalDate().atTime(LocalTime.MIDNIGHT).atZone(zoneId);
+        return convertFromLocalDateTimes(startOfQuarter, now);
+      case LAST_3D:
+        return convertFromLocalDateTimes(getStartOfDaysAgo(now, zoneId, 3), getEndOfYesterday(now, zoneId));
+      case LAST_7D:
+        return convertFromLocalDateTimes(getStartOfDaysAgo(now, zoneId, 7), getEndOfYesterday(now, zoneId));
+      case LAST_14D:
+        return convertFromLocalDateTimes(getStartOfDaysAgo(now, zoneId, 14), getEndOfYesterday(now, zoneId));
+      case LAST_28D:
+        return convertFromLocalDateTimes(getStartOfDaysAgo(now, zoneId, 28), getEndOfYesterday(now, zoneId));
+      case LAST_30D:
+        return convertFromLocalDateTimes(getStartOfDaysAgo(now, zoneId, 30), getEndOfYesterday(now, zoneId));
+      case LAST_90D:
+        return convertFromLocalDateTimes(getStartOfDaysAgo(now, zoneId, 90), getEndOfYesterday(now, zoneId));
+      case THIS_YEAR:
+        ZonedDateTime startOfCurrentYear = now.with(TemporalAdjusters.firstDayOfYear())
+          .toLocalDate().atTime(LocalTime.MIDNIGHT).atZone(zoneId);
+        return convertFromLocalDateTimes(startOfCurrentYear, now);
       case LAST_YEAR:
-        LocalDateTime startOfPreviousYear = now.minusYears(1).with(TemporalAdjusters.firstDayOfYear())
-          .toLocalDate().atTime(LocalTime.MIDNIGHT);
-        LocalDateTime endOfPreviousYear = now.minusYears(1).with(TemporalAdjusters.lastDayOfYear())
-          .toLocalDate().atTime(LocalTime.MAX);
+        ZonedDateTime startOfPreviousYear = now.minusYears(1).with(TemporalAdjusters.firstDayOfYear())
+          .toLocalDate().atTime(LocalTime.MIDNIGHT).atZone(zoneId);
+        ZonedDateTime endOfPreviousYear = now.minusYears(1).with(TemporalAdjusters.lastDayOfYear())
+          .toLocalDate().atTime(LocalTime.MAX).atZone(zoneId);
         return convertFromLocalDateTimes(startOfPreviousYear, endOfPreviousYear);
-      case CURRENT_YEAR:
-        LocalDateTime startOfYear = now.with(TemporalAdjusters.firstDayOfYear())
-          .toLocalDate().atTime(LocalTime.MIDNIGHT);
-        return convertFromLocalDateTimes(startOfYear, now);
-      case CUSTOM:
-        return new DateRange(startDate, endDate);
+      case LIFETIME:
+        return null;
     }
     throw new InterruptedException("No valid modified date range was selected");
   }
 
-  private static DateRange convertFromLocalDateTimes(LocalDateTime fromDateTime,
-                                                     LocalDateTime toDateTime) {
-    return new DateRange(fromDateTime.format(DATE_TIME_FORMATTER),
-                         toDateTime.format(DATE_TIME_FORMATTER));
+  private static ZonedDateTime getEndOfYesterday(ZonedDateTime now, ZoneId zoneId) {
+    return now.minusDays(1).toLocalDate().atTime(LocalTime.MAX).atZone(zoneId);
   }
 
-  public static boolean isValidDateString(String dateString) {
-    return DATE_PATTERN.matcher(dateString).matches();
+  private static ZonedDateTime getStartOfDaysAgo(ZonedDateTime now, ZoneId zoneId, int daysAgo) {
+    return now.minusDays(daysAgo).toLocalDate().atTime(LocalTime.MIDNIGHT).atZone(zoneId);
+  }
+
+  private static DateRange convertFromLocalDateTimes(ZonedDateTime fromDateTime,
+                                                     ZonedDateTime toDateTime) {
+    return new DateRange(fromDateTime.format(DATE_TIME_FORMATTER),
+                         toDateTime.format(DATE_TIME_FORMATTER));
   }
 
   public static String getFilterValue(DateRange dateRange) {

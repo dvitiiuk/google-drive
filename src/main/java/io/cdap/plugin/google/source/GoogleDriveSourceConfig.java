@@ -29,7 +29,6 @@ import io.cdap.plugin.google.source.exceptions.InvalidPropertyTypeException;
 import io.cdap.plugin.google.source.utils.BodyFormat;
 import io.cdap.plugin.google.source.utils.ExportedType;
 import io.cdap.plugin.google.source.utils.ModifiedDateRangeType;
-import io.cdap.plugin.google.source.utils.ModifiedDateRangeUtils;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,8 +42,6 @@ import javax.annotation.Nullable;
 public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   public static final String FILTER = "filter";
   public static final String MODIFICATION_DATE_RANGE = "modificationDateRange";
-  public static final String START_DATE = "startDate";
-  public static final String END_DATE = "endDate";
   public static final String FILE_PROPERTIES = "fileProperties";
   public static final String FILE_TYPES_TO_PULL = "fileTypesToPull";
   public static final String MAX_PARTITION_SIZE = "maxPartitionSize";
@@ -55,8 +52,6 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   public static final String PRESENTATIONS_EXPORTING_FORMAT = "presentationsExportingFormat";
 
   public static final String MODIFICATION_DATE_RANGE_LABEL = "Modification date range";
-  public static final String START_DATE_LABEL = "Start date";
-  public static final String END_DATE_LABEL = "End date";
   public static final String FILE_PROPERTIES_LABEL = "File properties";
   public static final String FILE_TYPES_TO_PULL_LABEL = "File types to pull";
   public static final String BODY_FORMAT_LABEL = "Body output format";
@@ -77,20 +72,6 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
     "User can select either some preset range or input range manually in the RFC3339 format")
   @Macro
   protected String modificationDateRange;
-
-  @Nullable
-  @Name(START_DATE)
-  @Description("Accepts start date for modification date range. " +
-    "RFC3339 format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
-  @Macro
-  protected String startDate;
-
-  @Nullable
-  @Name(END_DATE)
-  @Description("Accepts end date for modification date range. " +
-    "RFC3339 format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
-  @Macro
-  protected String endDate;
 
   @Nullable
   @Name(FILE_PROPERTIES)
@@ -148,17 +129,7 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
 
     validateBodyFormat(collector);
 
-    if (validateModificationDateRange(collector)
-      && getModificationDateRangeType().equals(ModifiedDateRangeType.CUSTOM)) {
-      if (checkPropertyIsSet(collector, startDate, START_DATE, START_DATE_LABEL)) {
-        checkPropertyIsValid(collector, ModifiedDateRangeUtils.isValidDateString(startDate), startDate, START_DATE,
-                             START_DATE_LABEL);
-      }
-      if (checkPropertyIsSet(collector, endDate, END_DATE, END_DATE_LABEL)) {
-        checkPropertyIsValid(collector, ModifiedDateRangeUtils.isValidDateString(endDate), startDate, END_DATE,
-                             END_DATE_LABEL);
-      }
-    }
+    validateModificationDateRange(collector);
 
     validateFileProperties(collector);
   }
@@ -320,15 +291,5 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
 
   public String getPresentationsExportingFormat() {
     return presentationsExportingFormat;
-  }
-
-  @Nullable
-  public String getStartDate() {
-    return startDate;
-  }
-
-  @Nullable
-  public String getEndDate() {
-    return endDate;
   }
 }

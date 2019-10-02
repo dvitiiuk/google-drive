@@ -25,14 +25,24 @@ import java.util.stream.Stream;
  * An enum which represent a type of dare range of file modification.
  */
 public enum ModifiedDateRangeType {
-  NONE("None"),
-  LAST_7_DAYS("Last 7 Days"),
-  LAST_30_DAYS("Last 30 days"),
-  PREVIOUS_QUARTER("Previous Quarter"),
-  CURRENT_QUARTER("Current Quarter"),
-  LAST_YEAR("Last Year"),
-  CURRENT_YEAR("Current Year"),
-  CUSTOM("Custom");
+  TODAY("today"),
+  YESTERDAY("yesterday"),
+  THIS_WEEK_SUN_TODAY("this_week_sun_today"),
+  THIS_WEEK_MON_TODAY("this_week_mon_today"),
+  LAST_WEEK_SUN_SAT("last_week_sun_sat"),
+  LAST_WEEK_MON_SUN("last_week_mon_sun"),
+  THIS_MONTH("this_month"),
+  LAST_MONTH("last_month"),
+  THIS_QUARTER("this_quarter"),
+  LAST_3D("last_3d"),
+  LAST_7D("last_7d"),
+  LAST_14D("last_14d"),
+  LAST_28D("last_28d"),
+  LAST_30D("last_30d"),
+  LAST_90D("last_90d"),
+  THIS_YEAR("this_year"),
+  LAST_YEAR("last_year"),
+  LIFETIME("lifetime");
 
   private final String value;
 
