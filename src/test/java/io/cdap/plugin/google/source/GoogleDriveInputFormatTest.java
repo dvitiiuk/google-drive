@@ -112,7 +112,7 @@ public class GoogleDriveInputFormatTest {
     file1.setId(FILE_NAME_2);
 
     File file2 = new File();
-    file2.setSize(25L);
+    file2.setSize(null);
     file2.setId(FILE_NAME_3);
     return new ArrayList<File>() {{
       add(file0);

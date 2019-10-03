@@ -73,21 +73,24 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   protected String filter;
 
   @Name(MODIFICATION_DATE_RANGE)
-  @Description("Filter that narrows set of files by modified date range. " +
-    "User can select either some preset range or input range manually in the RFC3339 format")
+  @Description("Filter that narrows set of files by modified date range. \n" +
+    "User can select either among predefined or custom entered ranges. \n" +
+    "For 'Custom' selection there appear two additional fields: 'Start date' and 'End date'.")
   @Macro
   protected String modificationDateRange;
 
   @Nullable
   @Name(START_DATE)
-  @Description("Accepts start date for modification date range. " +
+  @Description("Accepts start date for custom modification date range. \n" +
+    "Is shown only when 'Custom' range is selected for 'Modification date range' field. \n" +
     "RFC3339 format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
   @Macro
   protected String startDate;
 
   @Nullable
   @Name(END_DATE)
-  @Description("Accepts end date for modification date range. " +
+  @Description("Accepts end date for custom modification date range. \n" +
+    "Is shown only when 'Custom' range is selected for 'Modification date range' field.\n" +
     "RFC3339 format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
   @Macro
   protected String endDate;
@@ -99,7 +102,10 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   protected String fileProperties;
 
   @Name(FILE_TYPES_TO_PULL)
-  @Description("Types of files should be pulled from specified directory.")
+  @Description("Types of files should be pulled from specified directory. \n" +
+    "Are supported following values: binary (all no-Google Drive formats), Google Documents, Google Spreadsheets, \n" +
+    "Google Drawings, Google Presentations and Google Apps Scripts. \n" +
+    "For Google Drive formats user should specify exporting format in 'Exporting' section.")
   @Macro
   protected String fileTypesToPull;
 

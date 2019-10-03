@@ -86,8 +86,8 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     FileFromFolder fileFromFolder;
 
     String mimeType = currentFile.getMimeType();
+    long offset = bytesFrom == null ? 0L : bytesFrom;
     if (!mimeType.startsWith(DRIVE_DOCS_MIME_PREFIX)) {
-      long offset = bytesFrom == null ? 0L : bytesFrom;
       OutputStream outputStream = new ByteArrayOutputStream();
       Drive.Files.Get get = service.files().get(currentFile.getId());
 
@@ -111,7 +111,7 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
       fileFromFolder = exportGoogleDocFile(service, currentFile, DEFAULT_APPS_SCRIPTS_EXPORT_MIME);
     } else {
       fileFromFolder =
-        new FileFromFolder(new byte[]{}, bytesFrom, currentFile);
+        new FileFromFolder(new byte[]{}, offset, currentFile);
     }
     return fileFromFolder;
   }
@@ -119,13 +119,9 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
   // We should separate binary and Google Drive formats between two requests
   public List<File> getFiles() throws InterruptedException {
     List<ExportedType> exportedTypes = new ArrayList<>(config.getFileTypesToPull());
-    List<List<ExportedType>> exportedTypeGroups = new ArrayList<>();
-    if (exportedTypes.contains(ExportedType.BINARY)) {
-      exportedTypeGroups.add(Collections.singletonList(ExportedType.BINARY));
 
-      exportedTypes.remove(ExportedType.BINARY);
-      exportedTypeGroups.add(exportedTypes);
-    }
+    List<List<ExportedType>> exportedTypeGroups = separateFileTypesBetweenGroups(exportedTypes);
+
     List<File> files = new ArrayList<>();
     for (List<ExportedType> group : exportedTypeGroups) {
       if (!group.isEmpty()) {
@@ -133,6 +129,19 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
       }
     }
     return files;
+  }
+
+  private List<List<ExportedType>> separateFileTypesBetweenGroups(List<ExportedType> exportedTypes) {
+    List<List<ExportedType>> exportedTypeGroups = new ArrayList<>();
+    if (exportedTypes.contains(ExportedType.BINARY)) {
+      exportedTypeGroups.add(Collections.singletonList(ExportedType.BINARY));
+
+      exportedTypes.remove(ExportedType.BINARY);
+      exportedTypeGroups.add(exportedTypes);
+    } else {
+      exportedTypeGroups.add(exportedTypes);
+    }
+    return exportedTypeGroups;
   }
 
   public List<File> getFiles(List<ExportedType> exportedTypes) throws InterruptedException {

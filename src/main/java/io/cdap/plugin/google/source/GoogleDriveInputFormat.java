@@ -49,7 +49,8 @@ public class GoogleDriveInputFormat extends InputFormat {
     List<InputSplit> splits = new ArrayList<>();
     for (File file : files) {
       Long fileSize = file.getSize();
-      if (maxBodySize == 0L || fileSize <= maxBodySize) {
+      // fileSize == null for files in Google formats
+      if (maxBodySize == 0L || fileSize == null || fileSize <= maxBodySize) {
         splits.add(getSplitWithUnlimitedPartitionSize(file.getId()));
       } else {
         long currentPoint = 0L;
