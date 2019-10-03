@@ -39,9 +39,10 @@ import java.util.stream.Collectors;
  * Batch source to read multiple files from Google Drive directory.
  */
 @Plugin(type = BatchSource.PLUGIN_TYPE)
-@Name("GoogleDrive")
+@Name(GoogleDriveSource.NAME)
 @Description("Reads fileset from specified Google Drive directory.")
 public class GoogleDriveSource extends BatchSource<NullWritable, FileFromFolder, StructuredRecord> {
+  public static final String NAME = "GoogleDrive";
 
   private final GoogleDriveSourceConfig config;
 
