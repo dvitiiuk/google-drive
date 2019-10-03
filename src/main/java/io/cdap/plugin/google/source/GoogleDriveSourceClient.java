@@ -200,8 +200,8 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
       sb.append(filter);
     }
 
-    DateRange modifiedDateRange = ModifiedDateRangeUtils.getDataRange(config.getModificationDateRangeType()
-    );
+    DateRange modifiedDateRange = ModifiedDateRangeUtils.getDataRange(config.getModificationDateRangeType(),
+      config.getStartDate(), config.getEndDate());
     if (modifiedDateRange != null) {
       sb.append(" and ");
       sb.append(ModifiedDateRangeUtils.getFilterValue(modifiedDateRange));

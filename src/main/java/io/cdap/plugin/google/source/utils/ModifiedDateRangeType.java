@@ -42,7 +42,8 @@ public enum ModifiedDateRangeType {
   LAST_90D("last_90d"),
   THIS_YEAR("this_year"),
   LAST_YEAR("last_year"),
-  LIFETIME("lifetime");
+  LIFETIME("lifetime"),
+  CUSTOM("custom");
 
   private final String value;
 

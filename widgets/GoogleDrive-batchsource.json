@@ -46,9 +46,20 @@
               "last_90d",
               "this_year",
               "last_year",
-              "lifetime"
+              "lifetime",
+              "custom"
             ]
           }
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Start Date",
+          "name": "startDate"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "End Date",
+          "name": "endDate"
         },
         {
           "name": "fileProperties",
@@ -394,6 +405,24 @@
       "widget-type": "non-editable-schema-editor",
       "schema": {
       }
+    }
+  ],
+  "filters": [
+    {
+      "name": "Select modification date range",
+      "condition": {
+        "expression": "modificationDateRange == 'custom'"
+      },
+      "show": [
+        {
+          "name": "startDate",
+          "type": "property"
+        },
+        {
+          "name": "endDate",
+          "type": "property"
+        }
+      ]
     }
   ]
 }

@@ -24,6 +24,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
+import java.util.regex.Pattern;
 
 /**
  * Builds data range from {@link io.cdap.plugin.google.source.GoogleDriveSourceConfig} instance
@@ -32,8 +33,15 @@ public class ModifiedDateRangeUtils {
 
   private static final DateTimeFormatter DATE_TIME_FORMATTER =
     DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSXXX");
+  private static final Pattern DATE_PATTERN =
+    // RFC 3339 regex : year-month-dayT part
+    Pattern.compile("^([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])" +
+                      // hour:minute:second part
+                      "([Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)" +
+                      // .microseconds or partial-time
+                      "(\\.[0-9]+)?(([Zz])|([\\+|\\-]([01][0-9]|2[0-3]):[0-5][0-9]))?)?$");
 
-  public static DateRange getDataRange(ModifiedDateRangeType modifiedDateRangeType)
+  public static DateRange getDataRange(ModifiedDateRangeType modifiedDateRangeType, String startDate, String endDate)
     throws InterruptedException {
     ZoneId zoneId = ZoneId.systemDefault();
     ZonedDateTime now = ZonedDateTime.now();
@@ -104,6 +112,8 @@ public class ModifiedDateRangeUtils {
         return convertFromLocalDateTimes(startOfPreviousYear, endOfPreviousYear);
       case LIFETIME:
         return null;
+      case CUSTOM:
+        return new DateRange(startDate, endDate);
     }
     throw new InterruptedException("No valid modified date range was selected");
   }
@@ -120,6 +130,10 @@ public class ModifiedDateRangeUtils {
                                                      ZonedDateTime toDateTime) {
     return new DateRange(fromDateTime.format(DATE_TIME_FORMATTER),
                          toDateTime.format(DATE_TIME_FORMATTER));
+  }
+
+  public static boolean isValidDateString(String dateString) {
+    return DATE_PATTERN.matcher(dateString).matches();
   }
 
   public static String getFilterValue(DateRange dateRange) {
