@@ -17,8 +17,7 @@
 package io.cdap.plugin.google.source;
 
 import io.cdap.cdap.api.data.schema.Schema;
-import io.cdap.plugin.google.source.exceptions.InvalidPropertyType;
-import io.cdap.plugin.google.source.exceptions.InvalidPropertyTypeException;
+import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
 import io.cdap.plugin.google.source.utils.BodyFormat;
 
 import java.util.ArrayList;
@@ -139,7 +138,7 @@ public class SchemaBuilder {
                           Schema.of(Schema.Type.STRING), Schema.of(Schema.Type.STRING))));
       default:
         if (!name.startsWith(IMAGE_METADATA_NAME_PREFIX) && !name.startsWith(VIDEO_METADATA_NAME_PREFIX)) {
-          throw new InvalidPropertyTypeException(InvalidPropertyType.FILE_PROPERTY, name);
+          throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_PROPERTIES_LABEL, name);
         }
     }
     return null;
@@ -217,7 +216,7 @@ public class SchemaBuilder {
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.BOOLEAN)));
       default:
         if (!name.startsWith(LOCATION_NAME_PREFIX)) {
-          throw new InvalidPropertyTypeException(InvalidPropertyType.FILE_PROPERTY, name);
+          throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_PROPERTIES_LABEL, name);
         }
     }
     return null;
@@ -231,7 +230,7 @@ public class SchemaBuilder {
       case VIDEO_DURATION_MILLIS_FIELD_NAME:
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.LONG)));
       default:
-        throw new InvalidPropertyTypeException(InvalidPropertyType.FILE_PROPERTY, name);
+        throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_PROPERTIES_LABEL, name);
     }
   }
 
@@ -242,6 +241,6 @@ public class SchemaBuilder {
       case IMAGE_ALTITUDE_FIELD_NAME:
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.DOUBLE)));
     }
-    throw new InvalidPropertyTypeException(InvalidPropertyType.FILE_PROPERTY, name);
+    throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_PROPERTIES_LABEL, name);
   }
 }

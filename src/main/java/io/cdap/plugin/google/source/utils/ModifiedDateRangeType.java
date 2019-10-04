@@ -16,8 +16,8 @@
 
 package io.cdap.plugin.google.source.utils;
 
-import io.cdap.plugin.google.source.exceptions.InvalidPropertyType;
-import io.cdap.plugin.google.source.exceptions.InvalidPropertyTypeException;
+import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
+import io.cdap.plugin.google.source.GoogleDriveSourceConfig;
 
 import java.util.stream.Stream;
 
@@ -59,6 +59,7 @@ public enum ModifiedDateRangeType {
     return Stream.of(ModifiedDateRangeType.values())
       .filter(keyType -> keyType.getValue().equalsIgnoreCase(value))
       .findAny()
-      .orElseThrow(() -> new InvalidPropertyTypeException(InvalidPropertyType.MODIFIED_DATE_RANGE, value));
+      .orElseThrow(() -> new InvalidPropertyTypeException(GoogleDriveSourceConfig.MODIFICATION_DATE_RANGE_LABEL,
+                                                          value));
   }
 }

@@ -16,9 +16,9 @@
 
 package io.cdap.plugin.google.source.utils;
 
+import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
 import io.cdap.plugin.google.source.GoogleDriveSourceClient;
-import io.cdap.plugin.google.source.exceptions.InvalidPropertyType;
-import io.cdap.plugin.google.source.exceptions.InvalidPropertyTypeException;
+import io.cdap.plugin.google.source.GoogleDriveSourceConfig;
 
 import java.util.Arrays;
 
@@ -51,6 +51,7 @@ public enum ExportedType {
 
   public static ExportedType fromValue(String value) {
     return Arrays.stream(ExportedType.values()).filter(exportedType -> exportedType.getValue().equals(value))
-      .findAny().orElseThrow(() -> new InvalidPropertyTypeException(InvalidPropertyType.EXPORTED_TYPE, value));
+      .findAny().orElseThrow(() -> new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_TYPES_TO_PULL_LABEL
+        , value));
   }
 }

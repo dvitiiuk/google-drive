@@ -22,10 +22,9 @@ import io.cdap.cdap.api.annotation.Macro;
 import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
-import io.cdap.cdap.etl.api.validation.ValidationFailure;
 import io.cdap.plugin.google.common.GoogleDriveBaseConfig;
 import io.cdap.plugin.google.common.GoogleDriveClient;
-import io.cdap.plugin.google.source.exceptions.InvalidPropertyTypeException;
+import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
 import io.cdap.plugin.google.source.utils.BodyFormat;
 import io.cdap.plugin.google.source.utils.ExportedType;
 import io.cdap.plugin.google.source.utils.ModifiedDateRangeType;
@@ -61,9 +60,7 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   public static final String FILE_TYPES_TO_PULL_LABEL = "File types to pull";
   public static final String BODY_FORMAT_LABEL = "Body output format";
 
-  private static final String IS_VALID_FAILURE_MESSAGE_PATTERN = "%s has invalid value %s";
-  private static final String IS_SET_FAILURE_MESSAGE_PATTERN = "'%s' property is empty or macro is not available";
-  private static final String CHECK_CORRECTIVE_MESSAGE_PATTERN = "Enter valid '%s' property";
+  private static final String IS_VALID_FAILURE_MESSAGE_PATTERN = "'%s' property has invalid value %s";
 
   @Nullable
   @Name(FILTER)
@@ -83,7 +80,7 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   @Name(START_DATE)
   @Description("Accepts start date for custom modification date range. \n" +
     "Is shown only when 'Custom' range is selected for 'Modification date range' field. \n" +
-    "RFC3339 format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
+    "RFC3339 (https://tools.ietf.org/html/rfc3339) format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
   @Macro
   protected String startDate;
 
@@ -91,7 +88,7 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   @Name(END_DATE)
   @Description("Accepts end date for custom modification date range. \n" +
     "Is shown only when 'Custom' range is selected for 'Modification date range' field.\n" +
-    "RFC3339 format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
+    "RFC3339 (https://tools.ietf.org/html/rfc3339) format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
   @Macro
   protected String endDate;
 
@@ -110,7 +107,8 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   protected String fileTypesToPull;
 
   @Name(MAX_PARTITION_SIZE)
-  @Description("Maximum body size for each partition specified in bytes. Default 0 value means unlimited.")
+  @Description("Maximum body size for each partition specified in bytes. Default 0 value means unlimited. " +
+    "Is not applicable for files in Google formats.")
   @Macro
   protected String maxPartitionSize;
 
@@ -176,14 +174,13 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
 
   private void validateFileTypesToPull(FailureCollector collector) {
     if (!containsMacro(FILE_TYPES_TO_PULL)) {
-      if (!Strings.isNullOrEmpty(fileProperties)) {
+      if (!Strings.isNullOrEmpty(fileTypesToPull)) {
         List<String> exportedTypeStrings = Arrays.asList(fileTypesToPull.split(","));
         exportedTypeStrings.forEach(exportedTypeString -> {
           try {
             ExportedType.fromValue(exportedTypeString);
           } catch (InvalidPropertyTypeException e) {
-            collectInvalidProperty(collector, FILE_TYPES_TO_PULL, fileProperties, FILE_TYPES_TO_PULL_LABEL,
-                                   e.getStackTrace());
+            collector.addFailure(e.getMessage(), null).withConfigProperty(FILE_TYPES_TO_PULL);
           }
         });
       }
@@ -193,10 +190,9 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   private void validateBodyFormat(FailureCollector collector) {
     if (checkPropertyIsSet(collector, BODY_FORMAT, bodyFormat, BODY_FORMAT_LABEL)) {
       try {
-        getModificationDateRangeType();
+        getBodyFormat();
       } catch (InvalidPropertyTypeException e) {
-        collectInvalidProperty(collector, BODY_FORMAT, bodyFormat,
-                               BODY_FORMAT_LABEL, e.getStackTrace());
+        collector.addFailure(e.getMessage(), null).withConfigProperty(BODY_FORMAT);
       }
     }
   }
@@ -207,72 +203,31 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
         getModificationDateRangeType();
         return true;
       } catch (InvalidPropertyTypeException e) {
-        collectInvalidProperty(collector, MODIFICATION_DATE_RANGE, modificationDateRange,
-                               MODIFICATION_DATE_RANGE_LABEL, e.getStackTrace());
+        collector.addFailure(e.getMessage(), null).withConfigProperty(MODIFICATION_DATE_RANGE);
       }
     }
     return false;
   }
 
   private void validateFileProperties(FailureCollector collector) {
-    if (!containsMacro(FILE_TYPES_TO_PULL)) {
+    if (!containsMacro(FILE_PROPERTIES)) {
       if (!Strings.isNullOrEmpty(fileProperties)) {
         try {
           SchemaBuilder.buildSchema(getFileProperties(), getBodyFormat());
         } catch (InvalidPropertyTypeException e) {
-          collectInvalidProperty(collector, FILE_TYPES_TO_PULL, fileProperties, FILE_PROPERTIES_LABEL,
-                                 e.getStackTrace());
+          collector.addFailure(e.getMessage(), null).withConfigProperty(FILE_PROPERTIES);
         }
       }
     }
   }
 
-  protected boolean checkPropertyIsSet(FailureCollector collector, String propertyValue, String propertyName,
-                                       String propertyLabel) {
-    if (!containsMacro(propertyName)) {
-      if (Strings.isNullOrEmpty(propertyValue)) {
-        collector.addFailure(getIsSetValidationFailedMessage(propertyLabel),
-                             getValidationFailedCorrectiveAction(propertyLabel))
-          .withConfigProperty(propertyName);
-      } else {
-        return true;
-      }
-    }
-    return false;
-  }
-
   protected void checkPropertyIsValid(FailureCollector collector, boolean isPropertyValid, String propertyName,
-                                      String propertyValue, String propertyLabel,
-                                      StackTraceElement[] stacktraceElements) {
+                                      String propertyValue, String propertyLabel) {
     if (isPropertyValid) {
       return;
     }
-    ValidationFailure failure = collector
-      .addFailure(String.format(IS_VALID_FAILURE_MESSAGE_PATTERN, propertyName, propertyValue),
-                  getValidationFailedCorrectiveAction(propertyLabel))
+    collector.addFailure(String.format(IS_VALID_FAILURE_MESSAGE_PATTERN, propertyLabel, propertyValue), null)
       .withConfigProperty(propertyName);
-    if (stacktraceElements != null) {
-      failure.withStacktrace(stacktraceElements);
-    }
-  }
-
-  protected void checkPropertyIsValid(FailureCollector collector, boolean isPropertyValid, String propertyName,
-                                      String propertyValue, String propertyLabel) {
-    checkPropertyIsValid(collector, isPropertyValid, propertyName, propertyValue, propertyLabel, null);
-  }
-
-  protected void collectInvalidProperty(FailureCollector collector, String propertyName, String propertyValue,
-                                        String propertyLabel, StackTraceElement[] stacktraceElements) {
-    checkPropertyIsValid(collector, false, propertyName, propertyValue, propertyLabel,
-                         stacktraceElements);
-  }
-
-  protected String getIsSetValidationFailedMessage(String propertyLabel) {
-    return String.format(IS_SET_FAILURE_MESSAGE_PATTERN, propertyLabel);
-  }
-
-  protected String getValidationFailedCorrectiveAction(String propertyLabel) {
-    return String.format(CHECK_CORRECTIVE_MESSAGE_PATTERN, propertyLabel);
   }
 
   public ModifiedDateRangeType getModificationDateRangeType() {
