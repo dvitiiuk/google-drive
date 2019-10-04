@@ -18,11 +18,11 @@ Filters follow the [Google Drive filters syntax](https://developers.google.com/d
 User can select either among predefined or custom entered ranges. 
 For _Custom_ selection there appear two additional fields: **Start date** and **End date**. 
 
-**Start Date:** Accepts start date for custom modification date range. 
+**Start Date:** Start date for custom modification date range. 
 Is shown only when _Custom_ range is selected for **Modification date range** field. 
 [RFC3339](https://tools.ietf.org/html/rfc3339) format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.
 
-**End Date:** Accepts end date for custom modification date range. 
+**End Date:** End date for custom modification date range. 
 Is shown only when _Custom_ range is selected for **Modification date range** field.
 [RFC3339](https://tools.ietf.org/html/rfc3339) format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.
 
@@ -35,8 +35,8 @@ For Google Drive formats user should specify exporting format in **Exporting** s
 
 ### Authentication
 
-**Authentication type:** Defines the authentication type. OAuth2 and Service account types are available. 
-Default is OAuth2.
+**Authentication type:** Type of authentication used to access Google API. 
+OAuth2 and Service account types are available. Default is OAuth2.
 
 **Client ID:** OAuth2 client id. Is shown only when _OAuth2_ auth type is selected for **Authentication type** property.
 

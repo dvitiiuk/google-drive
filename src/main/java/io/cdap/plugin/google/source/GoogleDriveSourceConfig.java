@@ -78,7 +78,7 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
 
   @Nullable
   @Name(START_DATE)
-  @Description("Accepts start date for custom modification date range. \n" +
+  @Description("Start date for custom modification date range. \n" +
     "Is shown only when 'Custom' range is selected for 'Modification date range' field. \n" +
     "RFC3339 (https://tools.ietf.org/html/rfc3339) format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
   @Macro
@@ -86,7 +86,7 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
 
   @Nullable
   @Name(END_DATE)
-  @Description("Accepts end date for custom modification date range. \n" +
+  @Description("End date for custom modification date range. \n" +
     "Is shown only when 'Custom' range is selected for 'Modification date range' field.\n" +
     "RFC3339 (https://tools.ietf.org/html/rfc3339) format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
   @Macro
