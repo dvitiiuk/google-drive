@@ -14,7 +14,7 @@
  * the License.
  */
 
-package io.cdap.plugin.google.source;
+package io.cdap.plugin.google.drive.source;
 
 import com.google.common.base.Strings;
 import io.cdap.cdap.api.annotation.Description;
@@ -22,13 +22,13 @@ import io.cdap.cdap.api.annotation.Macro;
 import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
-import io.cdap.plugin.google.common.GoogleDriveBaseConfig;
-import io.cdap.plugin.google.common.GoogleDriveClient;
-import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
-import io.cdap.plugin.google.source.utils.BodyFormat;
-import io.cdap.plugin.google.source.utils.ExportedType;
-import io.cdap.plugin.google.source.utils.ModifiedDateRangeType;
-import io.cdap.plugin.google.source.utils.ModifiedDateRangeUtils;
+import io.cdap.plugin.google.drive.common.GoogleDriveBaseConfig;
+import io.cdap.plugin.google.drive.common.GoogleDriveClient;
+import io.cdap.plugin.google.drive.common.exceptions.InvalidPropertyTypeException;
+import io.cdap.plugin.google.drive.source.utils.BodyFormat;
+import io.cdap.plugin.google.drive.source.utils.ExportedType;
+import io.cdap.plugin.google.drive.source.utils.ModifiedDateRangeType;
+import io.cdap.plugin.google.drive.source.utils.ModifiedDateRangeUtils;
 
 import java.util.Arrays;
 import java.util.Collections;

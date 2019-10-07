@@ -14,7 +14,7 @@
  * the License.
  */
 
-package io.cdap.plugin.google.source.utils;
+package io.cdap.plugin.google.drive.source.utils;
 
 /**
  * Class for data range presenting.

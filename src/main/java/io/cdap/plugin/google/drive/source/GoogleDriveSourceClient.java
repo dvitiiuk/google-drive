@@ -14,17 +14,17 @@
  * the License.
  */
 
-package io.cdap.plugin.google.source;
+package io.cdap.plugin.google.drive.source;
 
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.common.base.Strings;
-import io.cdap.plugin.google.common.FileFromFolder;
-import io.cdap.plugin.google.common.GoogleDriveClient;
-import io.cdap.plugin.google.source.utils.DateRange;
-import io.cdap.plugin.google.source.utils.ExportedType;
-import io.cdap.plugin.google.source.utils.ModifiedDateRangeUtils;
+import io.cdap.plugin.google.drive.common.FileFromFolder;
+import io.cdap.plugin.google.drive.common.GoogleDriveClient;
+import io.cdap.plugin.google.drive.source.utils.DateRange;
+import io.cdap.plugin.google.drive.source.utils.ExportedType;
+import io.cdap.plugin.google.drive.source.utils.ModifiedDateRangeUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

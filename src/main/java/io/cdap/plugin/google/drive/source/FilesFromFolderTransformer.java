@@ -14,14 +14,14 @@
  * the License.
  */
 
-package io.cdap.plugin.google.source;
+package io.cdap.plugin.google.drive.source;
 
 import com.google.api.client.json.GenericJson;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.model.File;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
-import io.cdap.plugin.google.common.FileFromFolder;
+import io.cdap.plugin.google.drive.common.FileFromFolder;
 
 import java.time.ZonedDateTime;
 import java.util.HashMap;

@@ -14,7 +14,7 @@
  * the License.
  */
 
-package io.cdap.plugin.google.source;
+package io.cdap.plugin.google.drive.source;
 
 import com.google.common.base.Preconditions;
 import io.cdap.cdap.api.annotation.Description;
@@ -30,7 +30,7 @@ import io.cdap.cdap.etl.api.PipelineConfigurer;
 import io.cdap.cdap.etl.api.batch.BatchSource;
 import io.cdap.cdap.etl.api.batch.BatchSourceContext;
 import io.cdap.plugin.common.LineageRecorder;
-import io.cdap.plugin.google.common.FileFromFolder;
+import io.cdap.plugin.google.drive.common.FileFromFolder;
 import org.apache.hadoop.io.NullWritable;
 
 import java.util.stream.Collectors;

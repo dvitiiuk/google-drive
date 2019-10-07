@@ -14,11 +14,11 @@
  * the License.
  */
 
-package io.cdap.plugin.google.source;
+package io.cdap.plugin.google.drive.source;
 
 import io.cdap.cdap.api.data.schema.Schema;
-import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
-import io.cdap.plugin.google.source.utils.BodyFormat;
+import io.cdap.plugin.google.drive.common.exceptions.InvalidPropertyTypeException;
+import io.cdap.plugin.google.drive.source.utils.BodyFormat;
 
 import java.util.ArrayList;
 import java.util.List;

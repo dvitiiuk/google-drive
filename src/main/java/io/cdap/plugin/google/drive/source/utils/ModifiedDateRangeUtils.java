@@ -14,9 +14,9 @@
  * the License.
  */
 
-package io.cdap.plugin.google.source.utils;
+package io.cdap.plugin.google.drive.source.utils;
 
-import io.cdap.plugin.google.source.GoogleDriveSourceClient;
+import io.cdap.plugin.google.drive.source.GoogleDriveSourceClient;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
@@ -27,7 +27,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.regex.Pattern;
 
 /**
- * Builds data range from {@link io.cdap.plugin.google.source.GoogleDriveSourceConfig} instance
+ * Builds data range from {@link io.cdap.plugin.google.drive.source.GoogleDriveSourceConfig} instance
  */
 public class ModifiedDateRangeUtils {
 

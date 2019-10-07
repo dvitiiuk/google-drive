@@ -14,11 +14,11 @@
  * the License.
  */
 
-package io.cdap.plugin.google.source.io.cdap.plugin.google.utils;
+package io.cdap.plugin.google.drive.source.io.cdap.plugin.google.utils;
 
-import io.cdap.plugin.google.source.utils.DateRange;
-import io.cdap.plugin.google.source.utils.ModifiedDateRangeType;
-import io.cdap.plugin.google.source.utils.ModifiedDateRangeUtils;
+import io.cdap.plugin.google.drive.source.utils.DateRange;
+import io.cdap.plugin.google.drive.source.utils.ModifiedDateRangeType;
+import io.cdap.plugin.google.drive.source.utils.ModifiedDateRangeUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.mockito.PowerMockito;

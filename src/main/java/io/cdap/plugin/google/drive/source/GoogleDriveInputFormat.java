@@ -14,7 +14,7 @@
  * the License.
  */
 
-package io.cdap.plugin.google.source;
+package io.cdap.plugin.google.drive.source;
 
 import com.google.api.services.drive.model.File;
 import org.apache.hadoop.conf.Configuration;

@@ -14,7 +14,7 @@
  * the License.
  */
 
-package io.cdap.plugin.google.source;
+package io.cdap.plugin.google.drive.source;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;

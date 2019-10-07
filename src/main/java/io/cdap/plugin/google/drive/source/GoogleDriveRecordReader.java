@@ -14,9 +14,9 @@
  * the License.
  */
 
-package io.cdap.plugin.google.source;
+package io.cdap.plugin.google.drive.source;
 
-import io.cdap.plugin.google.common.FileFromFolder;
+import io.cdap.plugin.google.drive.common.FileFromFolder;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.InputSplit;
