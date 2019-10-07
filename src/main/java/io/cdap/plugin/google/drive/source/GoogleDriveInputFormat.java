@@ -33,7 +33,7 @@ import java.util.List;
 public class GoogleDriveInputFormat extends InputFormat {
 
   @Override
-  public List<InputSplit> getSplits(JobContext jobContext) throws InterruptedException {
+  public List<InputSplit> getSplits(JobContext jobContext) {
     Configuration conf = jobContext.getConfiguration();
     String configJson = conf.get(GoogleDriveInputFormatProvider.PROPERTY_CONFIG_JSON);
     GoogleDriveSourceConfig googleDriveSourceConfig =
@@ -42,7 +42,7 @@ public class GoogleDriveInputFormat extends InputFormat {
     GoogleDriveSourceClient client = new GoogleDriveSourceClient(googleDriveSourceConfig);
     Long maxBodySize = googleDriveSourceConfig.getMaxPartitionSize();
 
-    return getSplitsFromFiles(client.getFiles(), maxBodySize);
+    return getSplitsFromFiles(client.getFilesSummary(), maxBodySize);
   }
 
   private List<InputSplit> getSplitsFromFiles(List<File> files, Long maxBodySize) {

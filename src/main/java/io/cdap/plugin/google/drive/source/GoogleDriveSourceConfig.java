@@ -44,7 +44,7 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   public static final String MODIFICATION_DATE_RANGE = "modificationDateRange";
   public static final String START_DATE = "startDate";
   public static final String END_DATE = "endDate";
-  public static final String FILE_PROPERTIES = "fileProperties";
+  public static final String FILE_METADATA_PROPERTIES = "fileMetadataProperties";
   public static final String FILE_TYPES_TO_PULL = "fileTypesToPull";
   public static final String MAX_PARTITION_SIZE = "maxPartitionSize";
   public static final String BODY_FORMAT = "bodyFormat";
@@ -56,7 +56,7 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   public static final String MODIFICATION_DATE_RANGE_LABEL = "Modification date range";
   public static final String START_DATE_LABEL = "Start date";
   public static final String END_DATE_LABEL = "End date";
-  public static final String FILE_PROPERTIES_LABEL = "File properties";
+  public static final String FILE_METADATA_PROPERTIES_LABEL = "File properties";
   public static final String FILE_TYPES_TO_PULL_LABEL = "File types to pull";
   public static final String BODY_FORMAT_LABEL = "Body output format";
 
@@ -72,7 +72,7 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   @Name(MODIFICATION_DATE_RANGE)
   @Description("Filter that narrows set of files by modified date range. \n" +
     "User can select either among predefined or custom entered ranges. \n" +
-    "For 'Custom' selection there appear two additional fields: 'Start date' and 'End date'.")
+    "For _Custom_ selection the dates range can be specified via **Start date** and **End date**.")
   @Macro
   protected String modificationDateRange;
 
@@ -93,54 +93,55 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   protected String endDate;
 
   @Nullable
-  @Name(FILE_PROPERTIES)
-  @Description("Properties which should be get for each file in directory.")
+  @Name(FILE_METADATA_PROPERTIES)
+  @Description("Properties that represent metadata of files. \n" +
+    "They will be a part of output structured record.")
   @Macro
-  protected String fileProperties;
+  protected String fileMetadataProperties;
 
   @Name(FILE_TYPES_TO_PULL)
-  @Description("Types of files should be pulled from specified directory. \n" +
-    "Are supported following values: binary (all no-Google Drive formats), Google Documents, Google Spreadsheets, \n" +
-    "Google Drawings, Google Presentations and Google Apps Scripts. \n" +
-    "For Google Drive formats user should specify exporting format in 'Exporting' section.")
+  @Description("Types of files which should be pulled from a specified directory. \n" +
+    "The following values are supported: binary (all non-Google Drive formats), Google Documents, " +
+    "Google Spreadsheets, Google Drawings, Google Presentations and Google Apps Scripts. \n" +
+    "For Google Drive formats user should specify exporting format in **Exporting** section.")
   @Macro
   protected String fileTypesToPull;
 
   @Name(MAX_PARTITION_SIZE)
-  @Description("Maximum body size for each partition specified in bytes. Default 0 value means unlimited. " +
-    "Is not applicable for files in Google formats.")
+  @Description("Maximum body size for each structured record specified in bytes. \n" +
+    "Default 0 value means unlimited. Is not applicable for files in Google formats.")
   @Macro
   protected String maxPartitionSize;
 
   @Name(BODY_FORMAT)
-  @Description("Output format for body of file. \"Bytes\" and \"String\" values are available. Default is \"Bytes\".")
+  @Description("Output format for body of file. \"Bytes\" and \"String\" values are available.")
   @Macro
   protected String bodyFormat;
 
   @Name(DOCS_EXPORTING_FORMAT)
-  @Description("MIME type for exporting Google Documents. Default value is 'text/plain'.")
+  @Description("MIME type which is used for Google Documents when converted to structured records.")
   @Macro
   protected String docsExportingFormat;
 
   @Name(SHEETS_EXPORTING_FORMAT)
-  @Description("MIME type for exporting Google Spreadsheets. Default value is 'text/csv'.")
+  @Description("MIME type which is used for Google Spreadsheets when converted to structured records.")
   @Macro
   protected String sheetsExportingFormat;
 
   @Name(DRAWINGS_EXPORTING_FORMAT)
-  @Description("MIME type for exporting Google Drawings. Default value is 'image/svg+xml'.")
+  @Description("MIME type which is used for Google Drawings when converted to structured records.")
   @Macro
   protected String drawingsExportingFormat;
 
   @Name(PRESENTATIONS_EXPORTING_FORMAT)
-  @Description("MIME type for exporting Google Presentations. Default value is 'text/plain'.")
+  @Description("MIME type which is used for Google Presentations when converted to structured records.")
   @Macro
   protected String presentationsExportingFormat;
   private transient Schema schema = null;
 
   public Schema getSchema() {
     if (schema == null) {
-      schema = SchemaBuilder.buildSchema(getFileProperties(), getBodyFormat());
+      schema = SchemaBuilder.buildSchema(getFileMetadataProperties(), getBodyFormat());
     }
     return schema;
   }
@@ -188,7 +189,7 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   }
 
   private void validateBodyFormat(FailureCollector collector) {
-    if (checkPropertyIsSet(collector, BODY_FORMAT, bodyFormat, BODY_FORMAT_LABEL)) {
+    if (!containsMacro(BODY_FORMAT)) {
       try {
         getBodyFormat();
       } catch (InvalidPropertyTypeException e) {
@@ -198,7 +199,7 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   }
 
   private boolean validateModificationDateRange(FailureCollector collector) {
-    if (checkPropertyIsSet(collector, MODIFICATION_DATE_RANGE, modificationDateRange, MODIFICATION_DATE_RANGE_LABEL)) {
+    if (!containsMacro(MODIFICATION_DATE_RANGE)) {
       try {
         getModificationDateRangeType();
         return true;
@@ -210,13 +211,11 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   }
 
   private void validateFileProperties(FailureCollector collector) {
-    if (!containsMacro(FILE_PROPERTIES)) {
-      if (!Strings.isNullOrEmpty(fileProperties)) {
-        try {
-          SchemaBuilder.buildSchema(getFileProperties(), getBodyFormat());
-        } catch (InvalidPropertyTypeException e) {
-          collector.addFailure(e.getMessage(), null).withConfigProperty(FILE_PROPERTIES);
-        }
+    if (!containsMacro(FILE_METADATA_PROPERTIES) && !Strings.isNullOrEmpty(fileMetadataProperties)) {
+      try {
+        SchemaBuilder.buildSchema(getFileMetadataProperties(), getBodyFormat());
+      } catch (InvalidPropertyTypeException e) {
+        collector.addFailure(e.getMessage(), null).withConfigProperty(FILE_METADATA_PROPERTIES);
       }
     }
   }
@@ -244,11 +243,11 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
     return modificationDateRange;
   }
 
-  List<String> getFileProperties() {
-    if (Strings.isNullOrEmpty(fileProperties)) {
+  List<String> getFileMetadataProperties() {
+    if (Strings.isNullOrEmpty(fileMetadataProperties)) {
       return Collections.emptyList();
     }
-    return Arrays.asList(fileProperties.split(","));
+    return Arrays.asList(fileMetadataProperties.split(","));
   }
 
   public List<ExportedType> getFileTypesToPull() {

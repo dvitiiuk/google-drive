@@ -18,9 +18,9 @@
           "name": "directoryIdentifier"
         },
         {
-          "name": "fileProperties",
+          "name": "fileMetadataProperties",
           "widget-type": "multi-select",
-          "label": "File properties",
+          "label": "File metadata properties",
           "widget-attributes": {
             "delimiter": ",",
             "options": [
@@ -345,8 +345,7 @@
           "name": "maxPartitionSize",
           "widget-attributes": {
             "default": "0",
-            "min": "0",
-            "max": "1000000000"
+            "min": "0"
           }
         },
         {

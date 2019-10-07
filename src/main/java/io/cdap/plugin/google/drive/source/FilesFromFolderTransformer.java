@@ -46,7 +46,7 @@ public class FilesFromFolderTransformer {
         }
       } else if (name.equals(SchemaBuilder.OFFSET_FIELD_NAME)) {
         builder.set(SchemaBuilder.OFFSET_FIELD_NAME, fileFromFolder.getOffset());
-      } else if (file != null) {
+      } else {
         if (name.equals(SchemaBuilder.IMAGE_METADATA_FIELD_NAME)) {
           File.ImageMediaMetadata imageMediaMetadata = file.getImageMediaMetadata();
           if (imageMediaMetadata != null) {

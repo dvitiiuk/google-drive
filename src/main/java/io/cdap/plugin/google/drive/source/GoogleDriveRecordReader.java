@@ -36,6 +36,7 @@ public class GoogleDriveRecordReader extends RecordReader<NullWritable, FileFrom
   private long bytesFrom;
   private long bytesTo;
   private boolean isPartitioned;
+  private boolean isFileProcessed;
 
   @Override
   public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) {
@@ -50,12 +51,12 @@ public class GoogleDriveRecordReader extends RecordReader<NullWritable, FileFrom
     this.bytesFrom = split.getBytesFrom();
     this.bytesTo = split.getBytesTo();
     this.isPartitioned = split.isPartitioned();
+    this.isFileProcessed = false;
   }
 
   @Override
-  public boolean nextKeyValue() throws IOException {
-    // read file
-    return googleDriveSourceClient.hasFile(fileId);
+  public boolean nextKeyValue() {
+    return !isFileProcessed;
   }
 
   @Override
@@ -65,11 +66,12 @@ public class GoogleDriveRecordReader extends RecordReader<NullWritable, FileFrom
 
   @Override
   public FileFromFolder getCurrentValue() throws IOException {
-    // read content
+    // read file and content
+    isFileProcessed = true;
     if (isPartitioned) {
-      return googleDriveSourceClient.getFilePartition(bytesFrom, bytesTo);
+      return googleDriveSourceClient.getFilePartition(fileId, bytesFrom, bytesTo);
     } else {
-      return googleDriveSourceClient.getFile();
+      return googleDriveSourceClient.getFile(fileId);
     }
   }
 

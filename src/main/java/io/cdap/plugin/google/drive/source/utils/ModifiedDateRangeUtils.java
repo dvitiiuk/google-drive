@@ -115,7 +115,7 @@ public class ModifiedDateRangeUtils {
       case CUSTOM:
         return new DateRange(startDate, endDate);
     }
-    throw new InterruptedException("No valid modified date range was selected");
+    throw new IllegalArgumentException("No valid modified date range was selected");
   }
 
   private static ZonedDateTime getEndOfYesterday(ZonedDateTime now, ZoneId zoneId) {

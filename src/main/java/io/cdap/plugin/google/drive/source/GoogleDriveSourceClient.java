@@ -50,9 +50,6 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
 
   public static final String DEFAULT_APPS_SCRIPTS_EXPORT_MIME = "application/vnd.google-apps.script+json";
 
-  private File currentFile;
-  private boolean hasFileRetrieved = false;
-
   private static final String RANGE_PATTERN = "bytes=%d-%d";
 
   public GoogleDriveSourceClient(GoogleDriveSourceConfig config) {
@@ -65,25 +62,15 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     return READONLY_PERMISSIONS_SCOPE;
   }
 
-  public boolean hasFile(String fileId) throws IOException {
-    if (hasFileRetrieved) {
-      return false;
-    }
-    Drive.Files.Get request = service.files().get(fileId).setFields("*");
-    currentFile = request.execute();
-    hasFileRetrieved = true;
-    if (currentFile == null) {
-      return false;
-    }
-    return true;
+  public FileFromFolder getFile(String fileId) throws IOException {
+    return getFilePartition(fileId, null, null);
   }
 
-  public FileFromFolder getFile() throws IOException {
-    return getFilePartition(null, null);
-  }
-
-  public FileFromFolder getFilePartition(Long bytesFrom, Long bytesTo) throws IOException {
+  public FileFromFolder getFilePartition(String fileId, Long bytesFrom, Long bytesTo) throws IOException {
     FileFromFolder fileFromFolder;
+
+    Drive.Files.Get request = service.files().get(fileId).setFields("*");
+    File currentFile = request.execute();
 
     String mimeType = currentFile.getMimeType();
     long offset = bytesFrom == null ? 0L : bytesFrom;
@@ -100,15 +87,15 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
       fileFromFolder =
         new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), offset, currentFile);
     } else if (mimeType.equals(DRIVE_DOCUMENTS_MIME)) {
-      fileFromFolder = exportGoogleDocFile(service, currentFile, config.getDocsExportingFormat());
+      fileFromFolder = exportGoogleFormatFile(service, currentFile, config.getDocsExportingFormat());
     } else if (mimeType.equals(DRIVE_SPREADSHEETS_MIME)) {
-      fileFromFolder = exportGoogleDocFile(service, currentFile, config.getSheetsExportingFormat());
+      fileFromFolder = exportGoogleFormatFile(service, currentFile, config.getSheetsExportingFormat());
     } else if (mimeType.equals(DRIVE_DRAWINGS_MIME)) {
-      fileFromFolder = exportGoogleDocFile(service, currentFile, config.getDrawingsExportingFormat());
+      fileFromFolder = exportGoogleFormatFile(service, currentFile, config.getDrawingsExportingFormat());
     } else if (mimeType.equals(DRIVE_PRESENTATIONS_MIME)) {
-      fileFromFolder = exportGoogleDocFile(service, currentFile, config.getPresentationsExportingFormat());
+      fileFromFolder = exportGoogleFormatFile(service, currentFile, config.getPresentationsExportingFormat());
     } else if (mimeType.equals(DRIVE_APPS_SCRIPTS_MIME)) {
-      fileFromFolder = exportGoogleDocFile(service, currentFile, DEFAULT_APPS_SCRIPTS_EXPORT_MIME);
+      fileFromFolder = exportGoogleFormatFile(service, currentFile, DEFAULT_APPS_SCRIPTS_EXPORT_MIME);
     } else {
       fileFromFolder =
         new FileFromFolder(new byte[]{}, offset, currentFile);
@@ -117,15 +104,16 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
   }
 
   // We should separate binary and Google Drive formats between two requests
-  public List<File> getFiles() throws InterruptedException {
+  public List<File> getFilesSummary() {
     List<ExportedType> exportedTypes = new ArrayList<>(config.getFileTypesToPull());
 
+    // Google API doesn't support query requests with both binary and Google formats simultaneously.
     List<List<ExportedType>> exportedTypeGroups = separateFileTypesBetweenGroups(exportedTypes);
 
     List<File> files = new ArrayList<>();
     for (List<ExportedType> group : exportedTypeGroups) {
       if (!group.isEmpty()) {
-        files.addAll(getFiles(group));
+        files.addAll(getFilesSummary(group));
       }
     }
     return files;
@@ -144,7 +132,7 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     return exportedTypeGroups;
   }
 
-  public List<File> getFiles(List<ExportedType> exportedTypes) throws InterruptedException {
+  public List<File> getFilesSummary(List<ExportedType> exportedTypes) {
     try {
       List<File> files = new ArrayList<>();
       String nextToken = "";
@@ -159,13 +147,14 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
       }
       return files;
     } catch (IOException | InterruptedException e) {
-      throw new InterruptedException(e.toString());
+      throw new RuntimeException("Issue during retrieving summary for files.", e);
     }
   }
 
 
   // Google Drive API does not support partitioning for exporting Google Docs
-  private FileFromFolder exportGoogleDocFile(Drive service, File currentFile, String exportFormat) throws IOException {
+  private FileFromFolder exportGoogleFormatFile(Drive service, File currentFile, String exportFormat)
+    throws IOException {
     OutputStream outputStream = new ByteArrayOutputStream();
     service.files().export(currentFile.getId(), exportFormat).executeMediaAndDownloadTo(outputStream);
     currentFile.setMimeType(exportFormat);

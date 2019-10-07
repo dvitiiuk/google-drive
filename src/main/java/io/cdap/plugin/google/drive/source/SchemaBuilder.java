@@ -91,7 +91,7 @@ public class SchemaBuilder {
     extendedFields.add(BODY_FIELD_NAME);
     extendedFields.add(OFFSET_FIELD_NAME);
     List<Schema.Field> generalFields =
-      extendedFields.stream().map(f -> SchemaBuilder.fromNameGeneral(f, bodyFormat))
+      extendedFields.stream().map(f -> SchemaBuilder.getTopLevelField(f, bodyFormat))
         .filter(f -> f != null).collect(Collectors.toList());
     processImageMediaMetadata(extendedFields, generalFields);
     processVideoMediaMetadata(extendedFields, generalFields);
@@ -99,7 +99,7 @@ public class SchemaBuilder {
     return Schema.recordOf(SCHEMA_ROOT_RECORD_NAME, generalFields);
   }
 
-  public static Schema.Field fromNameGeneral(String name, BodyFormat bodyFormat) {
+  public static Schema.Field getTopLevelField(String name, BodyFormat bodyFormat) {
     switch (name) {
       case BODY_FIELD_NAME:
         switch (bodyFormat) {
@@ -135,13 +135,14 @@ public class SchemaBuilder {
         return Schema.Field.of(name, Schema.nullableOf(Schema.arrayOf(Schema.of(Schema.Type.STRING))));
       case PROPERTIES_FIELD_NAME:
         return Schema.Field.of(name, Schema.nullableOf(Schema.mapOf(
-                          Schema.of(Schema.Type.STRING), Schema.of(Schema.Type.STRING))));
+          Schema.of(Schema.Type.STRING), Schema.of(Schema.Type.STRING))));
       default:
         if (!name.startsWith(IMAGE_METADATA_NAME_PREFIX) && !name.startsWith(VIDEO_METADATA_NAME_PREFIX)) {
-          throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_PROPERTIES_LABEL, name);
+          throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_METADATA_PROPERTIES_LABEL, name);
+        } else {
+          return null;
         }
     }
-    return null;
   }
 
   public static void processImageMediaMetadata(List<String> fields, List<Schema.Field> schemaFields) {
@@ -168,7 +169,7 @@ public class SchemaBuilder {
     if (!imageMediaFieldsSchemas.isEmpty()) {
       schemaFields.add(Schema.Field.of(IMAGE_METADATA_FIELD_NAME,
                                        Schema.nullableOf(Schema.recordOf(IMAGE_METADATA_FIELD_NAME,
-                                                       imageMediaFieldsSchemas))));
+                                                                         imageMediaFieldsSchemas))));
     }
   }
 
@@ -184,7 +185,7 @@ public class SchemaBuilder {
     if (!videoMediaFieldsSchemas.isEmpty()) {
       schemaFields.add(Schema.Field.of(VIDEO_METADATA_FIELD_NAME,
                                        Schema.nullableOf(Schema.recordOf(VIDEO_METADATA_FIELD_NAME,
-                                                       videoMediaFieldsSchemas))));
+                                                                         videoMediaFieldsSchemas))));
     }
   }
 
@@ -216,10 +217,11 @@ public class SchemaBuilder {
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.BOOLEAN)));
       default:
         if (!name.startsWith(LOCATION_NAME_PREFIX)) {
-          throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_PROPERTIES_LABEL, name);
+          throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_METADATA_PROPERTIES_LABEL, name);
+        } else {
+          return null;
         }
     }
-    return null;
   }
 
   public static Schema.Field fromVideoMediaMetadataName(String name) {
@@ -230,7 +232,7 @@ public class SchemaBuilder {
       case VIDEO_DURATION_MILLIS_FIELD_NAME:
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.LONG)));
       default:
-        throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_PROPERTIES_LABEL, name);
+        throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_METADATA_PROPERTIES_LABEL, name);
     }
   }
 
@@ -240,7 +242,8 @@ public class SchemaBuilder {
       case IMAGE_LONGITUDE_FIELD_NAME:
       case IMAGE_ALTITUDE_FIELD_NAME:
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.DOUBLE)));
+      default:
+        throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_METADATA_PROPERTIES_LABEL, name);
     }
-    throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_PROPERTIES_LABEL, name);
   }
 }
