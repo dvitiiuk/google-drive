@@ -14,17 +14,33 @@
  * the License.
  */
 
-package io.cdap.plugin.google.drive.common.exceptions;
+package io.cdap.plugin.google.sheets.common;
 
 import java.util.List;
 
 /**
- * Indicates illegal property.
+ * Representation for single sheet.
  */
-public class InvalidPropertyTypeException extends RuntimeException {
+public class Sheet {
+  private List<List<Object>> values;
+  private String spreadSheetName;
+  private String sheetTitle;
 
-  public InvalidPropertyTypeException(String propertyLabel, String value, List<String> allowedValues) {
-    super(String.format("'%s' is not a value for '%s' property. Allowed values are: '%s'.", value, propertyLabel,
-        String.join(", ", allowedValues)));
+  public Sheet(List<List<Object>> values, String spreadSheetName, String sheetTitle) {
+    this.values = values;
+    this.spreadSheetName = spreadSheetName;
+    this.sheetTitle = sheetTitle;
+  }
+
+  public List<List<Object>> getValues() {
+    return values;
+  }
+
+  public String getSpreadSheetName() {
+    return spreadSheetName;
+  }
+
+  public String getSheetTitle() {
+    return sheetTitle;
   }
 }

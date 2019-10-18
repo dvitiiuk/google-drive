@@ -18,13 +18,9 @@ package io.cdap.plugin.google.drive.source;
 
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
-import com.google.api.services.drive.model.FileList;
-import com.google.common.base.Strings;
+import io.cdap.plugin.google.common.GoogleDriveFilteringClient;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
-import io.cdap.plugin.google.drive.common.GoogleDriveClient;
-import io.cdap.plugin.google.drive.source.utils.DateRange;
 import io.cdap.plugin.google.drive.source.utils.ExportedType;
-import io.cdap.plugin.google.drive.source.utils.ModifiedDateRangeUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -36,11 +32,10 @@ import java.util.List;
 /**
  * Client for getting data via Google Drive API.
  */
-public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSourceConfig> {
+public class GoogleDriveSourceClient extends GoogleDriveFilteringClient<GoogleDriveSourceConfig> {
 
   public static final String MODIFIED_TIME_TERM = "modifiedTime";
 
-  public static final String DRIVE_FOLDER_MIME = "application/vnd.google-apps.folder";
   public static final String DRIVE_DOCS_MIME_PREFIX = "application/vnd.google-apps.";
   public static final String DRIVE_DOCUMENTS_MIME = "application/vnd.google-apps.document";
   public static final String DRIVE_SPREADSHEETS_MIME = "application/vnd.google-apps.spreadsheet";
@@ -54,7 +49,6 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
 
   public GoogleDriveSourceClient(GoogleDriveSourceConfig config) throws IOException {
     super(config);
-
   }
 
   @Override
@@ -132,26 +126,6 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     return exportedTypeGroups;
   }
 
-  public List<File> getFilesSummary(List<ExportedType> exportedTypes) {
-    try {
-      List<File> files = new ArrayList<>();
-      String nextToken = "";
-      Drive.Files.List request = service.files().list()
-        .setQ(generateFilter(exportedTypes))
-        .setFields("nextPageToken, files(id, size)");
-      while (nextToken != null) {
-        FileList result = request.execute();
-        files.addAll(result.getFiles());
-        nextToken = result.getNextPageToken();
-        request.setPageToken(nextToken);
-      }
-      return files;
-    } catch (IOException | InterruptedException e) {
-      throw new RuntimeException("Issue during retrieving summary for files.", e);
-    }
-  }
-
-
   // Google Drive API does not support partitioning for exporting Google Docs
   private FileFromFolder exportGoogleFormatFile(Drive service, File currentFile, String exportFormat)
           throws IOException {
@@ -161,52 +135,5 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
     currentFile.setMimeType(exportFormat);
     currentFile.setSize((long) content.length);
     return new FileFromFolder(content, 0L, currentFile);
-  }
-
-  private String generateFilter(List<ExportedType> exportedTypes) throws InterruptedException {
-    StringBuilder sb = new StringBuilder();
-
-    // prepare parent
-    sb.append("'");
-    sb.append(config.getDirectoryIdentifier());
-    sb.append("' in parents");
-
-    // prepare query for non folders
-    sb.append(" and mimeType != '");
-    sb.append(DRIVE_FOLDER_MIME);
-    sb.append("'");
-
-    if (!exportedTypes.isEmpty()) {
-      sb.append(" and (");
-      for (ExportedType exportedType : exportedTypes) {
-        if (exportedType.equals(ExportedType.BINARY)) {
-          sb.append(" not mimeType contains '");
-          sb.append(exportedType.getRelatedMIME());
-          sb.append("' or");
-        } else {
-          sb.append(" mimeType = '");
-          sb.append(exportedType.getRelatedMIME());
-          sb.append("' or");
-        }
-      }
-      // delete last 'or'
-      sb.delete(sb.length() - 3, sb.length());
-      sb.append(")");
-    }
-
-    String filter = config.getFilter();
-    if (!Strings.isNullOrEmpty(filter)) {
-      sb.append(" and ");
-      sb.append(filter);
-    }
-
-    DateRange modifiedDateRange = ModifiedDateRangeUtils.getDataRange(config.getModificationDateRangeType(),
-      config.getStartDate(), config.getEndDate());
-    if (modifiedDateRange != null) {
-      sb.append(" and ");
-      sb.append(ModifiedDateRangeUtils.getFilterValue(modifiedDateRange));
-    }
-
-    return sb.toString();
   }
 }

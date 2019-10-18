@@ -14,7 +14,7 @@
  * the License.
  */
 
-package io.cdap.plugin.google.drive.sink;
+package io.cdap.plugin.google.sheets.sink;
 
 import com.google.common.base.Strings;
 import io.cdap.cdap.api.annotation.Description;
@@ -24,16 +24,22 @@ import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.plugin.google.common.GoogleAuthBaseConfig;
 
-import java.io.IOException;
 import javax.annotation.Nullable;
 
 /**
- * Configurations for Google Drive Batch Sink plugin.
+ * Configurations for Google Sheets Batch Sink plugin.
  */
-public class GoogleDriveSinkConfig extends GoogleAuthBaseConfig {
+public class GoogleSheetsSinkConfig extends GoogleAuthBaseConfig {
+  public static final String SHEET_NAME_FIELD_NAME = "sheetName";
   public static final String SCHEMA_BODY_FIELD_NAME = "schemaBodyFieldName";
-  public static final String SCHEMA_NAME_FIELD_NAME = "schemaNameFieldName";
-  public static final String SCHEMA_MIME_FIELD_NAME = "schemaMimeFieldName";
+  public static final String SCHEMA_SPREAD_SHEET_NAME_FIELD_NAME = "schemaSpreadSheetNameFieldName";
+  public static final String SCHEMA_SHEET_NAME_FIELD_NAME = "schemaSheetNameFieldName";
+
+  @Name(SHEET_NAME_FIELD_NAME)
+  @Description("Name of the schema field (should be BYTES type) which will be used as body of file.\n" +
+    "The minimal input schema should contain only this field.")
+  @Macro
+  protected String sheetName;
 
   @Name(SCHEMA_BODY_FIELD_NAME)
   @Description("Name of the schema field (should be BYTES type) which will be used as body of file.\n" +
@@ -42,33 +48,33 @@ public class GoogleDriveSinkConfig extends GoogleAuthBaseConfig {
   protected String schemaBodyFieldName;
 
   @Nullable
-  @Name(SCHEMA_NAME_FIELD_NAME)
+  @Name(SCHEMA_SPREAD_SHEET_NAME_FIELD_NAME)
   @Description("Name of the schema field (should be STRING type) which will be used as name of file. \n" +
     "Is optional. In the case it is not set files have randomly generated 16-symbols names.")
   @Macro
-  protected String schemaNameFieldName;
+  protected String schemaSpreadSheetNameFieldName;
 
   @Nullable
-  @Name(SCHEMA_MIME_FIELD_NAME)
+  @Name(SCHEMA_SHEET_NAME_FIELD_NAME)
   @Description("Name of the schema field (should be STRING type) which will be used as MIME type of file. \n" +
     "All MIME types are supported except Google Drive types: https://developers.google.com/drive/api/v3/mime-types.\n" +
     "Is optional. In the case it is not set Google API will try to recognize file's MIME type automatically.")
   @Macro
-  protected String schemaMimeFieldName;
+  protected String schemaSheetNameFieldName;
 
   public void validate(FailureCollector collector, Schema schema) {
     super.validate(collector);
 
     // validate body field is in schema and has valid format
     validateSchemaField(collector, schema, SCHEMA_BODY_FIELD_NAME, schemaBodyFieldName,
-                        "File body field", Schema.Type.BYTES);
+                        "File body field", Schema.Type.STRING);
 
     // validate name field is in schema and has valid format
-    validateSchemaField(collector, schema, SCHEMA_NAME_FIELD_NAME, schemaNameFieldName,
+    validateSchemaField(collector, schema, SCHEMA_SPREAD_SHEET_NAME_FIELD_NAME, schemaSpreadSheetNameFieldName,
                         "File name field", Schema.Type.STRING);
 
     // validate mime field is in schema and has valid format
-    validateSchemaField(collector, schema, SCHEMA_MIME_FIELD_NAME, schemaMimeFieldName,
+    validateSchemaField(collector, schema, SCHEMA_SHEET_NAME_FIELD_NAME, schemaSpreadSheetNameFieldName,
                         "File mime field", Schema.Type.STRING);
   }
 
@@ -78,8 +84,8 @@ public class GoogleDriveSinkConfig extends GoogleAuthBaseConfig {
       if (!Strings.isNullOrEmpty(propertyValue)) {
         Schema.Field field = schema.getField(propertyValue);
         if (field == null) {
-          collector.addFailure(String.format("Input schema doesn't contain '%s' field.", propertyValue),
-                               String.format("Provide existent field from input schema for '%s'.", propertyLabel))
+          collector.addFailure(String.format("Input schema doesn't contain '%s' field", propertyValue),
+                               String.format("Provide existent field from input schema for '%s'", propertyLabel))
             .withConfigProperty(propertyName);
         } else {
           Schema fieldSchema = field.getSchema();
@@ -88,11 +94,11 @@ public class GoogleDriveSinkConfig extends GoogleAuthBaseConfig {
           }
 
           if (fieldSchema.getLogicalType() != null || fieldSchema.getType() != requiredSchemaType) {
-            collector.addFailure(String.format("Field '%s' must be of type '%s' but is of type '%s'.",
+            collector.addFailure(String.format("Field '%s' must be of type '%s' but is of type '%s'",
                                                field.getName(),
                                                requiredSchemaType,
                                                fieldSchema.getDisplayName()),
-                                 String.format("Provide field with '%s' format for '%s' property.",
+                                 String.format("Provide field with '%s' format for '%s' property",
                                                requiredSchemaType,
                                                propertyLabel))
               .withConfigProperty(propertyName).withInputSchemaField(propertyValue);
@@ -102,22 +108,21 @@ public class GoogleDriveSinkConfig extends GoogleAuthBaseConfig {
     }
   }
 
+  public String getSheetName() {
+    return sheetName;
+  }
+
   public String getSchemaBodyFieldName() {
     return schemaBodyFieldName;
   }
 
   @Nullable
-  public String getSchemaNameFieldName() {
-    return schemaNameFieldName;
+  public String getSchemaSpreadSheetNameFieldName() {
+    return schemaSpreadSheetNameFieldName;
   }
 
   @Nullable
-  public String getSchemaMimeFieldName() {
-    return schemaMimeFieldName;
-  }
-
-  @Override
-  protected GoogleDriveClient getDriveClient() throws IOException {
-    return new GoogleDriveSinkClient(this);
+  public String getSchemaSheetNameFieldName() {
+    return schemaSheetNameFieldName;
   }
 }

@@ -14,7 +14,7 @@
  * the License.
  */
 
-package io.cdap.plugin.google.drive.common;
+package io.cdap.plugin.google.common;
 
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.common.base.Strings;
@@ -24,7 +24,7 @@ import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.plugin.PluginConfig;
 import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.plugin.common.IdUtils;
-import io.cdap.plugin.google.drive.common.exceptions.InvalidPropertyTypeException;
+import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,9 +33,9 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
- * Base Google Drive batch config. Contains common configuration properties and methods.
+ * Base Google batch config. Contains common auth configuration properties and methods.
  */
-public abstract class GoogleDriveBaseConfig extends PluginConfig {
+public abstract class GoogleAuthBaseConfig extends PluginConfig {
   public static final String AUTO_DETECT_VALUE = "auto-detect";
   public static final String REFERENCE_NAME = "referenceName";
   public static final String AUTH_TYPE = "authType";
@@ -111,11 +111,11 @@ public abstract class GoogleDriveBaseConfig extends PluginConfig {
           propertiesAreValid = validateAccountFilePath(collector);
           break;
         default:
-          throw new IllegalStateException(String.format("Untreated value '%s' for authentication type.", authType));
+          throw new InvalidPropertyTypeException(GoogleAuthBaseConfig.AUTH_TYPE_LABEL, authType.toString());
       }
       if (propertiesAreValid) {
         try {
-          GoogleDriveClient client = getDriveClient();
+          GoogleDriveClient client = new GoogleDriveClient(this);
 
           // validate auth
           validateCredentials(collector, client);

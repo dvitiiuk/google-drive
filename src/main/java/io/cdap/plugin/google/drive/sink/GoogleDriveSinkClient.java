@@ -18,8 +18,8 @@ package io.cdap.plugin.google.drive.sink;
 
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.services.drive.model.File;
+import io.cdap.plugin.google.common.GoogleDriveClient;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
-import io.cdap.plugin.google.drive.common.GoogleDriveClient;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -31,11 +31,6 @@ public class GoogleDriveSinkClient extends GoogleDriveClient<GoogleDriveSinkConf
 
   public GoogleDriveSinkClient(GoogleDriveSinkConfig config) throws IOException {
     super(config);
-  }
-
-  @Override
-  protected String getRequiredScope() {
-    return FULL_PERMISSIONS_SCOPE;
   }
 
   public void createFile(FileFromFolder fileFromFolder) throws IOException {

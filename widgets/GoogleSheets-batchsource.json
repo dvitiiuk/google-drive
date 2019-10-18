@@ -1,0 +1,211 @@
+{
+  "metadata": {
+    "spec-version": "1.5"
+  },
+  "display-name": "Google Sheets source",
+  "configuration-groups": [
+    {
+      "label": "Basic",
+      "properties": [
+        {
+          "widget-type": "textbox",
+          "label": "Reference Name",
+          "name": "referenceName"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Directory identifier",
+          "name": "directoryIdentifier",
+          "plugin-function": {
+            "label": "Get Schema",
+            "widget": "outputSchema",
+            "output-property": "schema",
+            "omit-properties": [
+              {
+                "name": "schema"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "label": "Filtering",
+      "properties": [
+        {
+          "widget-type": "textbox",
+          "label": "Filter",
+          "name": "filter",
+          "plugin-function": {
+            "method": "POST",
+            "widget": "getPropertyValue",
+            "widget-attributes": {
+              "label": "Get Schema Value"
+            },
+            "required-fields": ["path"],
+            "missing-required-fields-message": "Please provide path field",
+            "plugin-method": "getSheetsToPull"
+          }
+        },
+        {
+          "widget-type": "select",
+          "label": "Modification date range",
+          "name": "modificationDateRange",
+          "widget-attributes": {
+            "default": "today",
+            "values": [
+              "today",
+              "yesterday",
+              "this_week_sun_today",
+              "this_week_mon_today",
+              "last_week_sun_sat",
+              "last_week_mon_sun",
+              "this_month",
+              "last_month",
+              "this_quarter",
+              "last_3d",
+              "last_7d",
+              "last_14d",
+              "last_28d",
+              "last_30d",
+              "last_90d",
+              "this_year",
+              "last_year",
+              "lifetime",
+              "custom"
+            ]
+          }
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Start Date",
+          "name": "startDate"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "End Date",
+          "name": "endDate"
+        },
+        {
+          "name": "sheetsToPull",
+          "widget-type": "multi-select",
+          "label": "Sheets to pull",
+          "widget-attributes": {
+            "delimiter": ",",
+            "default": "all",
+            "options": [
+              {
+                "id": "all",
+                "label": "All"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "label": "Authentication",
+      "properties": [
+        {
+          "widget-type": "radio-group",
+          "label": "Authentication type",
+          "name": "authType",
+          "widget-attributes": {
+            "layout": "inline",
+            "default": "oAuth2",
+            "options": [
+              {
+                "id": "oAuth2",
+                "label": "OAuth2"
+              },
+              {
+                "id": "serviceAccount",
+                "label": "Service account"
+              }
+            ]
+          }
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Account file path",
+          "name": "accountFilePath",
+          "widget-attributes": {
+            "default": "auto-detect"
+          }
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Client ID",
+          "name": "clientId"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Client secret",
+          "name": "clientSecret"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Refresh Token",
+          "name": "refreshToken"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "widget-type": "non-editable-schema-editor",
+      "schema": {
+      }
+    }
+  ],
+  "filters": [
+    {
+      "name": "Select modification date range",
+      "condition": {
+        "expression": "modificationDateRange == 'custom'"
+      },
+      "show": [
+        {
+          "name": "startDate",
+          "type": "property"
+        },
+        {
+          "name": "endDate",
+          "type": "property"
+        }
+      ]
+    },
+    {
+      "name": "Authenticate with OAuth2",
+      "condition": {
+        "expression": "authType == 'oAuth2'"
+      },
+      "show": [
+        {
+          "name": "clientId",
+          "type": "property"
+        },
+        {
+          "name": "clientSecret",
+          "type": "property"
+        },
+        {
+          "name": "refreshToken",
+          "type": "property"
+        }
+      ]
+    },
+    {
+      "name": "Authenticate with service account",
+      "condition": {
+        "expression": "authType == 'serviceAccount'"
+      },
+      "show": [
+        {
+          "name": "accountFilePath",
+          "type": "property"
+        }
+      ]
+    }
+  ]
+}
