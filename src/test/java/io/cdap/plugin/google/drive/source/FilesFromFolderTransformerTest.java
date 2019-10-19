@@ -92,16 +92,16 @@ public class FilesFromFolderTransformerTest {
     assertNotNull(retrievedProperties);
     assertEquals(TEST_PROPERTIES, retrievedProperties);
 
-    Map<String, Object> imageMetadataResult = record.get(SchemaBuilder.IMAGE_METADATA_FIELD_NAME);
+    StructuredRecord imageMetadataResult = record.get(SchemaBuilder.IMAGE_METADATA_FIELD_NAME);
     assertNotNull(imageMetadataResult);
-    assertEquals(2, imageMetadataResult.size());
+    assertEquals(2, imageMetadataResult.getSchema().getFields().size());
     assertEquals(TEST_WIDTH, imageMetadataResult.get(SchemaBuilder.IMAGE_WIDTH_FIELD_NAME));
 
-    Map<String, Double> locationResult =
-      (Map<String, Double>) imageMetadataResult.get(SchemaBuilder.LOCATION_FIELD_NAME);
+    StructuredRecord locationResult =
+            imageMetadataResult.get(SchemaBuilder.LOCATION_FIELD_NAME);
     assertEquals(TEST_LATITUDE, locationResult.get(SchemaBuilder.IMAGE_LATITUDE_FIELD_NAME));
 
-    Map<String, Object> videoMetadataResult = record.get(SchemaBuilder.VIDEO_METADATA_FIELD_NAME);
+    StructuredRecord videoMetadataResult = record.get(SchemaBuilder.VIDEO_METADATA_FIELD_NAME);
     assertNotNull(videoMetadataResult);
     assertEquals(TEST_DURATION, videoMetadataResult.get(SchemaBuilder.VIDEO_DURATION_MILLIS_FIELD_NAME));
 

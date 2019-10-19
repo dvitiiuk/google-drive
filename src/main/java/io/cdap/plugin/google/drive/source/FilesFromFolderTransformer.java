@@ -24,8 +24,6 @@ import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 
 import java.time.ZonedDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Transforms {@link FileFromFolder} wrapper to {@link StructuredRecord} instance.
@@ -70,17 +68,17 @@ public class FilesFromFolderTransformer {
     return builder.build();
   }
 
-  private static Map<String, Object> parseSubSchema(Schema subSchema, GenericJson info) {
-    Map<String, Object> fieldsMap = new HashMap<>();
+  private static StructuredRecord parseSubSchema(Schema subSchema, GenericJson info) {
+    StructuredRecord.Builder subBuilder = StructuredRecord.builder(subSchema);
     for (Schema.Field field : subSchema.getFields()) {
       Object value = info.get(field.getName());
       if (value instanceof GenericJson) {
-        fieldsMap.put(field.getName(),
-                      parseSubSchema(field.getSchema().getNonNullable(), (GenericJson) value));
+        subBuilder.set(field.getName(),
+                parseSubSchema(field.getSchema().getNonNullable(), (GenericJson) value));
       } else {
-        fieldsMap.put(field.getName(), info.get(field.getName()));
+        subBuilder.set(field.getName(), info.get(field.getName()));
       }
     }
-    return fieldsMap;
+    return subBuilder.build();
   }
 }

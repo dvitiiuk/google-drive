@@ -154,11 +154,13 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
 
   // Google Drive API does not support partitioning for exporting Google Docs
   private FileFromFolder exportGoogleFormatFile(Drive service, File currentFile, String exportFormat)
-    throws IOException {
+          throws IOException {
     OutputStream outputStream = new ByteArrayOutputStream();
     service.files().export(currentFile.getId(), exportFormat).executeMediaAndDownloadTo(outputStream);
+    byte[] content = ((ByteArrayOutputStream) outputStream).toByteArray();
     currentFile.setMimeType(exportFormat);
-    return new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), 0L, currentFile);
+    currentFile.setSize((long) content.length);
+    return new FileFromFolder(content, 0L, currentFile);
   }
 
   private String generateFilter(List<ExportedType> exportedTypes) throws InterruptedException {
