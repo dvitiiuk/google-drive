@@ -77,6 +77,9 @@ public class GoogleSheetsSource extends BatchSource<NullWritable, Sheet, Structu
 
   @Override
   public void transform(KeyValue<NullWritable, Sheet> input, Emitter<StructuredRecord> emitter) {
-    emitter.emit(SheetTransformer.transform(input.getValue(), config.getSchema()));
+    Sheet sheet = input.getValue();
+    if (!(config.isSkipEmptyData() && sheet.isEmptyData())) {
+      emitter.emit(SheetTransformer.transform(sheet, config.getSchema()));
+    }
   }
 }

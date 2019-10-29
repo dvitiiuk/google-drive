@@ -16,6 +16,7 @@
 
 package io.cdap.plugin.google.sheets.source;
 
+import com.google.gson.Gson;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.plugin.google.sheets.common.Sheet;
@@ -28,21 +29,24 @@ import java.util.List;
  * Transforms {@link Sheet} wrapper to {@link StructuredRecord} instance.
  */
 public class SheetTransformer {
+  private static Gson gson = new Gson();
 
   public static StructuredRecord transform(Sheet sheet, Schema schema) {
     StructuredRecord.Builder builder = StructuredRecord.builder(schema);
     for (Schema.Field field : schema.getFields()) {
       String name = field.getName();
       switch (name) {
-        case SchemaBuilder.BODY_FIELD_NAME:
-          builder.set(SchemaBuilder.BODY_FIELD_NAME, toCSV(sheet.getValues()));
-          break;
         case SchemaBuilder.SHEET_TITLE_FIELD_NAME:
           builder.set(SchemaBuilder.SHEET_TITLE_FIELD_NAME, sheet.getSheetTitle());
           break;
         case SchemaBuilder.SPREADSHEET_NAME_FIELD_NAME:
           builder.set(SchemaBuilder.SPREADSHEET_NAME_FIELD_NAME, sheet.getSpreadSheetName());
           break;
+        case SchemaBuilder.METADATA_FIELD_NAME:
+          builder.set(SchemaBuilder.METADATA_FIELD_NAME, sheet.getMetadata());
+          break;
+        default:
+          builder.set(name, gson.toJson(sheet.getHeaderedValues().get(name)));
       }
     }
     return builder.build();
@@ -69,5 +73,9 @@ public class SheetTransformer {
       }
     }
     return sb.toString();
+  }
+
+  private static String toJson(List<List<Object>> values) {
+    return gson.toJson(values);
   }
 }

@@ -88,17 +88,19 @@
         },
         {
           "name": "sheetsToPull",
-          "widget-type": "multi-select",
+          "widget-type": "select",
           "label": "Sheets to pull",
           "widget-attributes": {
-            "delimiter": ",",
             "default": "all",
-            "options": [
-              {
-                "id": "all",
-                "label": "All"
-              }
-            ]
+            "values": ["all", "numbers", "titles"]
+          }
+        },
+        {
+          "name": "sheetsIdentifiers",
+          "widget-type": "csv",
+          "label": "Sheets identifiers",
+          "widget-attributes": {
+            "delimiter": ","
           }
         }
       ]
@@ -149,6 +151,185 @@
           "name": "refreshToken"
         }
       ]
+    },
+    {
+      "label": "Advanced",
+      "properties": [
+        {
+          "widget-type": "radio-group",
+          "label": "Partitioning",
+          "name": "partitioning",
+          "widget-attributes": {
+            "layout": "inline",
+            "default": "sheet",
+            "options": [
+              {
+                "id": "row",
+                "label": "By row"
+              },
+              {
+                "id": "sheet",
+                "label": "By sheet"
+              }
+            ]
+          }
+        },
+        {
+          "widget-type": "radio-group",
+          "label": "Text formatting",
+          "name": "formatting",
+          "widget-attributes": {
+            "layout": "inline",
+            "default": "valuesOnly",
+            "options": [
+              {
+                "id": "valuesOnly",
+                "label": "Values only"
+              },
+              {
+                "id": "formattedValues",
+                "label": "Formatted values"
+              }
+            ]
+          }
+        },
+        {
+          "widget-type": "toggle",
+          "label": "Skip empty data",
+          "name": "skipEmptyData",
+          "widget-attributes": {
+            "on": {
+              "value": "true",
+              "label": "Yes"
+            },
+            "off": {
+              "value": "false",
+              "label": "No"
+            },
+            "default": "false"
+          }
+        },
+        {
+          "widget-type": "radio-group",
+          "label": "Column Names Selection",
+          "name": "columnNamesSelection",
+          "widget-attributes": {
+            "layout": "inline",
+            "default": "firstRowAsColumns",
+            "options": [
+              {
+                "id": "firstRowAsColumns",
+                "label": "Treat first row as column names"
+              },
+              {
+                "id": "customRowAsColumns",
+                "label": "Custom row as column names"
+              },
+              {
+                "id": "noColumnNames",
+                "label": "No column names"
+              }
+            ]
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Custom row for column names",
+          "name": "customColumnNamesRow",
+          "widget-attributes": {
+            "default": "0",
+            "min": "0"
+          }
+        },
+        {
+          "widget-type": "toggle",
+          "label": "Extract metadata",
+          "name": "extractMetadata",
+          "widget-attributes": {
+            "on": {
+              "value": "true",
+              "label": "Yes"
+            },
+            "off": {
+              "value": "false",
+              "label": "No"
+            },
+            "default": "false"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "First header row",
+          "name": "firstHeaderRow",
+          "widget-attributes": {
+            "default": "0",
+            "min": "0"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Last header row",
+          "name": "lastHeaderRow",
+          "widget-attributes": {
+            "default": "0",
+            "min": "0"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "First footer row",
+          "name": "firstFooterRow",
+          "widget-attributes": {
+            "default": "0",
+            "min": "0"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Last footer row",
+          "name": "lastFooterRow",
+          "widget-attributes": {
+            "default": "0",
+            "min": "0"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Last data column",
+          "name": "lastDataColumn",
+          "widget-attributes": {
+            "default": "26",
+            "min": "0"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Last data row",
+          "name": "lastDataRow",
+          "widget-attributes": {
+            "default": "1000",
+            "min": "0"
+          }
+        },
+        {
+          "widget-type": "keyvalue",
+          "label": "Metadata key cells",
+          "name": "metadataKeyCells",
+          "widget-attributes": {
+            "delimiter": ",",
+            "kv-delimiter": ":"
+          }
+        },
+        {
+          "widget-type": "keyvalue",
+          "label": "Metadata value cells",
+          "name": "metadataValueCells",
+          "widget-attributes": {
+            "delimiter": ",",
+            "kv-delimiter": ":"
+          }
+        }
+      ]
     }
   ],
   "outputs": [
@@ -171,6 +352,18 @@
         },
         {
           "name": "endDate",
+          "type": "property"
+        }
+      ]
+    },
+    {
+      "name": "Sheet numbers",
+      "condition": {
+        "expression": "sheetsToPull == 'numbers' || sheetsToPull == 'titles'"
+      },
+      "show": [
+        {
+          "name": "sheetsIdentifiers",
           "type": "property"
         }
       ]
@@ -203,6 +396,50 @@
       "show": [
         {
           "name": "accountFilePath",
+          "type": "property"
+        }
+      ]
+    },
+    {
+      "name": "Custom header filter",
+      "condition": {
+        "expression": "headerSelection == 'customHeader'"
+      },
+      "show": [
+        {
+          "name": "headerRowNumber",
+          "type": "property"
+        }
+      ]
+    },
+    {
+      "name": "Extract metadata",
+      "condition": {
+        "expression": "extractMetadata == true"
+      },
+      "show": [
+        {
+          "name": "firstHeaderRow",
+          "type": "property"
+        },
+        {
+          "name": "lastHeaderRow",
+          "type": "property"
+        },
+        {
+          "name": "firstFooterRow",
+          "type": "property"
+        },
+        {
+          "name": "lastFooterRow",
+          "type": "property"
+        },
+        {
+          "name": "metadataKeyCells",
+          "type": "property"
+        },
+        {
+          "name": "metadataValueCells",
           "type": "property"
         }
       ]

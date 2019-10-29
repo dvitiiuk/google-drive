@@ -28,28 +28,48 @@ import java.io.IOException;
  */
 public class GoogleSheetsSplit extends InputSplit implements Writable {
   private String fileId;
-  private String sheetTitle;
+  private String sheetTitle = "";
+  private int rowNumber = -1;
+  private String headers;
+  private String metadates;
 
   @SuppressWarnings("unused")
   public GoogleSheetsSplit() {
     // For serialization
   }
 
-  public GoogleSheetsSplit(String fileId, String sheetTitle) {
+  public GoogleSheetsSplit(String fileId, String sheetTitle, int rowNumber, String headers, String metadates) {
     this.fileId = fileId;
     this.sheetTitle = sheetTitle;
+    this.rowNumber = rowNumber;
+    this.headers = headers;
+    this.metadates = metadates;
+  }
+
+  public GoogleSheetsSplit(String fileId, String sheetTitle, String headers, String metadates) {
+    this.fileId = fileId;
+    this.sheetTitle = sheetTitle;
+    this.headers = headers;
+    this.metadates = metadates;
+    this.rowNumber = -1;
   }
 
   @Override
   public void readFields(DataInput dataInput) throws IOException {
     fileId = dataInput.readUTF();
     sheetTitle = dataInput.readUTF();
+    rowNumber = dataInput.readInt();
+    headers = dataInput.readUTF();
+    metadates = dataInput.readUTF();
   }
 
   @Override
   public void write(DataOutput dataOutput) throws IOException {
     dataOutput.writeUTF(fileId);
     dataOutput.writeUTF(sheetTitle);
+    dataOutput.writeInt(rowNumber);
+    dataOutput.writeUTF(headers);
+    dataOutput.writeUTF(metadates);
   }
 
   @Override
@@ -68,5 +88,17 @@ public class GoogleSheetsSplit extends InputSplit implements Writable {
 
   public String getSheetTitle() {
     return sheetTitle;
+  }
+
+  public int getRowNumber() {
+    return rowNumber;
+  }
+
+  public String getHeaders() {
+    return headers;
+  }
+
+  public String getMetadates() {
+    return metadates;
   }
 }

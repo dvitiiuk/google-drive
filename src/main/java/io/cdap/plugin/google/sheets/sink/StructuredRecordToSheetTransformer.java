@@ -72,7 +72,7 @@ public class StructuredRecordToSheetTransformer {
       sheetName = this.sheetName;
     }
 
-    Sheet sheet = new Sheet(values, spreadSheetName, sheetName);
+    Sheet sheet = null; //new Sheet(values, spreadSheetName, sheetName);
     return sheet;
   }
 

@@ -98,13 +98,14 @@ public class GoogleFilteringSourceConfig extends GoogleAuthBaseConfig {
     return false;
   }
 
-  protected void checkPropertyIsValid(FailureCollector collector, boolean isPropertyValid, String propertyName,
-                                      String propertyValue, String propertyLabel) {
+  protected boolean checkPropertyIsValid(FailureCollector collector, boolean isPropertyValid, String propertyName,
+                                      Object propertyValue, String propertyLabel) {
     if (isPropertyValid) {
-      return;
+      return true;
     }
     collector.addFailure(String.format(IS_VALID_FAILURE_MESSAGE_PATTERN, propertyLabel, propertyValue), null)
       .withConfigProperty(propertyName);
+    return false;
   }
 
   public ModifiedDateRangeType getModificationDateRangeType() {

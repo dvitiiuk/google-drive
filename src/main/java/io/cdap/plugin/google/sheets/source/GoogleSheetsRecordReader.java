@@ -16,8 +16,10 @@
 
 package io.cdap.plugin.google.sheets.source;
 
+import com.google.gson.reflect.TypeToken;
 import io.cdap.plugin.google.drive.source.GoogleDriveInputFormatProvider;
 import io.cdap.plugin.google.sheets.common.Sheet;
+import io.cdap.plugin.google.sheets.source.utils.MetadataKeyValueAddress;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -25,6 +27,9 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 /**
  * RecordReader implementation, which reads {@link Sheet} wrappers from Google Drive using
@@ -34,23 +39,29 @@ public class GoogleSheetsRecordReader extends RecordReader<NullWritable, Sheet> 
 
   private GoogleSheetsSourceClient googleSheetsSourceClient;
   private String fileId;
-  //private String spreadSheetName;
   private String sheetTitle;
+  private int rowNumber;
   private boolean isFileProcessed;
+  private GoogleSheetsSourceConfig config;
+  private LinkedHashMap<Integer, String> resolvedHeaders;
+  private List<MetadataKeyValueAddress> metadataCoordinates;
 
   @Override
   public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) {
     Configuration conf = taskAttemptContext.getConfiguration();
     String configJson = conf.get(GoogleDriveInputFormatProvider.PROPERTY_CONFIG_JSON);
-    GoogleSheetsSourceConfig googleSheetsSourceConfig =
-      GoogleDriveInputFormatProvider.GSON.fromJson(configJson, GoogleSheetsSourceConfig.class);
-    googleSheetsSourceClient = new GoogleSheetsSourceClient(googleSheetsSourceConfig);
+    config = GoogleDriveInputFormatProvider.GSON.fromJson(configJson, GoogleSheetsSourceConfig.class);
+    googleSheetsSourceClient = new GoogleSheetsSourceClient(config);
 
     GoogleSheetsSplit split = (GoogleSheetsSplit) inputSplit;
     this.fileId = split.getFileId();
-    //this.spreadSheetName = split.getSpreadSheetName();
     this.sheetTitle = split.getSheetTitle();
+    this.rowNumber = split.getRowNumber();
     this.isFileProcessed = false;
+    Type headersType = new TypeToken<LinkedHashMap<Integer, String>>() { }.getType();
+    this.resolvedHeaders = GoogleDriveInputFormatProvider.GSON.fromJson(split.getHeaders(), headersType);
+    Type metadataType = new TypeToken<List<MetadataKeyValueAddress>>() { }.getType();
+    this.metadataCoordinates = GoogleDriveInputFormatProvider.GSON.fromJson(split.getMetadates(), metadataType);
   }
 
   @Override
@@ -67,7 +78,8 @@ public class GoogleSheetsRecordReader extends RecordReader<NullWritable, Sheet> 
   public Sheet getCurrentValue() throws IOException {
     // read file and content
     isFileProcessed = true;
-    return googleSheetsSourceClient.getSheetContent(fileId, sheetTitle);
+    return googleSheetsSourceClient.getSheetContent(fileId, sheetTitle, rowNumber, config,
+        resolvedHeaders, metadataCoordinates);
   }
 
   @Override

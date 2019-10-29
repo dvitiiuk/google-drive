@@ -28,6 +28,7 @@ import java.util.Map;
  */
 public class GoogleSheetsInputFormatProvider implements InputFormatProvider {
   public static final String PROPERTY_CONFIG_JSON = "cdap.google.config";
+  public static final String PROPERTY_HEADERS_JSON = "cdap.google.sheets.headers";
   public static final Gson GSON = new GsonBuilder().create();
 
   private final Map<String, String> conf;
@@ -35,7 +36,8 @@ public class GoogleSheetsInputFormatProvider implements InputFormatProvider {
   public GoogleSheetsInputFormatProvider(GoogleSheetsSourceConfig config) {
     this.conf = new ImmutableMap.Builder<String, String>()
       .put(PROPERTY_CONFIG_JSON, GSON.toJson(config))
-      .build();
+        .put(PROPERTY_HEADERS_JSON, GSON.toJson(config.getHeaderTitlesRow()))
+        .build();
   }
 
   @Override

@@ -17,23 +17,25 @@
 package io.cdap.plugin.google.sheets.common;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Representation for single sheet.
  */
 public class Sheet {
-  private List<List<Object>> values;
   private String spreadSheetName;
   private String sheetTitle;
+  private Map<String, String> metadata;
+  private Map<String, List<String>> headeredValues;
+  private boolean isEmptyData;
 
-  public Sheet(List<List<Object>> values, String spreadSheetName, String sheetTitle) {
-    this.values = values;
+  public Sheet(String spreadSheetName, String sheetTitle, Map<String, String> metadata,
+               Map<String, List<String>> headeredValues, boolean isEmptyData) {
     this.spreadSheetName = spreadSheetName;
     this.sheetTitle = sheetTitle;
-  }
-
-  public List<List<Object>> getValues() {
-    return values;
+    this.metadata = metadata;
+    this.headeredValues = headeredValues;
+    this.isEmptyData = isEmptyData;
   }
 
   public String getSpreadSheetName() {
@@ -42,5 +44,17 @@ public class Sheet {
 
   public String getSheetTitle() {
     return sheetTitle;
+  }
+
+  public Map<String, String> getMetadata() {
+    return metadata;
+  }
+
+  public Map<String, List<String>> getHeaderedValues() {
+    return headeredValues;
+  }
+
+  public boolean isEmptyData() {
+    return isEmptyData;
   }
 }

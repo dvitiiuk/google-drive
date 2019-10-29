@@ -50,8 +50,8 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
 
     String spreadSheetsId = spreadsheet.getSpreadsheetId();
 
-    ValueRange body = new ValueRange()
-      .setValues(sheet.getValues());
+    ValueRange body = null; /*//new ValueRange()
+      .setValues(sheet.getValues());*/
     service.spreadsheets().values().update(spreadSheetsId, sheet.getSheetTitle(), body)
         .setValueInputOption("USER_ENTERED")
         .execute();
