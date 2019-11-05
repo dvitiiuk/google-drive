@@ -75,10 +75,10 @@ public class GoogleSheetsRecordReader extends RecordReader<NullWritable, Sheet> 
   }
 
   @Override
-  public Sheet getCurrentValue() throws IOException {
+  public Sheet getCurrentValue() throws IOException, InterruptedException {
     // read file and content
     isFileProcessed = true;
-    return googleSheetsSourceClient.getSheetContent(fileId, sheetTitle, rowNumber, config,
+    return googleSheetsSourceClient.getSheetContentWithQuoteBypass(fileId, sheetTitle, rowNumber, config,
         resolvedHeaders, metadataCoordinates);
   }
 

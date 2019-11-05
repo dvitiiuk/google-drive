@@ -14,11 +14,6 @@
         },
         {
           "widget-type": "textbox",
-          "label": "Sheet body field",
-          "name": "schemaBodyFieldName"
-        },
-        {
-          "widget-type": "textbox",
           "label": "Spreadsheet name field",
           "name": "schemaSpreadSheetNameFieldName"
         },
@@ -38,6 +33,34 @@
           "name": "sheetName",
           "widget-attributes": {
             "default": "Sheet 1"
+          }
+        },
+        {
+          "widget-type": "toggle",
+          "label": "Write schema as first row",
+          "name": "writeSchema",
+          "widget-attributes": {
+            "on": {
+              "value": "true",
+              "label": "Yes"
+            },
+            "off": {
+              "value": "false",
+              "label": "No"
+            },
+            "default": "true"
+          }
+        },
+        {
+          "widget-type": "select",
+          "label": "Format for nested data",
+          "name": "nestedDataFormat",
+          "widget-attributes": {
+            "default": "JSON",
+            "values": [
+              "JSON",
+              "CSV"
+            ]
           }
         }
       ]

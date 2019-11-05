@@ -97,9 +97,10 @@ public abstract class GoogleAuthBaseConfig extends PluginConfig {
   @Macro
   private String directoryIdentifier;
 
-  public void validate(FailureCollector collector) {
+  public ValidationResult validate(FailureCollector collector) {
     IdUtils.validateReferenceName(referenceName, collector);
 
+    ValidationResult validationResult = new ValidationResult();
     if (validateAuthType(collector)) {
       AuthType authType = getAuthType();
       boolean propertiesAreValid;
@@ -123,6 +124,7 @@ public abstract class GoogleAuthBaseConfig extends PluginConfig {
           // validate directory
           validateDirectoryIdentifier(collector, client);
 
+          validationResult.setCredentialsAvailable(true);
         } catch (Exception e) {
           collector.addFailure(
             String.format("Exception during authentication/directory properties check: %s.", e.getMessage()),
@@ -131,6 +133,7 @@ public abstract class GoogleAuthBaseConfig extends PluginConfig {
         }
       }
     }
+    return validationResult;
   }
 
   protected abstract GoogleDriveClient getDriveClient() throws IOException;

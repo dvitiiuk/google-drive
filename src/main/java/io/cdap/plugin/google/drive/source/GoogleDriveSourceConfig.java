@@ -23,6 +23,7 @@ import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.plugin.google.common.GoogleFilteringSourceConfig;
+import io.cdap.plugin.google.common.ValidationResult;
 import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
 import io.cdap.plugin.google.drive.source.utils.BodyFormat;
 import io.cdap.plugin.google.drive.source.utils.ExportedType;
@@ -105,14 +106,15 @@ public class GoogleDriveSourceConfig extends GoogleFilteringSourceConfig {
     return schema;
   }
 
-  public void validate(FailureCollector collector) {
-    super.validate(collector);
+  public ValidationResult validate(FailureCollector collector) {
+    ValidationResult validationResult = super.validate(collector);
 
     validateFileTypesToPull(collector);
 
     validateBodyFormat(collector);
 
     validateFileProperties(collector);
+    return validationResult;
   }
 
   private void validateFileTypesToPull(FailureCollector collector) {

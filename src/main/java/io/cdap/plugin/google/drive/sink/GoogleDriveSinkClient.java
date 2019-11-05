@@ -17,12 +17,14 @@
 package io.cdap.plugin.google.drive.sink;
 
 import com.google.api.client.http.ByteArrayContent;
+import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import io.cdap.plugin.google.common.GoogleDriveClient;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Client for writing data via Google Drive API.
@@ -44,5 +46,10 @@ public class GoogleDriveSinkClient extends GoogleDriveClient<GoogleDriveSinkConf
     ByteArrayContent fileContent = new ByteArrayContent(fileFromFolder.getFile().getMimeType(),
         fileFromFolder.getContent());
     service.files().create(fileToWrite, fileContent).execute();
+  }
+
+  @Override
+  protected List<String> getRequiredScopes() {
+    return Collections.singletonList(DriveScopes.DRIVE);
   }
 }

@@ -20,19 +20,18 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.sheets.v4.Sheets;
-import com.google.api.services.sheets.v4.SheetsScopes;
 import io.cdap.plugin.google.common.GoogleAuthBaseConfig;
 import io.cdap.plugin.google.common.GoogleDriveClient;
+
+import java.util.List;
 
 /**
  * Base client for working with Google Drive API
  *
  * @param <C> configuration
  */
-public abstract class GoogleSheetsClient<C extends GoogleAuthBaseConfig> extends GoogleDriveClient {
+public abstract class GoogleSheetsClient<C extends GoogleAuthBaseConfig> extends GoogleDriveClient<C> {
   private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
-  protected static final String FULL_PERMISSIONS_SCOPE = SheetsScopes.SPREADSHEETS;
-  protected static final String READONLY_PERMISSIONS_SCOPE = SheetsScopes.SPREADSHEETS_READONLY;
   protected Sheets service;
   protected Drive drive;
 
@@ -44,5 +43,5 @@ public abstract class GoogleSheetsClient<C extends GoogleAuthBaseConfig> extends
       .build();
   }
 
-  protected abstract String getRequiredScope();
+  protected abstract List<String> getRequiredScopes();
 }

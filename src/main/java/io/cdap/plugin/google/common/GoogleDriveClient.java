@@ -23,11 +23,13 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.DriveScopes;
 import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Base client for working with Google Drive API.
@@ -37,8 +39,6 @@ import java.util.Collections;
 public class GoogleDriveClient<C extends GoogleAuthBaseConfig> {
   private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
   private static final String ROOT_FOLDER_ID = "root";
-  protected static final String FULL_PERMISSIONS_SCOPE = "https://www.googleapis.com/auth/drive";
-  protected static final String READONLY_PERMISSIONS_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
   protected Drive service;
   protected final C config;
   protected NetHttpTransport httpTransport;
@@ -92,8 +92,8 @@ public class GoogleDriveClient<C extends GoogleAuthBaseConfig> {
     // end of workaround
   }
 
-  protected String getRequiredScope() {
-    return READONLY_PERMISSIONS_SCOPE;
+  protected List<String> getRequiredScopes() {
+    return Collections.singletonList(DriveScopes.DRIVE_READONLY);
   }
 
   public void checkRootFolder() throws IOException {

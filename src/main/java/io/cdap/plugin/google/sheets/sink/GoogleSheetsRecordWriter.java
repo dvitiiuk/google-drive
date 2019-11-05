@@ -19,7 +19,6 @@ package io.cdap.plugin.google.sheets.sink;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 import io.cdap.plugin.google.drive.sink.GoogleDriveOutputFormatProvider;
 import io.cdap.plugin.google.drive.sink.GoogleDriveSinkClient;
-import io.cdap.plugin.google.drive.sink.GoogleDriveSinkConfig;
 import io.cdap.plugin.google.sheets.common.Sheet;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
@@ -45,7 +44,7 @@ public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, Sheet> 
   }
 
   @Override
-  public void write(NullWritable nullWritable, Sheet sheet) throws IOException {
+  public void write(NullWritable nullWritable, Sheet sheet) throws IOException, InterruptedException {
     sheetsSinkClient.createFile(sheet);
   }
 

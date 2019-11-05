@@ -17,6 +17,7 @@
 package io.cdap.plugin.google.sheets.source;
 
 import io.cdap.cdap.api.data.schema.Schema;
+import io.cdap.plugin.google.sheets.source.utils.ColumnSchemaInfo;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -29,19 +30,19 @@ public class SchemaBuilder {
   public static final String SCHEMA_ROOT_RECORD_NAME = "Sheet";
   public static final String SPREADSHEET_NAME_FIELD_NAME = "spreadSheetName";
   public static final String SHEET_TITLE_FIELD_NAME = "sheetTitle";
-  public static final String METADATA_FIELD_NAME = "metadata";
 
-  public static Schema buildSchema(GoogleSheetsSourceConfig config, LinkedHashMap<Integer, String> headerTitles) {
+  public static Schema buildSchema(GoogleSheetsSourceConfig config,
+                                   LinkedHashMap<Integer, ColumnSchemaInfo> dataSchemaInfo) {
     List<Schema.Field> generalFields = new ArrayList<>();
     generalFields.add(Schema.Field.of(SPREADSHEET_NAME_FIELD_NAME, Schema.of(Schema.Type.STRING)));
     generalFields.add(Schema.Field.of(SHEET_TITLE_FIELD_NAME, Schema.of(Schema.Type.STRING)));
 
-    for (String headerTitle : headerTitles.values()) {
-      generalFields.add(Schema.Field.of(headerTitle, Schema.of(Schema.Type.STRING)));
+    for (ColumnSchemaInfo schemaInfo : dataSchemaInfo.values()) {
+      generalFields.add(Schema.Field.of(schemaInfo.getHeaderTitle(), Schema.nullableOf(schemaInfo.getDataSchema())));
     }
 
     if (config.isExtractMetadata()) {
-      generalFields.add(Schema.Field.of(METADATA_FIELD_NAME,
+      generalFields.add(Schema.Field.of(config.getMetadataRecordName(),
           Schema.mapOf(Schema.of(Schema.Type.STRING), Schema.of(Schema.Type.STRING))));
     }
 

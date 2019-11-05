@@ -40,19 +40,30 @@ public class GoogleDriveFilteringClient<C extends GoogleFilteringSourceConfig> e
   }
 
   public List<File> getFilesSummary(List<ExportedType> exportedTypes) {
+    return getFilesSummary(exportedTypes, 0);
+  }
+
+  public List<File> getFilesSummary(List<ExportedType> exportedTypes, int filesNumber) {
     try {
       List<File> files = new ArrayList<>();
       String nextToken = "";
+      int retrievedFiles = 0;
       Drive.Files.List request = service.files().list()
         .setQ(generateFilter(exportedTypes))
         .setFields("nextPageToken, files(id, size)");
-      while (nextToken != null) {
+      if (filesNumber > 0) {
+        request.setPageSize(filesNumber);
+      } else {
+        filesNumber = 0;
+      }
+      while (nextToken != null && (filesNumber == 0 || retrievedFiles < filesNumber)) {
         FileList result = request.execute();
         files.addAll(result.getFiles());
         nextToken = result.getNextPageToken();
         request.setPageToken(nextToken);
+        retrievedFiles += result.size();
       }
-      return files;
+      return filesNumber == 0 || files.size() <= filesNumber ? files : files.subList(0, filesNumber);
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException("Issue during retrieving summary for files.", e);
     }

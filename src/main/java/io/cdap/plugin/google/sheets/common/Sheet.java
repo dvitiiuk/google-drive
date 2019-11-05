@@ -16,7 +16,8 @@
 
 package io.cdap.plugin.google.sheets.common;
 
-import java.util.List;
+import com.google.api.services.sheets.v4.model.CellData;
+
 import java.util.Map;
 
 /**
@@ -26,11 +27,11 @@ public class Sheet {
   private String spreadSheetName;
   private String sheetTitle;
   private Map<String, String> metadata;
-  private Map<String, List<String>> headeredValues;
+  private Map<String, CellData> headeredValues;
   private boolean isEmptyData;
 
   public Sheet(String spreadSheetName, String sheetTitle, Map<String, String> metadata,
-               Map<String, List<String>> headeredValues, boolean isEmptyData) {
+               Map<String, CellData> headeredValues, boolean isEmptyData) {
     this.spreadSheetName = spreadSheetName;
     this.sheetTitle = sheetTitle;
     this.metadata = metadata;
@@ -50,7 +51,7 @@ public class Sheet {
     return metadata;
   }
 
-  public Map<String, List<String>> getHeaderedValues() {
+  public Map<String, CellData> getHeaderedValues() {
     return headeredValues;
   }
 

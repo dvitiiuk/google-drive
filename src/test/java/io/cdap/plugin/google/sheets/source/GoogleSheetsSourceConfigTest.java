@@ -83,6 +83,7 @@ public class GoogleSheetsSourceConfigTest {
   public void testGetMetadataCoordinates() throws NoSuchFieldException, IllegalAccessException {
     setStringField("metadataKeyCells", "A1:name1,A2:name2,A5:name3");
     setStringField("metadataValueCells", "name1:B2,name2:B4,name3:B7");
+    setBooleanField("extractMetadata", true);
 
     List<MetadataKeyValueAddress> metadataCoordinates = config.getMetadataCoordinates();
 
@@ -99,8 +100,8 @@ public class GoogleSheetsSourceConfigTest {
 
   @Test
   public void testValidateMetadataCellsOnlyHeader() throws NoSuchFieldException, IllegalAccessException {
-    setStringField("firstHeaderRow", "2");
-    setStringField("lastHeaderRow", "2");
+    setStringField("firstHeaderRow", "3");
+    setStringField("lastHeaderRow", "3");
     setStringField("firstFooterRow", "-1");
     setStringField("lastFooterRow", "-1");
 
@@ -133,8 +134,8 @@ public class GoogleSheetsSourceConfigTest {
   public void testValidateMetadataCellsOnlyFooter() throws NoSuchFieldException, IllegalAccessException {
     setStringField("firstHeaderRow", "-1");
     setStringField("lastHeaderRow", "-1");
-    setStringField("firstFooterRow", "5");
-    setStringField("lastFooterRow", "7");
+    setStringField("firstFooterRow", "6");
+    setStringField("lastFooterRow", "8");
 
     FailureCollector collector = new DefaultFailureCollector("", Collections.EMPTY_MAP);
 
@@ -165,10 +166,10 @@ public class GoogleSheetsSourceConfigTest {
 
   @Test
   public void testValidateMetadataCellsHeaderAndFooter() throws NoSuchFieldException, IllegalAccessException {
-    setStringField("firstHeaderRow", "2");
-    setStringField("lastHeaderRow", "2");
-    setStringField("firstFooterRow", "5");
-    setStringField("lastFooterRow", "7");
+    setStringField("firstHeaderRow", "3");
+    setStringField("lastHeaderRow", "3");
+    setStringField("firstFooterRow", "6");
+    setStringField("lastFooterRow", "8");
 
     FailureCollector collector = new DefaultFailureCollector("", Collections.EMPTY_MAP);
 
@@ -198,6 +199,13 @@ public class GoogleSheetsSourceConfigTest {
   }
 
   private void setStringField(String fieldName, String fieldValue) throws NoSuchFieldException, IllegalAccessException {
+    Field metadataKeyCellsField = config.getClass().getDeclaredField(fieldName);
+    metadataKeyCellsField.setAccessible(true);
+    metadataKeyCellsField.set(config, fieldValue);
+  }
+
+  private void setBooleanField(String fieldName, Boolean fieldValue)
+      throws NoSuchFieldException, IllegalAccessException {
     Field metadataKeyCellsField = config.getClass().getDeclaredField(fieldName);
     metadataKeyCellsField.setAccessible(true);
     metadataKeyCellsField.set(config, fieldValue);

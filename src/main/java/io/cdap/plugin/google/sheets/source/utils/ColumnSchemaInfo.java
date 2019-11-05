@@ -16,32 +16,27 @@
 
 package io.cdap.plugin.google.sheets.source.utils;
 
-import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
-import io.cdap.plugin.google.sheets.source.GoogleSheetsSourceConfig;
+import io.cdap.cdap.api.data.schema.Schema;
 
-import java.util.stream.Stream;
+import java.io.Serializable;
 
 /**
  *
  */
-public enum Partitioning {
-  ROW("row"),
-  SHEET("sheet");
+public class ColumnSchemaInfo implements Serializable {
+  private String headerTitle;
+  private Schema dataSchema;
 
-  private final String value;
-
-  Partitioning(String value) {
-    this.value = value;
+  public ColumnSchemaInfo(String headerTitle, Schema dataSchema) {
+    this.headerTitle = headerTitle;
+    this.dataSchema = dataSchema;
   }
 
-  public String getValue() {
-    return value;
+  public String getHeaderTitle() {
+    return headerTitle;
   }
 
-  public static Partitioning fromValue(String value) {
-    return Stream.of(Partitioning.values())
-        .filter(keyType -> keyType.getValue().equalsIgnoreCase(value))
-        .findAny()
-        .orElseThrow(() -> new InvalidPropertyTypeException(GoogleSheetsSourceConfig.PARTITIONING_LABEL, value));
+  public Schema getDataSchema() {
+    return dataSchema;
   }
 }

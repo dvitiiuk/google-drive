@@ -14,24 +14,23 @@
  * the License.
  */
 
-package io.cdap.plugin.google.sheets.source.utils;
+package io.cdap.plugin.google.sheets.sink.utils;
 
 import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
-import io.cdap.plugin.google.sheets.source.GoogleSheetsSourceConfig;
+import io.cdap.plugin.google.sheets.sink.GoogleSheetsSinkConfig;
 
 import java.util.stream.Stream;
 
 /**
  *
  */
-public enum HeaderSelection {
-  FIRST_ROW_AS_COLUMNS("firstRowAsColumns"),
-  CUSTOM_ROW_AS_COLUMNS("customRowAsColumns"),
-  NO_COLUMN_NAMES("noColumnNames");
+public enum NestedDataFormat {
+  JSON("JSON"),
+  CSV("CSV");
 
   private final String value;
 
-  HeaderSelection(String value) {
+  NestedDataFormat(String value) {
     this.value = value;
   }
 
@@ -39,10 +38,10 @@ public enum HeaderSelection {
     return value;
   }
 
-  public static HeaderSelection fromValue(String value) {
-    return Stream.of(HeaderSelection.values())
+  public static NestedDataFormat fromValue(String value) {
+    return Stream.of(NestedDataFormat.values())
         .filter(keyType -> keyType.getValue().equalsIgnoreCase(value))
         .findAny()
-        .orElseThrow(() -> new InvalidPropertyTypeException(GoogleSheetsSourceConfig.HEADERS_SELECTION_LABEL, value));
+        .orElseThrow(() -> new InvalidPropertyTypeException(GoogleSheetsSinkConfig.NESTED_DATA_FORMAT_LABEL, value));
   }
 }

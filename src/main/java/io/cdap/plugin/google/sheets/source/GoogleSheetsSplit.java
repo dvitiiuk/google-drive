@@ -29,7 +29,7 @@ import java.io.IOException;
 public class GoogleSheetsSplit extends InputSplit implements Writable {
   private String fileId;
   private String sheetTitle = "";
-  private int rowNumber = -1;
+  private int rowNumber;
   private String headers;
   private String metadates;
 
@@ -44,14 +44,6 @@ public class GoogleSheetsSplit extends InputSplit implements Writable {
     this.rowNumber = rowNumber;
     this.headers = headers;
     this.metadates = metadates;
-  }
-
-  public GoogleSheetsSplit(String fileId, String sheetTitle, String headers, String metadates) {
-    this.fileId = fileId;
-    this.sheetTitle = sheetTitle;
-    this.headers = headers;
-    this.metadates = metadates;
-    this.rowNumber = -1;
   }
 
   @Override

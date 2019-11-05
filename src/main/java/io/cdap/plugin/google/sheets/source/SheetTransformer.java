@@ -16,66 +16,121 @@
 
 package io.cdap.plugin.google.sheets.source;
 
-import com.google.gson.Gson;
+import com.google.api.services.sheets.v4.model.CellData;
+import com.google.api.services.sheets.v4.model.ExtendedValue;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.plugin.google.sheets.common.Sheet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
 
 /**
  * Transforms {@link Sheet} wrapper to {@link StructuredRecord} instance.
  */
 public class SheetTransformer {
-  private static Gson gson = new Gson();
+  private static final Logger LOG = LoggerFactory.getLogger(SheetTransformer.class);
 
-  public static StructuredRecord transform(Sheet sheet, Schema schema) {
+  private static final LocalDate SHEETS_START_DATE = LocalDate.of(1899, 12, 30);
+  private static final ZonedDateTime SHEETS_START_DATE_TIME =
+      ZonedDateTime.of(1899, 12, 30, 0, 0, 0, 0, ZoneId.ofOffset("UTC", ZoneOffset.UTC));
+
+  public static StructuredRecord transform(Sheet sheet, Schema schema, boolean extractMetadata,
+                                           String metadataRecordName) {
     StructuredRecord.Builder builder = StructuredRecord.builder(schema);
     for (Schema.Field field : schema.getFields()) {
       String name = field.getName();
-      switch (name) {
-        case SchemaBuilder.SHEET_TITLE_FIELD_NAME:
-          builder.set(SchemaBuilder.SHEET_TITLE_FIELD_NAME, sheet.getSheetTitle());
-          break;
-        case SchemaBuilder.SPREADSHEET_NAME_FIELD_NAME:
-          builder.set(SchemaBuilder.SPREADSHEET_NAME_FIELD_NAME, sheet.getSpreadSheetName());
-          break;
-        case SchemaBuilder.METADATA_FIELD_NAME:
-          builder.set(SchemaBuilder.METADATA_FIELD_NAME, sheet.getMetadata());
-          break;
-        default:
-          builder.set(name, gson.toJson(sheet.getHeaderedValues().get(name)));
+      if (name.equals(SchemaBuilder.SHEET_TITLE_FIELD_NAME)) {
+        builder.set(SchemaBuilder.SHEET_TITLE_FIELD_NAME, sheet.getSheetTitle());
+      } else if (name.equals(SchemaBuilder.SPREADSHEET_NAME_FIELD_NAME)) {
+        builder.set(SchemaBuilder.SPREADSHEET_NAME_FIELD_NAME, sheet.getSpreadSheetName());
+      } else if (extractMetadata && name.equals(metadataRecordName)) {
+        builder.set(metadataRecordName, sheet.getMetadata());
+      } else {
+        CellData cellData = sheet.getHeaderedValues().get(name);
+        if (cellData == null) {
+          builder.set(name, null);
+        } else {
+          processCellData(builder, field, cellData);
+        }
       }
     }
     return builder.build();
   }
 
-  private static String toCSV(List<List<Object>> values) {
-    StringBuilder sb = new StringBuilder();
-    if (values != null) {
-      for (List<Object> row : values) {
-        List<String> encodedValues = new ArrayList<>();
-        for (Object element : row) {
-          if (element instanceof String) {
-            encodedValues.add(String.format("\"%s\"", (String) element));
-          } else if (element instanceof BigDecimal) {
-            encodedValues.add(((BigDecimal) element).toString());
-          } else if (element instanceof Boolean) {
-            encodedValues.add(((Boolean) element).toString());
-          } else {
-            throw new IllegalStateException(String.format("Invalid type [%s] for cell value", element.getClass()));
-          }
-        }
-        sb.append(String.join("#", encodedValues));
-        sb.append("\r\n");
+  private static void processCellData(StructuredRecord.Builder builder, Schema.Field field, CellData cellData) {
+    String fieldName = field.getName();
+    Schema fieldSchema = field.getSchema();
+    Schema.LogicalType fieldLogicalType = fieldSchema.getNonNullable().getLogicalType();
+    Schema.Type fieldType = fieldSchema.getNonNullable().getType();
+
+    if (Schema.LogicalType.DATE.equals(fieldLogicalType)) {
+      ExtendedValue userEnteredValue = cellData.getUserEnteredValue();
+      if (userEnteredValue != null) {
+        builder.setDate(fieldName, getDateValue(userEnteredValue, fieldName));
+      }
+
+    } else if (Schema.LogicalType.TIMESTAMP_MILLIS.equals(fieldLogicalType)) {
+      ExtendedValue userEnteredValue = cellData.getUserEnteredValue();
+      if (userEnteredValue != null) {
+        builder.setTimestamp(fieldName, getTimeStampValue(userEnteredValue, fieldName));
+      }
+
+    } else if (Schema.Type.LONG.equals(fieldType)) {
+      ExtendedValue userEnteredValue = cellData.getUserEnteredValue();
+      if (userEnteredValue != null) {
+        builder.set(fieldName, getIntervalValue(userEnteredValue, fieldName));
+      }
+
+    } else if (Schema.Type.BOOLEAN.equals(fieldType)) {
+      ExtendedValue effectiveValue = cellData.getEffectiveValue();
+      if (effectiveValue != null) {
+        builder.set(fieldName, effectiveValue.getBoolValue());
+      }
+
+    } else if (Schema.Type.STRING.equals(fieldType)) {
+      builder.set(fieldName, cellData.getFormattedValue());
+
+    } else if (Schema.Type.DOUBLE.equals(fieldType)) {
+      ExtendedValue effectiveValue = cellData.getEffectiveValue();
+      if (effectiveValue != null) {
+        builder.set(fieldName, effectiveValue.getNumberValue());
       }
     }
-    return sb.toString();
   }
 
-  private static String toJson(List<List<Object>> values) {
-    return gson.toJson(values);
+  private static LocalDate getDateValue(ExtendedValue userEnteredValue, String fieldName) {
+    Double dataValue = userEnteredValue.getNumberValue();
+    if (dataValue == null) {
+      LOG.warn(String.format("Field '%s' has no DATE value, '%s' instead", fieldName, userEnteredValue.toString()));
+      return null;
+    }
+    return SHEETS_START_DATE.plusDays(dataValue.intValue());
+  }
+
+  private static ZonedDateTime getTimeStampValue(ExtendedValue userEnteredValue, String fieldName) {
+    Double dataValue = userEnteredValue.getNumberValue();
+    if (dataValue == null) {
+      LOG.warn(String.format("Field '%s' has no DATE value, '%s' instead", fieldName, userEnteredValue.toString()));
+      return null;
+    }
+    long dayMicros = ChronoField.MICRO_OF_DAY.range().getMaximum();
+    return SHEETS_START_DATE_TIME.plus((long) (dataValue * dayMicros), ChronoUnit.MICROS);
+  }
+
+  private static Long getIntervalValue(ExtendedValue userEnteredValue, String fieldName) {
+    Double dataValue = userEnteredValue.getNumberValue();
+    if (dataValue == null) {
+      LOG.warn(String.format("Field '%s' has no DATE value, '%s' instead", fieldName, userEnteredValue.toString()));
+      return null;
+    }
+    long dayMicros = ChronoField.MICRO_OF_DAY.range().getMaximum();
+    return (long) (dataValue * dayMicros / 1000);
   }
 }

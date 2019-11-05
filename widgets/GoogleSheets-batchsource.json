@@ -15,17 +15,7 @@
         {
           "widget-type": "textbox",
           "label": "Directory identifier",
-          "name": "directoryIdentifier",
-          "plugin-function": {
-            "label": "Get Schema",
-            "widget": "outputSchema",
-            "output-property": "schema",
-            "omit-properties": [
-              {
-                "name": "schema"
-              }
-            ]
-          }
+          "name": "directoryIdentifier"
         }
       ]
     },
@@ -157,25 +147,6 @@
       "properties": [
         {
           "widget-type": "radio-group",
-          "label": "Partitioning",
-          "name": "partitioning",
-          "widget-attributes": {
-            "layout": "inline",
-            "default": "sheet",
-            "options": [
-              {
-                "id": "row",
-                "label": "By row"
-              },
-              {
-                "id": "sheet",
-                "label": "By sheet"
-              }
-            ]
-          }
-        },
-        {
-          "widget-type": "radio-group",
           "label": "Text formatting",
           "name": "formatting",
           "widget-attributes": {
@@ -237,8 +208,16 @@
           "label": "Custom row for column names",
           "name": "customColumnNamesRow",
           "widget-attributes": {
-            "default": "0",
-            "min": "0"
+            "default": "1",
+            "min": "1"
+          }
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Metadata record name",
+          "name": "metadataRecordName",
+          "widget-attributes": {
+            "default": "metadata"
           }
         },
         {
@@ -403,11 +382,11 @@
     {
       "name": "Custom header filter",
       "condition": {
-        "expression": "headerSelection == 'customHeader'"
+        "expression": "columnNamesSelection == 'customRowAsColumns'"
       },
       "show": [
         {
-          "name": "headerRowNumber",
+          "name": "customColumnNamesRow",
           "type": "property"
         }
       ]

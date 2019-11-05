@@ -31,7 +31,9 @@ import io.cdap.cdap.etl.api.batch.BatchSink;
 import io.cdap.cdap.etl.api.batch.BatchSinkContext;
 import io.cdap.plugin.common.LineageRecorder;
 import io.cdap.plugin.google.sheets.common.Sheet;
+import io.cdap.plugin.google.sheets.sink.utils.NestedDataFormat;
 
+import java.io.IOException;
 import java.util.stream.Collectors;
 
 /**
@@ -84,14 +86,19 @@ public class GoogleSheetsSink extends BatchSink<StructuredRecord, Void, Sheet> {
   @Override
   public void initialize(BatchRuntimeContext context) throws Exception {
     super.initialize(context);
-    transformer = new StructuredRecordToSheetTransformer(config.getSchemaBodyFieldName(),
-                                                         config.getSchemaSpreadSheetNameFieldName(),
+    StructuredRecordToSheetTransformer.ComplexDataFormatter complexDataFormatter;
+    if (config.getNestedDataFormat().equals(NestedDataFormat.JSON)) {
+      complexDataFormatter = new StructuredRecordToSheetTransformer.JSONComplexDataFormatter();
+    } else {
+      complexDataFormatter = new StructuredRecordToSheetTransformer.CSVComplexDataFormatter();
+    }
+    transformer = new StructuredRecordToSheetTransformer(config.getSchemaSpreadSheetNameFieldName(),
                                                          config.getSchemaSheetNameFieldName(),
-                                                         config.getSheetName());
+                                                         config.getSheetName(), complexDataFormatter);
   }
 
   @Override
-  public void transform(StructuredRecord input, Emitter<KeyValue<Void, Sheet>> emitter) {
+  public void transform(StructuredRecord input, Emitter<KeyValue<Void, Sheet>> emitter) throws IOException {
     Sheet sheet = transformer.transform(input);
     emitter.emit(new KeyValue<>(null, sheet));
   }

@@ -17,17 +17,21 @@
 package io.cdap.plugin.google.sheets.source;
 
 import com.google.api.services.sheets.v4.Sheets;
+import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.GridData;
 import com.google.api.services.sheets.v4.model.RowData;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
-import com.google.api.services.sheets.v4.model.ValueRange;
+import io.cdap.plugin.google.common.APIRequest;
+import io.cdap.plugin.google.common.APIRequestRepeater;
 import io.cdap.plugin.google.sheets.common.GoogleSheetsClient;
 import io.cdap.plugin.google.sheets.common.Sheet;
 import io.cdap.plugin.google.sheets.source.utils.CellCoordinate;
 import io.cdap.plugin.google.sheets.source.utils.MetadataKeyValueAddress;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,56 +46,109 @@ import java.util.stream.Collectors;
  * Client for getting data via Google Sheets API.
  */
 public class GoogleSheetsSourceClient extends GoogleSheetsClient<GoogleSheetsSourceConfig> {
+  private static final Logger LOG = LoggerFactory.getLogger(GoogleSheetsSourceClient.class);
 
   public GoogleSheetsSourceClient(GoogleSheetsSourceConfig config) {
     super(config);
   }
 
   @Override
-  protected String getRequiredScope() {
-    return READONLY_PERMISSIONS_SCOPE;
+  protected List<String> getRequiredScopes() {
+    return Collections.singletonList(SheetsScopes.SPREADSHEETS_READONLY);
   }
 
-  public List<com.google.api.services.sheets.v4.model.Sheet> getSheets(String spreadSheetId) throws IOException {
-    Spreadsheet spreadsheet = service.spreadsheets().get(spreadSheetId).execute();
-    return spreadsheet.getSheets();
+  public List<com.google.api.services.sheets.v4.model.Sheet> getSheets(String spreadSheetId)
+      throws IOException, InterruptedException {
+    return new APIRequestRepeater<APIRequest<List<com.google.api.services.sheets.v4.model.Sheet>>,
+        List<com.google.api.services.sheets.v4.model.Sheet>>() {
+    }.doRepeatable(new APIRequest<List<com.google.api.services.sheets.v4.model.Sheet>>() {
+      @Override
+      public List<com.google.api.services.sheets.v4.model.Sheet> doRequest() throws IOException {
+        Spreadsheet spreadsheet = service.spreadsheets().get(spreadSheetId).execute();
+        return spreadsheet.getSheets();
+      }
+
+      @Override
+      public String getLog() {
+        return String.format("Sheets reading, spreadsheetId '%s'", spreadSheetId);
+      }
+    });
   }
 
-  public List<String> getSheetsTitles(String spreadSheetId, List<Integer> indexes) throws IOException {
-    Spreadsheet spreadsheet = service.spreadsheets().get(spreadSheetId).execute();
-    return spreadsheet.getSheets().stream().filter(s -> indexes.contains(s.getProperties().getIndex()))
-        .map(s -> s.getProperties().getTitle()).collect(Collectors.toList());
+  public List<String> getSheetsTitles(String spreadSheetId, List<Integer> indexes)
+      throws IOException, InterruptedException {
+    return new APIRequestRepeater<APIRequest<List<String>>, List<String>>() {
+    }.doRepeatable(new APIRequest<List<String>>() {
+      @Override
+      public List<String> doRequest() throws IOException {
+        Spreadsheet spreadsheet = service.spreadsheets().get(spreadSheetId).execute();
+        return spreadsheet.getSheets().stream().filter(s -> indexes.contains(s.getProperties().getIndex()))
+            .map(s -> s.getProperties().getTitle()).collect(Collectors.toList());
+      }
+
+      @Override
+      public String getLog() {
+        return String.format("Sheet titles reading from indexes, spreadsheetId '%s'", spreadSheetId);
+      }
+    });
   }
 
-  public List<String> getSheetsTitles(String spreadSheetId) throws IOException {
-    Spreadsheet spreadsheet = service.spreadsheets().get(spreadSheetId).execute();
-    return spreadsheet.getSheets().stream().map(s -> s.getProperties().getTitle()).collect(Collectors.toList());
+  public List<String> getSheetsTitles(String spreadSheetId) throws IOException, InterruptedException {
+    return new APIRequestRepeater<APIRequest<List<String>>, List<String>>() {
+    }.doRepeatable(new APIRequest<List<String>>() {
+      @Override
+      public List<String> doRequest() throws IOException {
+        Spreadsheet spreadsheet = service.spreadsheets().get(spreadSheetId).execute();
+        return spreadsheet.getSheets().stream().map(s -> s.getProperties().getTitle()).collect(Collectors.toList());
+      }
+
+      @Override
+      public String getLog() {
+        return String.format("Sheet titles reading, spreadsheetId '%s'", spreadSheetId);
+      }
+    });
+  }
+
+  public Sheet getSheetContentWithQuoteBypass(String spreadSheetId, String sheetTitle, int rowNumber,
+                                              GoogleSheetsSourceConfig config,
+                                              LinkedHashMap<Integer, String> resolvedHeaders,
+                                              List<MetadataKeyValueAddress> metadataCoordinates)
+      throws IOException, InterruptedException {
+    /*return new APIRequestRepeater<SheetRequest, SheetResponse>() {
+    }.doRepeatable(new SheetRequest(spreadSheetId, sheetTitle, rowNumber, config,
+        resolvedHeaders, metadataCoordinates)).getSheet();*/
+    return new APIRequestRepeater<APIRequest<Sheet>, Sheet>() {
+    }.doRepeatable(new APIRequest<Sheet>() {
+
+      @Override
+      public Sheet doRequest() throws IOException {
+        return getSheetContent(spreadSheetId, sheetTitle, rowNumber,
+            config, resolvedHeaders, metadataCoordinates);
+      }
+
+      @Override
+      public String getLog() {
+        return String.format("Sheet reading, spreadsheetId '%s', sheet title '%s', row number '%d'",
+            spreadSheetId, sheetTitle, rowNumber);
+      }
+    });
   }
 
   public Sheet getSheetContent(String spreadSheetId, String sheetTitle, int rowNumber,
                                GoogleSheetsSourceConfig config,
                                LinkedHashMap<Integer, String> resolvedHeaders,
                                List<MetadataKeyValueAddress> metadataCoordinates) throws IOException {
-    int firstDataRow;
-    int lastDataRow;
-    if (rowNumber != -1) {
-      firstDataRow = rowNumber + 1;
-      lastDataRow = rowNumber + 1;
-    } else {
-      firstDataRow = config.getActualFirstDataRow() + 1;
-      lastDataRow = config.getActualLastDataRow() + 1;
-    }
-    String dataRange = String.format("%s!%d:%d", sheetTitle, firstDataRow, lastDataRow);
+    String dataRange = String.format("%s!%d:%d", sheetTitle, rowNumber, rowNumber);
     String headerRange = null;
     String footerRange = null;
     if (config.isExtractMetadata()) {
       if (config.getFirstHeaderRow() != -1) {
         headerRange = String.format("%s!%d:%d", sheetTitle,
-            config.getFirstHeaderRow() + 1, config.getLastHeaderRow() + 1);
+            config.getFirstHeaderRow(), config.getLastHeaderRow());
       }
       if (config.getFirstFooterRow() != -1) {
         footerRange = String.format("%s!%d:%d", sheetTitle,
-            config.getFirstFooterRow() + 1, config.getLastFooterRow() + 1);
+            config.getFirstFooterRow(), config.getLastFooterRow());
       }
     }
 
@@ -110,39 +167,40 @@ public class GoogleSheetsSourceClient extends GoogleSheetsClient<GoogleSheetsSou
     Spreadsheet response = request.execute();
     List<GridData> grids = response.getSheets().get(0).getData();
 
-    Map<String, List<String>> headers = new HashMap<>();
+    Map<String, CellData> headers = new HashMap<>();
     Map<String, String> metadata = new HashMap<>();
     boolean isEmptyData = false;
     for (GridData gridData : grids) {
       List<RowData> rows = gridData.getRowData();
       int startRow = gridData.getStartRow() == null ? 0 : gridData.getStartRow();
-      if (startRow == firstDataRow - 1) {
-
-
+      startRow++;
+      if (startRow == rowNumber) {
         for (Map.Entry<Integer, String> headerEntry : resolvedHeaders.entrySet()) {
           int columnIndex = headerEntry.getKey();
-          List<String> values = new ArrayList<>();
+          CellData value;
           // populate empty values if row is empty
           if (rows == null) {
-            for (int i = firstDataRow; i <= lastDataRow; i++) {
-              values.add(null);
-              isEmptyData = true;
-            }
+            value = null;
+            isEmptyData = true;
           } else {
-            for (RowData rowData : rows) {
+            if (rows.size() > 1) {
+              throw new RuntimeException(String.format("Excess rows during data retrieving"));
+            } else {
+              RowData rowData = rows.get(0);
               if (rowData == null) {
-                values.add(null);
+                value = null;
+                isEmptyData = true;
               } else {
                 List<CellData> cells = rowData.getValues();
                 if (cells.size() <= columnIndex) {
-                  values.add(null);
+                  value = null;
                 } else {
-                  values.add(cells.get(columnIndex).getFormattedValue());
+                  value = cells.get(columnIndex);
                 }
               }
             }
           }
-          headers.put(headerEntry.getValue(), values);
+          headers.put(headerEntry.getValue(), value);
         }
       } else if (startRow == config.getFirstHeaderRow() || startRow == config.getFirstFooterRow()) {
         if (CollectionUtils.isNotEmpty(rows)) {
@@ -166,43 +224,125 @@ public class GoogleSheetsSourceClient extends GoogleSheetsClient<GoogleSheetsSou
   }
 
   private String getCellValue(CellCoordinate coordinate, List<RowData> rows, int startRow) {
-    int rowIndexInList = coordinate.getRowNumber() - startRow - 1;
+    int rowIndexInList = coordinate.getRowNumber() - startRow;
     if (rows.size() > rowIndexInList && rowIndexInList >= 0) {
       RowData rowData = rows.get(rowIndexInList);
-      if (rowData.getValues().size() > coordinate.getColumnNumber() - 1) {
-        return rowData.getValues().get(coordinate.getColumnNumber() - 1).getFormattedValue();
+      int columnIndex = coordinate.getColumnNumber() - 1;
+      if (rowData.getValues().size() > columnIndex && columnIndex >= 0) {
+        return rowData.getValues().get(columnIndex).getFormattedValue();
       }
     }
     return "";
   }
 
-  public List<Object> getRow(String spreadSheetId, String sheetTitle, int headerRowNumber) throws IOException {
-    Sheets.Spreadsheets.Values.Get request = service.spreadsheets().values().get(spreadSheetId,
-        String.format("%s!%2$d:%2$d", sheetTitle, headerRowNumber));
-    request.setValueRenderOption("FORMULA");
-    request.setDateTimeRenderOption("SERIAL_NUMBER");
-    ValueRange range = request.execute();
-    if (CollectionUtils.isEmpty(range.getValues())) {
-      return Collections.emptyList();
-    } else {
-      return range.getValues().get(0);
+  public Map<Integer, List<CellData>> getSingleRows(String spreadSheetId, String sheetTitle,
+                                             List<Integer> rowNumbers) throws IOException {
+    Map<Integer, List<CellData>> result = new HashMap<>();
+
+    Sheets.Spreadsheets.Get request = service.spreadsheets().get(spreadSheetId);
+    List<String> ranges = rowNumbers.stream().map(n -> String.format("%s!%2$d:%2$d", sheetTitle, n))
+        .collect(Collectors.toList());
+    request.setRanges(ranges);
+    request.setIncludeGridData(true);
+    Spreadsheet response = request.execute();
+    List<GridData> grids = response.getSheets().get(0).getData();
+    for (GridData gridData : grids) {
+      List<RowData> rows = gridData.getRowData();
+      int startRow = gridData.getStartRow() == null ? 0 : gridData.getStartRow();
+      startRow++;
+      for (Integer rowNumber : rowNumbers) {
+        if (startRow == rowNumber) {
+          if (rows == null) {
+            result.put(rowNumber, null);
+          } else if (rows.size() > 1) {
+            throw new RuntimeException(String.format("Excess rows during data retrieving"));
+          } else {
+            result.put(rowNumber, rows.get(0).getValues());
+          }
+        }
+
+      }
     }
+    return result;
   }
 
-  interface Formatter {
-    String format(CellData cellData);
-  }
+  /**
+   *
+   */
+  /*class SheetsRepeater extends APIRequestRepeater<SheetRequest, SheetResponse> {
 
-  class NoFormatter implements Formatter {
+  }*/
+
+  /**
+   *
+   */
+  /*class SheetRequest implements APIRequest<SheetResponse> {
+    private final String spreadSheetId;
+    private final String sheetTitle;
+    private final int rowNumber;
+    private final GoogleSheetsSourceConfig config;
+    private final LinkedHashMap<Integer, String> resolvedHeaders;
+    private final List<MetadataKeyValueAddress> metadataCoordinates;
+
+    SheetRequest(String spreadSheetId, String sheetTitle, int rowNumber, GoogleSheetsSourceConfig config,
+                 LinkedHashMap<Integer, String> resolvedHeaders, List<MetadataKeyValueAddress> metadataCoordinates) {
+      this.spreadSheetId = spreadSheetId;
+      this.sheetTitle = sheetTitle;
+      this.rowNumber = rowNumber;
+      this.config = config;
+      this.resolvedHeaders = resolvedHeaders;
+      this.metadataCoordinates = metadataCoordinates;
+    }
 
     @Override
-    public String format(CellData cellData) {
-      if (cellData.getEffectiveValue().getStringValue() != null) {
-        return cellData.getEffectiveValue().getStringValue();
-      } else if (cellData.getEffectiveValue().getNumberValue() != null) {
-        return cellData.getEffectiveValue().getNumberValue().toString();
-      }
-      return cellData.getEffectiveValue().getStringValue();
+    public SheetResponse doRequest() throws IOException {
+      return new SheetResponse(GoogleSheetsSourceClient.this.getSheetContent(spreadSheetId, sheetTitle, rowNumber,
+          config, resolvedHeaders, metadataCoordinates));
+    }
+
+    @Override
+    public String getLog() {
+      return String.format("Resources limit exhausted during sheet reading, " +
+          "wait for '%%d' seconds before next attempt, spreadsheetId '%s', sheet title '%s', row number '%d'",
+          spreadSheetId, sheetTitle, rowNumber);
     }
   }
+
+  *//**
+   *
+   *//*
+  class SheetResponse implements APIResponse {
+    private final Sheet sheet;
+
+    SheetResponse(Sheet sheet) {
+      this.sheet = sheet;
+    }
+
+    public Sheet getSheet() {
+      return sheet;
+    }
+  }
+
+  *//**
+   *
+   *//*
+  class TitlesRequest implements APIRequest<List<String>> {
+    private final String spreadSheetId;
+
+    TitlesRequest(String spreadSheetId) {
+      this.spreadSheetId = spreadSheetId;
+    }
+
+    @Override
+    public List<String> doRequest() throws IOException {
+      return getSheetsTitles(spreadSheetId);
+    }
+
+    @Override
+    public String getLog() {
+      return String.format("Resources limit exhausted during sheet titles reading, " +
+              "wait for '%%d' seconds before next attempt, spreadsheetId '%s'",
+          spreadSheetId);
+    }
+  }*/
 }

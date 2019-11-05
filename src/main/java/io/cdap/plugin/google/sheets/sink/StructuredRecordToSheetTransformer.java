@@ -16,17 +16,32 @@
 
 package io.cdap.plugin.google.sheets.sink;
 
-import com.google.common.base.Strings;
+import com.google.api.services.sheets.v4.model.CellData;
+import com.google.api.services.sheets.v4.model.CellFormat;
+import com.google.api.services.sheets.v4.model.ExtendedValue;
+import com.google.api.services.sheets.v4.model.NumberFormat;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
+import io.cdap.cdap.format.StructuredRecordStringConverter;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 import io.cdap.plugin.google.sheets.common.Sheet;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang3.RandomStringUtils;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -34,72 +49,223 @@ import java.util.stream.Collectors;
  * to a {@link FileFromFolder}
  */
 public class StructuredRecordToSheetTransformer {
+  private static final LocalDate SHEETS_START_DATE = LocalDate.of(1899, 12, 30);
+  public static final ZoneId UTC_ZONE_ID = ZoneId.ofOffset("UTC", ZoneOffset.UTC);
+
   public static final Integer RANDOM_FILE_NAME_LENGTH = 16;
-  private final String bodyFieldName;
   private final String spreadSheetNameFieldName;
   private final String sheetNameFieldName;
   private final String sheetName;
+  private final ComplexDataFormatter complexDataFormatter;
 
-  public StructuredRecordToSheetTransformer(String bodyFieldName, String spreadSheetNameFieldName,
-                                            String sheetNameFieldName, String sheetName) {
-    this.bodyFieldName = bodyFieldName;
+  public StructuredRecordToSheetTransformer(String spreadSheetNameFieldName,
+                                            String sheetNameFieldName,
+                                            String sheetName,
+                                            ComplexDataFormatter complexDataFormatter) {
     this.spreadSheetNameFieldName = spreadSheetNameFieldName;
     this.sheetNameFieldName = sheetNameFieldName;
     this.sheetName = sheetName;
+    this.complexDataFormatter = complexDataFormatter;
   }
 
-  public Sheet transform(StructuredRecord input) {
-    List<List<Object>> values = new ArrayList<>();
+  public Sheet transform(StructuredRecord input) throws IOException {
+    Map<String, CellData> data = new HashMap<>();
     String spreadSheetName = null;
     String sheetName = null;
 
     Schema schema = input.getSchema();
-    if (schema.getField(bodyFieldName) != null) {
-      values = fromCSV(input.get(bodyFieldName));
-    }
+    for (Schema.Field field : schema.getFields()) {
+      String fieldName = field.getName();
+      if (fieldName.equals(spreadSheetNameFieldName)) {
+        spreadSheetName = input.get(spreadSheetNameFieldName);
+      } else if (fieldName.equals(sheetNameFieldName)) {
+        sheetName = input.get(sheetNameFieldName);
+      } else {
+        Schema fieldSchema = field.getSchema();
+        CellData cellData = new CellData();
+        ExtendedValue userEnteredValue = new ExtendedValue();
+        CellFormat userEnteredFormat = new CellFormat();
 
-    if (schema.getField(spreadSheetNameFieldName) != null) {
-      spreadSheetName = input.get(spreadSheetNameFieldName);
+        data.put(fieldName, cellData);
+        if (input.get(fieldName) == null) {
+          continue;
+        }
+        Schema.LogicalType fieldLogicalType = fieldSchema.isNullableSimple() ?
+            fieldSchema.getNonNullable().getLogicalType() :
+            fieldSchema.getLogicalType();
+        if (fieldLogicalType != null) {
+
+          NumberFormat dateFormat = new NumberFormat();
+          switch (fieldLogicalType) {
+            case DATE:
+              LocalDate date = input.getDate(fieldName);
+              userEnteredValue.setNumberValue(toSheetsDate(date));
+
+              dateFormat.setType("DATE");
+              break;
+            case TIMESTAMP_MILLIS:
+            case TIMESTAMP_MICROS:
+              ZonedDateTime dateTime = input.getTimestamp(fieldName);
+              userEnteredValue.setNumberValue(toSheetsDateTime(dateTime));
+
+              dateFormat.setType("DATE_TIME");
+              break;
+            case TIME_MILLIS:
+            case TIME_MICROS:
+              LocalTime time = input.getTime(fieldName);
+              userEnteredValue.setNumberValue(toSheetsTime(time));
+
+              dateFormat.setType("TIME");
+              break;
+          }
+          userEnteredFormat.setNumberFormat(dateFormat);
+        } else {
+          Schema.Type fieldType = fieldSchema.isNullableSimple() ?
+              fieldSchema.getNonNullable().getType() :
+              fieldSchema.getType();
+          switch (fieldType) {
+            case STRING:
+              userEnteredValue.setStringValue(input.get(fieldName));
+              break;
+            case BYTES:
+              userEnteredValue.setStringValue(new String((byte[]) input.get(fieldName)));
+              break;
+            case BOOLEAN:
+              userEnteredValue.setBoolValue(input.get(fieldName));
+              break;
+            case LONG:
+              userEnteredValue.setNumberValue((double) (Long) input.get(fieldName));
+              break;
+            case INT:
+              userEnteredValue.setNumberValue((double) (Integer) input.get(fieldName));
+              break;
+            case DOUBLE:
+              userEnteredValue.setNumberValue(input.get(fieldName));
+              break;
+            case FLOAT:
+              userEnteredValue.setNumberValue((double) (Long) input.get(fieldName));
+              break;
+            case NULL:
+              // do nothing
+              break;
+            default:
+              userEnteredValue = complexDataFormatter.format(fieldName, fieldSchema, fieldType, input.get(fieldName));
+          }
+        }
+        cellData.setUserEnteredValue(userEnteredValue);
+        cellData.setUserEnteredFormat(userEnteredFormat);
+      }
     }
     if (spreadSheetName == null) {
       spreadSheetName = generateRandomName();
     }
 
-    if (schema.getField(sheetNameFieldName) != null) {
-      sheetName = input.get(sheetNameFieldName);
-    }
     if (sheetName == null) {
       sheetName = this.sheetName;
     }
 
-    Sheet sheet = null; //new Sheet(values, spreadSheetName, sheetName);
+    Sheet sheet = new Sheet(spreadSheetName, sheetName, null, data, false);
     return sheet;
   }
 
-  private List<List<Object>> fromCSV(String body) {
-    List<List<String>> unparsedCSV =
-      Arrays.stream(body.split("\r\n")).map(row -> Arrays.asList(row.split("#")))
-      .collect(Collectors.toList());
-    List<List<Object>> parsedCSV = new ArrayList<>(unparsedCSV.size());
-    for (List<String> unparsedRow : unparsedCSV) {
-      List<Object> parsedRow = new ArrayList<>(unparsedRow.size());
-      for (String unparsedCell : unparsedRow) {
-        if (Strings.isNullOrEmpty(unparsedCell)) {
-          parsedRow.add("");
-        } else if (unparsedCell.startsWith("\"") && unparsedCell.endsWith("\"")) {
-          parsedRow.add(unparsedCell.substring(1, unparsedCell.length() - 1));
-        } else if (unparsedCell.equals("true") || unparsedCell.equals("false")) {
-          parsedRow.add(Boolean.valueOf(unparsedCell));
-        } else {
-          parsedRow.add(new BigDecimal(unparsedCell));
-        }
-      }
-      parsedCSV.add(parsedRow);
-    }
-    return parsedCSV;
+  Double toSheetsDate(LocalDate date) {
+    return (double) ChronoUnit.DAYS.between(SHEETS_START_DATE, date);
+  }
+
+  Double toSheetsDateTime(ZonedDateTime dateTime) {
+    ZonedDateTime startOfTheDay = dateTime.toLocalDate().atStartOfDay(UTC_ZONE_ID);
+    long daysNumber = ChronoUnit.DAYS.between(SHEETS_START_DATE, dateTime);
+    long micros = ChronoUnit.MICROS.between(startOfTheDay, dateTime);
+    return (double) daysNumber + (double) micros / (double) ChronoField.MICRO_OF_DAY.range().getMaximum();
+  }
+
+  Double toSheetsTime(LocalTime localTime) {
+    long micros = localTime.get(ChronoField.MICRO_OF_DAY);
+    return (double) micros / (double) ChronoField.MICRO_OF_DAY.range().getMaximum();
   }
 
   private String generateRandomName() {
     return RandomStringUtils.randomAlphanumeric(RANDOM_FILE_NAME_LENGTH);
+  }
+
+  /**
+   *
+   */
+  public interface ComplexDataFormatter {
+    ExtendedValue format(String fieldName, Schema fieldSchema, Schema.Type fieldType, Object data) throws IOException;
+  }
+
+  /**
+   *
+   */
+  public static class JSONComplexDataFormatter implements ComplexDataFormatter {
+
+    @Override
+    public ExtendedValue format(String fieldName, Schema fieldSchema, Schema.Type fieldType,
+                                Object data) throws IOException {
+      ExtendedValue result = new ExtendedValue();
+      switch (fieldType) {
+        case ARRAY:
+        case MAP:
+        case ENUM:
+        case UNION:
+          Schema wrapperSchema = Schema.recordOf(fieldName,
+              Collections.singleton(Schema.Field.of(fieldName, fieldSchema)));
+          StructuredRecord.Builder builder = StructuredRecord.builder(wrapperSchema);
+          builder.set(fieldName, data);
+          result.setStringValue(StructuredRecordStringConverter.toJsonString(builder.build()));
+          break;
+        case RECORD:
+          result.setStringValue(StructuredRecordStringConverter.toJsonString((StructuredRecord) data));
+          break;
+        default:
+          throw new IllegalStateException(String.format("'%s' data type is not supported", fieldType));
+      }
+      return result;
+    }
+  }
+
+  /**
+   *
+   */
+  public static class CSVComplexDataFormatter implements ComplexDataFormatter {
+
+    @Override
+    public ExtendedValue format(String fieldName, Schema fieldSchema, Schema.Type fieldType,
+                                Object data) throws IOException {
+      ExtendedValue result = new ExtendedValue();
+      switch (fieldType) {
+        case ARRAY:
+          CSVFormat arrayFormat = CSVFormat.newFormat(',').withQuote('"')
+            .withRecordSeparator("\r\n");
+          CSVPrinter arrayPrinter = new CSVPrinter(new StringWriter(), arrayFormat);
+          arrayPrinter.printRecord((List) data);
+          result.setStringValue(arrayPrinter.getOut().toString());
+          break;
+        case MAP:
+          Map<String, Object> mapData = (Map<String, Object>) data;
+          CSVFormat mapFormat = CSVFormat.newFormat(',').withQuote('"')
+              .withRecordSeparator("\r\n").withHeader(mapData.keySet().toArray(new String[]{}));
+          CSVPrinter mapPrinter = new CSVPrinter(new StringWriter(), mapFormat);
+          mapPrinter.printRecord(mapData.values());
+          result.setStringValue(mapPrinter.getOut().toString());
+          break;
+        case ENUM:
+        case UNION:
+        case RECORD:
+          StructuredRecord recordData = (StructuredRecord) data;
+          CSVFormat recordFormat = CSVFormat.newFormat(',').withQuote('"')
+              .withRecordSeparator("\r\n").withHeader(recordData.getSchema().getFields().stream()
+                  .map(f -> f.getName()).collect(Collectors.toList()).toArray(new String[]{}));
+          CSVPrinter recordPrinter = new CSVPrinter(new StringWriter(), recordFormat);
+          recordPrinter.printRecord(recordData.getSchema().getFields().stream()
+              .map(f -> recordData.get(f.getName())).collect(Collectors.toList()));
+          result.setStringValue(recordPrinter.getOut().toString());
+          break;
+        default:
+          throw new IllegalStateException(String.format("'%s' data type is not supported", fieldType));
+      }
+      return result;
+    }
   }
 }

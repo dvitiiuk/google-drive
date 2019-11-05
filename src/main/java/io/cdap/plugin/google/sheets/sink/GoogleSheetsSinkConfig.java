@@ -23,6 +23,7 @@ import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.plugin.google.common.GoogleAuthBaseConfig;
+import io.cdap.plugin.google.sheets.sink.utils.NestedDataFormat;
 
 import javax.annotation.Nullable;
 
@@ -31,21 +32,18 @@ import javax.annotation.Nullable;
  */
 public class GoogleSheetsSinkConfig extends GoogleAuthBaseConfig {
   public static final String SHEET_NAME_FIELD_NAME = "sheetName";
-  public static final String SCHEMA_BODY_FIELD_NAME = "schemaBodyFieldName";
   public static final String SCHEMA_SPREAD_SHEET_NAME_FIELD_NAME = "schemaSpreadSheetNameFieldName";
   public static final String SCHEMA_SHEET_NAME_FIELD_NAME = "schemaSheetNameFieldName";
+  public static final String WRITE_SCHEMA_FIELD_NAME = "writeSchema";
+  public static final String NESTED_DATA_FORMAT_FIELD_NAME = "nestedDataFormat";
+
+  public static final String NESTED_DATA_FORMAT_LABEL = "Format for nested data";
 
   @Name(SHEET_NAME_FIELD_NAME)
   @Description("Name of the schema field (should be BYTES type) which will be used as body of file.\n" +
     "The minimal input schema should contain only this field.")
   @Macro
   protected String sheetName;
-
-  @Name(SCHEMA_BODY_FIELD_NAME)
-  @Description("Name of the schema field (should be BYTES type) which will be used as body of file.\n" +
-    "The minimal input schema should contain only this field.")
-  @Macro
-  protected String schemaBodyFieldName;
 
   @Nullable
   @Name(SCHEMA_SPREAD_SHEET_NAME_FIELD_NAME)
@@ -62,12 +60,18 @@ public class GoogleSheetsSinkConfig extends GoogleAuthBaseConfig {
   @Macro
   protected String schemaSheetNameFieldName;
 
+  @Name(WRITE_SCHEMA_FIELD_NAME)
+  @Description("")
+  @Macro
+  private boolean writeSchema;
+
+  @Name(NESTED_DATA_FORMAT_FIELD_NAME)
+  @Description("")
+  @Macro
+  private String nestedDataFormat;
+
   public void validate(FailureCollector collector, Schema schema) {
     super.validate(collector);
-
-    // validate body field is in schema and has valid format
-    validateSchemaField(collector, schema, SCHEMA_BODY_FIELD_NAME, schemaBodyFieldName,
-                        "File body field", Schema.Type.STRING);
 
     // validate name field is in schema and has valid format
     validateSchemaField(collector, schema, SCHEMA_SPREAD_SHEET_NAME_FIELD_NAME, schemaSpreadSheetNameFieldName,
@@ -112,10 +116,6 @@ public class GoogleSheetsSinkConfig extends GoogleAuthBaseConfig {
     return sheetName;
   }
 
-  public String getSchemaBodyFieldName() {
-    return schemaBodyFieldName;
-  }
-
   @Nullable
   public String getSchemaSpreadSheetNameFieldName() {
     return schemaSpreadSheetNameFieldName;
@@ -124,5 +124,13 @@ public class GoogleSheetsSinkConfig extends GoogleAuthBaseConfig {
   @Nullable
   public String getSchemaSheetNameFieldName() {
     return schemaSheetNameFieldName;
+  }
+
+  public boolean isWriteSchema() {
+    return writeSchema;
+  }
+
+  public NestedDataFormat getNestedDataFormat() {
+    return NestedDataFormat.fromValue(nestedDataFormat);
   }
 }

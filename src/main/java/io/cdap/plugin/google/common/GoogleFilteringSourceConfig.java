@@ -71,8 +71,8 @@ public class GoogleFilteringSourceConfig extends GoogleAuthBaseConfig {
   @Macro
   protected String endDate;
 
-  public void validate(FailureCollector collector) {
-    super.validate(collector);
+  public ValidationResult validate(FailureCollector collector) {
+    ValidationResult validationResult = super.validate(collector);
     if (validateModificationDateRange(collector)
       && getModificationDateRangeType().equals(ModifiedDateRangeType.CUSTOM)) {
       if (checkPropertyIsSet(collector, startDate, START_DATE, START_DATE_LABEL)) {
@@ -84,6 +84,7 @@ public class GoogleFilteringSourceConfig extends GoogleAuthBaseConfig {
                              END_DATE_LABEL);
       }
     }
+    return validationResult;
   }
 
   private boolean validateModificationDateRange(FailureCollector collector) {

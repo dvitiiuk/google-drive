@@ -17,6 +17,7 @@
 package io.cdap.plugin.google.drive.source;
 
 import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import io.cdap.plugin.google.common.GoogleDriveFilteringClient;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
@@ -52,8 +53,8 @@ public class GoogleDriveSourceClient extends GoogleDriveFilteringClient<GoogleDr
   }
 
   @Override
-  protected String getRequiredScope() {
-    return READONLY_PERMISSIONS_SCOPE;
+  protected List<String> getRequiredScopes() {
+    return Collections.singletonList(DriveScopes.DRIVE_READONLY);
   }
 
   public FileFromFolder getFile(String fileId) throws IOException {
