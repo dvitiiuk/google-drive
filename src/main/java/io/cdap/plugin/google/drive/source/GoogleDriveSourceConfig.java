@@ -30,6 +30,7 @@ import io.cdap.plugin.google.drive.source.utils.ExportedType;
 import io.cdap.plugin.google.drive.source.utils.ModifiedDateRangeType;
 import io.cdap.plugin.google.drive.source.utils.ModifiedDateRangeUtils;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -56,7 +57,6 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   public static final String MODIFICATION_DATE_RANGE_LABEL = "Modification date range";
   public static final String START_DATE_LABEL = "Start date";
   public static final String END_DATE_LABEL = "End date";
-  public static final String FILE_METADATA_PROPERTIES_LABEL = "File properties";
   public static final String FILE_TYPES_TO_PULL_LABEL = "File types to pull";
   public static final String BODY_FORMAT_LABEL = "Body output format";
 
@@ -169,7 +169,7 @@ public class GoogleDriveSourceConfig extends GoogleDriveBaseConfig {
   }
 
   @Override
-  protected GoogleDriveClient getDriveClient() {
+  protected GoogleDriveClient getDriveClient() throws IOException {
     return new GoogleDriveSourceClient(this);
   }
 

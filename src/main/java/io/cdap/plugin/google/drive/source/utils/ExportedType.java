@@ -21,6 +21,8 @@ import io.cdap.plugin.google.drive.source.GoogleDriveSourceClient;
 import io.cdap.plugin.google.drive.source.GoogleDriveSourceConfig;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * An enum which represent a type of exported file.
@@ -51,7 +53,12 @@ public enum ExportedType {
 
   public static ExportedType fromValue(String value) {
     return Arrays.stream(ExportedType.values()).filter(exportedType -> exportedType.getValue().equals(value))
-      .findAny().orElseThrow(() -> new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_TYPES_TO_PULL_LABEL
-        , value));
+      .findAny().orElseThrow(() -> new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_TYPES_TO_PULL_LABEL,
+            value, getAllowedValues()));
+  }
+
+  public static List<String> getAllowedValues() {
+    return Arrays.stream(ExportedType.values()).map(v -> v.getValue())
+        .collect(Collectors.toList());
   }
 }

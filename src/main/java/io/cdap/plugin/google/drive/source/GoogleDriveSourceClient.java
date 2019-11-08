@@ -52,7 +52,7 @@ public class GoogleDriveSourceClient extends GoogleDriveClient<GoogleDriveSource
 
   private static final String RANGE_PATTERN = "bytes=%d-%d";
 
-  public GoogleDriveSourceClient(GoogleDriveSourceConfig config) {
+  public GoogleDriveSourceClient(GoogleDriveSourceConfig config) throws IOException {
     super(config);
 
   }

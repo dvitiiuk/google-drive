@@ -17,7 +17,6 @@
 package io.cdap.plugin.google.drive.source;
 
 import io.cdap.cdap.api.data.schema.Schema;
-import io.cdap.plugin.google.drive.common.exceptions.InvalidPropertyTypeException;
 import io.cdap.plugin.google.drive.source.utils.BodyFormat;
 
 import java.util.ArrayList;
@@ -138,7 +137,7 @@ public class SchemaBuilder {
           Schema.of(Schema.Type.STRING), Schema.of(Schema.Type.STRING))));
       default:
         if (!name.startsWith(IMAGE_METADATA_NAME_PREFIX) && !name.startsWith(VIDEO_METADATA_NAME_PREFIX)) {
-          throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_METADATA_PROPERTIES_LABEL, name);
+          throw new IllegalStateException(String.format("Untreated value '%s' for top level field.", name));
         } else {
           return null;
         }
@@ -217,7 +216,7 @@ public class SchemaBuilder {
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.BOOLEAN)));
       default:
         if (!name.startsWith(LOCATION_NAME_PREFIX)) {
-          throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_METADATA_PROPERTIES_LABEL, name);
+          throw new IllegalStateException(String.format("Untreated value '%s' for image media metadata field.", name));
         } else {
           return null;
         }
@@ -232,7 +231,7 @@ public class SchemaBuilder {
       case VIDEO_DURATION_MILLIS_FIELD_NAME:
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.LONG)));
       default:
-        throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_METADATA_PROPERTIES_LABEL, name);
+        throw new IllegalStateException(String.format("Untreated value '%s' for video media metadata field.", name));
     }
   }
 
@@ -243,7 +242,7 @@ public class SchemaBuilder {
       case IMAGE_ALTITUDE_FIELD_NAME:
         return Schema.Field.of(name, Schema.nullableOf(Schema.of(Schema.Type.DOUBLE)));
       default:
-        throw new InvalidPropertyTypeException(GoogleDriveSourceConfig.FILE_METADATA_PROPERTIES_LABEL, name);
+        throw new IllegalStateException(String.format("Untreated value '%s' for location field.", name));
     }
   }
 }

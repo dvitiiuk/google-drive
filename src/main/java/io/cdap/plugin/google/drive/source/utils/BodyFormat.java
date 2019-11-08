@@ -19,6 +19,9 @@ package io.cdap.plugin.google.drive.source.utils;
 import io.cdap.plugin.google.drive.common.exceptions.InvalidPropertyTypeException;
 import io.cdap.plugin.google.drive.source.GoogleDriveSourceConfig;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -42,6 +45,12 @@ public enum BodyFormat {
     return Stream.of(BodyFormat.values())
       .filter(keyType -> keyType.getValue().equalsIgnoreCase(value))
       .findAny()
-      .orElseThrow(() -> new InvalidPropertyTypeException(GoogleDriveSourceConfig.BODY_FORMAT_LABEL, value));
+      .orElseThrow(() ->
+          new InvalidPropertyTypeException(GoogleDriveSourceConfig.BODY_FORMAT_LABEL, value, getAllowedValues()));
+  }
+
+  public static List<String> getAllowedValues() {
+    return Arrays.stream(BodyFormat.values()).map(v -> v.getValue())
+        .collect(Collectors.toList());
   }
 }

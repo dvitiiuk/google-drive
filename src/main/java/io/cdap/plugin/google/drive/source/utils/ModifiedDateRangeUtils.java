@@ -27,7 +27,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.regex.Pattern;
 
 /**
- * Builds data range from {@link io.cdap.plugin.google.drive.source.GoogleDriveSourceConfig} instance
+ * Builds data range from {@link io.cdap.plugin.google.drive.source.GoogleDriveSourceConfig} instance.
  */
 public class ModifiedDateRangeUtils {
 
@@ -115,7 +115,7 @@ public class ModifiedDateRangeUtils {
       case CUSTOM:
         return new DateRange(startDate, endDate);
     }
-    throw new IllegalArgumentException("No valid modified date range was selected");
+    throw new IllegalArgumentException("No valid modified date range was selected.");
   }
 
   private static ZonedDateTime getEndOfYesterday(ZonedDateTime now, ZoneId zoneId) {
