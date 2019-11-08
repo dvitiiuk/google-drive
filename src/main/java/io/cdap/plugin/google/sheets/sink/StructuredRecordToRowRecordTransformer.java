@@ -24,7 +24,7 @@ import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.format.StructuredRecordStringConverter;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
-import io.cdap.plugin.google.sheets.common.Sheet;
+import io.cdap.plugin.google.sheets.common.RowRecord;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -48,27 +48,30 @@ import java.util.stream.Collectors;
  * Transforms a {@link StructuredRecord}
  * to a {@link FileFromFolder}
  */
-public class StructuredRecordToSheetTransformer {
-  private static final LocalDate SHEETS_START_DATE = LocalDate.of(1899, 12, 30);
+public class StructuredRecordToRowRecordTransformer {
+  public static final LocalDate SHEETS_START_DATE = LocalDate.of(1899, 12, 30);
   public static final ZoneId UTC_ZONE_ID = ZoneId.ofOffset("UTC", ZoneOffset.UTC);
-
+  public static final String SHEETS_CELL_DATE_TYPE = "DATE";
+  public static final String SHEETS_CELL_TIME_TYPE = "TIME";
+  public static final String SHEETS_CELL_DATE_TIME_TYPE = "DATE_TIME";
   public static final Integer RANDOM_FILE_NAME_LENGTH = 16;
+
   private final String spreadSheetNameFieldName;
   private final String sheetNameFieldName;
   private final String sheetName;
   private final ComplexDataFormatter complexDataFormatter;
 
-  public StructuredRecordToSheetTransformer(String spreadSheetNameFieldName,
-                                            String sheetNameFieldName,
-                                            String sheetName,
-                                            ComplexDataFormatter complexDataFormatter) {
+  public StructuredRecordToRowRecordTransformer(String spreadSheetNameFieldName,
+                                                String sheetNameFieldName,
+                                                String sheetName,
+                                                ComplexDataFormatter complexDataFormatter) {
     this.spreadSheetNameFieldName = spreadSheetNameFieldName;
     this.sheetNameFieldName = sheetNameFieldName;
     this.sheetName = sheetName;
     this.complexDataFormatter = complexDataFormatter;
   }
 
-  public Sheet transform(StructuredRecord input) throws IOException {
+  public RowRecord transform(StructuredRecord input) throws IOException {
     Map<String, CellData> data = new HashMap<>();
     String spreadSheetName = null;
     String sheetName = null;
@@ -83,77 +86,20 @@ public class StructuredRecordToSheetTransformer {
       } else {
         Schema fieldSchema = field.getSchema();
         CellData cellData = new CellData();
-        ExtendedValue userEnteredValue = new ExtendedValue();
-        CellFormat userEnteredFormat = new CellFormat();
 
-        data.put(fieldName, cellData);
         if (input.get(fieldName) == null) {
+          data.put(fieldName, cellData);
           continue;
         }
         Schema.LogicalType fieldLogicalType = fieldSchema.isNullableSimple() ?
             fieldSchema.getNonNullable().getLogicalType() :
             fieldSchema.getLogicalType();
         if (fieldLogicalType != null) {
-
-          NumberFormat dateFormat = new NumberFormat();
-          switch (fieldLogicalType) {
-            case DATE:
-              LocalDate date = input.getDate(fieldName);
-              userEnteredValue.setNumberValue(toSheetsDate(date));
-
-              dateFormat.setType("DATE");
-              break;
-            case TIMESTAMP_MILLIS:
-            case TIMESTAMP_MICROS:
-              ZonedDateTime dateTime = input.getTimestamp(fieldName);
-              userEnteredValue.setNumberValue(toSheetsDateTime(dateTime));
-
-              dateFormat.setType("DATE_TIME");
-              break;
-            case TIME_MILLIS:
-            case TIME_MICROS:
-              LocalTime time = input.getTime(fieldName);
-              userEnteredValue.setNumberValue(toSheetsTime(time));
-
-              dateFormat.setType("TIME");
-              break;
-          }
-          userEnteredFormat.setNumberFormat(dateFormat);
+          cellData = processDateTimeValue(fieldLogicalType, fieldName, input);
         } else {
-          Schema.Type fieldType = fieldSchema.isNullableSimple() ?
-              fieldSchema.getNonNullable().getType() :
-              fieldSchema.getType();
-          switch (fieldType) {
-            case STRING:
-              userEnteredValue.setStringValue(input.get(fieldName));
-              break;
-            case BYTES:
-              userEnteredValue.setStringValue(new String((byte[]) input.get(fieldName)));
-              break;
-            case BOOLEAN:
-              userEnteredValue.setBoolValue(input.get(fieldName));
-              break;
-            case LONG:
-              userEnteredValue.setNumberValue((double) (Long) input.get(fieldName));
-              break;
-            case INT:
-              userEnteredValue.setNumberValue((double) (Integer) input.get(fieldName));
-              break;
-            case DOUBLE:
-              userEnteredValue.setNumberValue(input.get(fieldName));
-              break;
-            case FLOAT:
-              userEnteredValue.setNumberValue((double) (Long) input.get(fieldName));
-              break;
-            case NULL:
-              // do nothing
-              break;
-            default:
-              userEnteredValue = complexDataFormatter.format(fieldName, fieldSchema, fieldType, input.get(fieldName));
-          }
+          cellData = processSimpleTypes(fieldSchema, fieldName, input);
         }
-        cellData.setUserEnteredValue(userEnteredValue);
-        cellData.setUserEnteredFormat(userEnteredFormat);
+        data.put(fieldName, cellData);
       }
     }
     if (spreadSheetName == null) {
@@ -164,8 +110,81 @@ public class StructuredRecordToSheetTransformer {
       sheetName = this.sheetName;
     }
 
-    Sheet sheet = new Sheet(spreadSheetName, sheetName, null, data, false);
-    return sheet;
+    RowRecord rowRecord = new RowRecord(spreadSheetName, sheetName, null, data, false);
+    return rowRecord;
+  }
+
+  CellData processDateTimeValue(Schema.LogicalType fieldLogicalType, String fieldName, StructuredRecord input) {
+    CellData cellData = new CellData();
+    ExtendedValue userEnteredValue = new ExtendedValue();
+    CellFormat userEnteredFormat = new CellFormat();
+    NumberFormat dateFormat = new NumberFormat();
+    switch (fieldLogicalType) {
+      case DATE:
+        LocalDate date = input.getDate(fieldName);
+        userEnteredValue.setNumberValue(toSheetsDate(date));
+
+        dateFormat.setType(SHEETS_CELL_DATE_TYPE);
+        break;
+      case TIMESTAMP_MILLIS:
+      case TIMESTAMP_MICROS:
+        ZonedDateTime dateTime = input.getTimestamp(fieldName);
+        userEnteredValue.setNumberValue(toSheetsDateTime(dateTime));
+
+        dateFormat.setType(SHEETS_CELL_DATE_TIME_TYPE);
+        break;
+      case TIME_MILLIS:
+      case TIME_MICROS:
+        LocalTime time = input.getTime(fieldName);
+        userEnteredValue.setNumberValue(toSheetsTime(time));
+
+        dateFormat.setType(SHEETS_CELL_TIME_TYPE);
+        break;
+    }
+    userEnteredFormat.setNumberFormat(dateFormat);
+    cellData.setUserEnteredValue(userEnteredValue);
+    cellData.setUserEnteredFormat(userEnteredFormat);
+    return cellData;
+  }
+
+  CellData processSimpleTypes(Schema fieldSchema, String fieldName, StructuredRecord input) throws IOException {
+    CellData cellData = new CellData();
+    ExtendedValue userEnteredValue = new ExtendedValue();
+    CellFormat userEnteredFormat = new CellFormat();
+    Schema.Type fieldType = fieldSchema.isNullableSimple() ?
+        fieldSchema.getNonNullable().getType() :
+        fieldSchema.getType();
+    switch (fieldType) {
+      case STRING:
+        userEnteredValue.setStringValue(input.get(fieldName));
+        break;
+      case BYTES:
+        userEnteredValue.setStringValue(new String((byte[]) input.get(fieldName)));
+        break;
+      case BOOLEAN:
+        userEnteredValue.setBoolValue(input.get(fieldName));
+        break;
+      case LONG:
+        userEnteredValue.setNumberValue((double) (Long) input.get(fieldName));
+        break;
+      case INT:
+        userEnteredValue.setNumberValue((double) (Integer) input.get(fieldName));
+        break;
+      case DOUBLE:
+        userEnteredValue.setNumberValue(input.get(fieldName));
+        break;
+      case FLOAT:
+        userEnteredValue.setNumberValue((double) (Long) input.get(fieldName));
+        break;
+      case NULL:
+        // do nothing
+        break;
+      default:
+        userEnteredValue = complexDataFormatter.format(fieldName, fieldSchema, fieldType, input.get(fieldName));
+    }
+    cellData.setUserEnteredValue(userEnteredValue);
+    cellData.setUserEnteredFormat(userEnteredFormat);
+    return cellData;
   }
 
   Double toSheetsDate(LocalDate date) {
@@ -180,7 +199,7 @@ public class StructuredRecordToSheetTransformer {
   }
 
   Double toSheetsTime(LocalTime localTime) {
-    long micros = localTime.get(ChronoField.MICRO_OF_DAY);
+    long micros = localTime.getLong(ChronoField.MICRO_OF_DAY);
     return (double) micros / (double) ChronoField.MICRO_OF_DAY.range().getMaximum();
   }
 

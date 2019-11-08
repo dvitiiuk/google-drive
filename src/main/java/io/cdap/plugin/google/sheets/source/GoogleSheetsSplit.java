@@ -28,8 +28,6 @@ import java.io.IOException;
  */
 public class GoogleSheetsSplit extends InputSplit implements Writable {
   private String fileId;
-  private String sheetTitle = "";
-  private int rowNumber;
   private String headers;
   private String metadates;
 
@@ -38,10 +36,8 @@ public class GoogleSheetsSplit extends InputSplit implements Writable {
     // For serialization
   }
 
-  public GoogleSheetsSplit(String fileId, String sheetTitle, int rowNumber, String headers, String metadates) {
+  public GoogleSheetsSplit(String fileId, String headers, String metadates) {
     this.fileId = fileId;
-    this.sheetTitle = sheetTitle;
-    this.rowNumber = rowNumber;
     this.headers = headers;
     this.metadates = metadates;
   }
@@ -49,8 +45,6 @@ public class GoogleSheetsSplit extends InputSplit implements Writable {
   @Override
   public void readFields(DataInput dataInput) throws IOException {
     fileId = dataInput.readUTF();
-    sheetTitle = dataInput.readUTF();
-    rowNumber = dataInput.readInt();
     headers = dataInput.readUTF();
     metadates = dataInput.readUTF();
   }
@@ -58,8 +52,6 @@ public class GoogleSheetsSplit extends InputSplit implements Writable {
   @Override
   public void write(DataOutput dataOutput) throws IOException {
     dataOutput.writeUTF(fileId);
-    dataOutput.writeUTF(sheetTitle);
-    dataOutput.writeInt(rowNumber);
     dataOutput.writeUTF(headers);
     dataOutput.writeUTF(metadates);
   }
@@ -76,14 +68,6 @@ public class GoogleSheetsSplit extends InputSplit implements Writable {
 
   public String getFileId() {
     return fileId;
-  }
-
-  public String getSheetTitle() {
-    return sheetTitle;
-  }
-
-  public int getRowNumber() {
-    return rowNumber;
   }
 
   public String getHeaders() {

@@ -30,7 +30,7 @@ import io.cdap.cdap.etl.api.PipelineConfigurer;
 import io.cdap.cdap.etl.api.batch.BatchSource;
 import io.cdap.cdap.etl.api.batch.BatchSourceContext;
 import io.cdap.plugin.common.LineageRecorder;
-import io.cdap.plugin.google.sheets.common.Sheet;
+import io.cdap.plugin.google.sheets.common.RowRecord;
 import org.apache.hadoop.io.NullWritable;
 
 import java.util.stream.Collectors;
@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 @Plugin(type = BatchSource.PLUGIN_TYPE)
 @Name(GoogleSheetsSource.NAME)
 @Description("Reads spreadsheets from specified Google Drive directory.")
-public class GoogleSheetsSource extends BatchSource<NullWritable, Sheet, StructuredRecord> {
+public class GoogleSheetsSource extends BatchSource<NullWritable, RowRecord, StructuredRecord> {
   public static final String NAME = "GoogleSheets";
 
   private final GoogleSheetsSourceConfig config;
@@ -76,10 +76,10 @@ public class GoogleSheetsSource extends BatchSource<NullWritable, Sheet, Structu
   }
 
   @Override
-  public void transform(KeyValue<NullWritable, Sheet> input, Emitter<StructuredRecord> emitter) {
-    Sheet sheet = input.getValue();
-    if (!(config.isSkipEmptyData() && sheet.isEmptyData())) {
-      emitter.emit(SheetTransformer.transform(sheet, config.getSchema(), config.isExtractMetadata(),
+  public void transform(KeyValue<NullWritable, RowRecord> input, Emitter<StructuredRecord> emitter) {
+    RowRecord rowRecord = input.getValue();
+    if (!(config.isSkipEmptyData() && rowRecord.isEmptyData())) {
+      emitter.emit(SheetTransformer.transform(rowRecord, config.getSchema(), config.isExtractMetadata(),
           config.getMetadataRecordName()));
     }
   }

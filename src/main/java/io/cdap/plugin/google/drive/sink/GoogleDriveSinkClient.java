@@ -16,15 +16,17 @@
 
 package io.cdap.plugin.google.drive.sink;
 
+import com.github.rholder.retry.RetryException;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
+import io.cdap.plugin.google.common.APIRequestRepeater;
 import io.cdap.plugin.google.common.GoogleDriveClient;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Client for writing data via Google Drive API.
@@ -35,10 +37,13 @@ public class GoogleDriveSinkClient extends GoogleDriveClient<GoogleDriveSinkConf
     super(config);
   }
 
-  public void createFile(FileFromFolder fileFromFolder) throws IOException {
-    String folderId = config.getDirectoryIdentifier();
+  public void createFile(FileFromFolder fileFromFolder) throws ExecutionException, RetryException {
+    APIRequestRepeater.getRetryer(config,
+        String.format("Creating of file with name '%s'", fileFromFolder.getFile().getName()))
+        .call(() -> {
+          String folderId = config.getDirectoryIdentifier();
 
-    File fileToWrite = new File();
+          File fileToWrite = new File();
 
     fileToWrite.setName(fileFromFolder.getFile().getName());
     fileToWrite.setMimeType(fileFromFolder.getFile().getMimeType());

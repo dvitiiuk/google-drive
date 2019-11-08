@@ -16,6 +16,8 @@
 
 package io.cdap.plugin.google.common;
 
+import com.github.rholder.retry.RetryException;
+import com.github.rholder.retry.Retryer;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
@@ -24,12 +26,13 @@ import io.cdap.plugin.google.drive.source.utils.DateRange;
 import io.cdap.plugin.google.drive.source.utils.ExportedType;
 import io.cdap.plugin.google.drive.source.utils.ModifiedDateRangeUtils;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Base Google Drive Class with files search functionality.
+ *
  * @param <C>
  */
 public class GoogleDriveFilteringClient<C extends GoogleFilteringSourceConfig> extends GoogleDriveClient<C> {
@@ -39,34 +42,39 @@ public class GoogleDriveFilteringClient<C extends GoogleFilteringSourceConfig> e
     super(config);
   }
 
-  public List<File> getFilesSummary(List<ExportedType> exportedTypes) {
+  public List<File> getFilesSummary(List<ExportedType> exportedTypes) throws ExecutionException, RetryException {
     return getFilesSummary(exportedTypes, 0);
   }
 
-  public List<File> getFilesSummary(List<ExportedType> exportedTypes, int filesNumber) {
-    try {
+  public List<File> getFilesSummary(List<ExportedType> exportedTypes, int filesNumber)
+      throws ExecutionException, RetryException {
+    Retryer<List<File>> filesSummaryRetryer = APIRequestRepeater.getRetryer(config,
+        String.format("Get files summary, files: '%d'", filesNumber));
+    return filesSummaryRetryer.call(() -> {
       List<File> files = new ArrayList<>();
       String nextToken = "";
       int retrievedFiles = 0;
+      int actualFilesNumber = filesNumber;
       Drive.Files.List request = service.files().list()
-        .setQ(generateFilter(exportedTypes))
-        .setFields("nextPageToken, files(id, size)");
-      if (filesNumber > 0) {
-        request.setPageSize(filesNumber);
+          .setQ(generateFilter(exportedTypes))
+          .setFields("nextPageToken, files(id, size)");
+      if (actualFilesNumber > 0) {
+        request.setPageSize(actualFilesNumber);
       } else {
-        filesNumber = 0;
+        actualFilesNumber = 0;
       }
-      while (nextToken != null && (filesNumber == 0 || retrievedFiles < filesNumber)) {
+      while (nextToken != null && (actualFilesNumber == 0 || retrievedFiles < actualFilesNumber)) {
         FileList result = request.execute();
         files.addAll(result.getFiles());
         nextToken = result.getNextPageToken();
         request.setPageToken(nextToken);
         retrievedFiles += result.size();
       }
-      return filesNumber == 0 || files.size() <= filesNumber ? files : files.subList(0, filesNumber);
-    } catch (IOException | InterruptedException e) {
-      throw new RuntimeException("Issue during retrieving summary for files.", e);
-    }
+      return actualFilesNumber == 0 || files.size() <= actualFilesNumber ?
+          files :
+          files.subList(0, actualFilesNumber);
+
+    });
   }
 
   private String generateFilter(List<ExportedType> exportedTypes) throws InterruptedException {
@@ -107,7 +115,7 @@ public class GoogleDriveFilteringClient<C extends GoogleFilteringSourceConfig> e
     }
 
     DateRange modifiedDateRange = ModifiedDateRangeUtils.getDataRange(config.getModificationDateRangeType(),
-                                                                      config.getStartDate(), config.getEndDate());
+        config.getStartDate(), config.getEndDate());
     if (modifiedDateRange != null) {
       sb.append(" and ");
       sb.append(ModifiedDateRangeUtils.getFilterValue(modifiedDateRange));

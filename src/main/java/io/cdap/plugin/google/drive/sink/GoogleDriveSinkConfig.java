@@ -22,7 +22,7 @@ import io.cdap.cdap.api.annotation.Macro;
 import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
-import io.cdap.plugin.google.common.GoogleAuthBaseConfig;
+import io.cdap.plugin.google.common.GoogleRetryingConfig;
 
 import java.io.IOException;
 import javax.annotation.Nullable;
@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 /**
  * Configurations for Google Drive Batch Sink plugin.
  */
-public class GoogleDriveSinkConfig extends GoogleAuthBaseConfig {
+public class GoogleDriveSinkConfig extends GoogleRetryingConfig {
   public static final String SCHEMA_BODY_FIELD_NAME = "schemaBodyFieldName";
   public static final String SCHEMA_NAME_FIELD_NAME = "schemaNameFieldName";
   public static final String SCHEMA_MIME_FIELD_NAME = "schemaMimeFieldName";

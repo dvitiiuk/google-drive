@@ -30,7 +30,7 @@ import io.cdap.cdap.etl.api.batch.BatchRuntimeContext;
 import io.cdap.cdap.etl.api.batch.BatchSink;
 import io.cdap.cdap.etl.api.batch.BatchSinkContext;
 import io.cdap.plugin.common.LineageRecorder;
-import io.cdap.plugin.google.sheets.common.Sheet;
+import io.cdap.plugin.google.sheets.common.RowRecord;
 import io.cdap.plugin.google.sheets.sink.utils.NestedDataFormat;
 
 import java.io.IOException;
@@ -42,11 +42,11 @@ import java.util.stream.Collectors;
 @Plugin(type = BatchSink.PLUGIN_TYPE)
 @Name(GoogleSheetsSink.NAME)
 @Description("Sink plugin to save spreadsheets from the pipeline to Google Drive directory.")
-public class GoogleSheetsSink extends BatchSink<StructuredRecord, Void, Sheet> {
+public class GoogleSheetsSink extends BatchSink<StructuredRecord, Void, RowRecord> {
   public static final String NAME = "GoogleSheets";
 
   private final GoogleSheetsSinkConfig config;
-  private StructuredRecordToSheetTransformer transformer;
+  private StructuredRecordToRowRecordTransformer transformer;
 
   public GoogleSheetsSink(GoogleSheetsSinkConfig config) {
     this.config = config;
@@ -86,20 +86,20 @@ public class GoogleSheetsSink extends BatchSink<StructuredRecord, Void, Sheet> {
   @Override
   public void initialize(BatchRuntimeContext context) throws Exception {
     super.initialize(context);
-    StructuredRecordToSheetTransformer.ComplexDataFormatter complexDataFormatter;
+    StructuredRecordToRowRecordTransformer.ComplexDataFormatter complexDataFormatter;
     if (config.getNestedDataFormat().equals(NestedDataFormat.JSON)) {
-      complexDataFormatter = new StructuredRecordToSheetTransformer.JSONComplexDataFormatter();
+      complexDataFormatter = new StructuredRecordToRowRecordTransformer.JSONComplexDataFormatter();
     } else {
-      complexDataFormatter = new StructuredRecordToSheetTransformer.CSVComplexDataFormatter();
+      complexDataFormatter = new StructuredRecordToRowRecordTransformer.CSVComplexDataFormatter();
     }
-    transformer = new StructuredRecordToSheetTransformer(config.getSchemaSpreadSheetNameFieldName(),
+    transformer = new StructuredRecordToRowRecordTransformer(config.getSchemaSpreadSheetNameFieldName(),
                                                          config.getSchemaSheetNameFieldName(),
                                                          config.getSheetName(), complexDataFormatter);
   }
 
   @Override
-  public void transform(StructuredRecord input, Emitter<KeyValue<Void, Sheet>> emitter) throws IOException {
-    Sheet sheet = transformer.transform(input);
-    emitter.emit(new KeyValue<>(null, sheet));
+  public void transform(StructuredRecord input, Emitter<KeyValue<Void, RowRecord>> emitter) throws IOException {
+    RowRecord rowRecord = transformer.transform(input);
+    emitter.emit(new KeyValue<>(null, rowRecord));
   }
 }

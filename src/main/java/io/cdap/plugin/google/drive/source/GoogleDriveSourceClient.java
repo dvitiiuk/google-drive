@@ -16,9 +16,12 @@
 
 package io.cdap.plugin.google.drive.source;
 
+import com.github.rholder.retry.RetryException;
+import com.github.rholder.retry.Retryer;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
+import io.cdap.plugin.google.common.APIRequestRepeater;
 import io.cdap.plugin.google.common.GoogleDriveFilteringClient;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 import io.cdap.plugin.google.drive.source.utils.ExportedType;
@@ -29,6 +32,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Client for getting data via Google Drive API.
@@ -57,49 +61,54 @@ public class GoogleDriveSourceClient extends GoogleDriveFilteringClient<GoogleDr
     return Collections.singletonList(DriveScopes.DRIVE_READONLY);
   }
 
-  public FileFromFolder getFile(String fileId) throws IOException {
+  public FileFromFolder getFile(String fileId) throws IOException, ExecutionException, RetryException {
     return getFilePartition(fileId, null, null);
   }
 
-  public FileFromFolder getFilePartition(String fileId, Long bytesFrom, Long bytesTo) throws IOException {
-    FileFromFolder fileFromFolder;
+  public FileFromFolder getFilePartition(String fileId, Long bytesFrom, Long bytesTo)
+      throws IOException, ExecutionException, RetryException {
+    Retryer<FileFromFolder> fileFromFolderRetryer = APIRequestRepeater.getRetryer(config,
+        String.format("File retrieving, id: '%s'", fileId));
+    return fileFromFolderRetryer.call(() -> {
+      FileFromFolder fileFromFolder;
 
-    Drive.Files.Get request = service.files().get(fileId).setFields("*");
-    File currentFile = request.execute();
+      Drive.Files.Get request = service.files().get(fileId).setFields("*");
+      File currentFile = request.execute();
 
-    String mimeType = currentFile.getMimeType();
-    long offset = bytesFrom == null ? 0L : bytesFrom;
-    if (!mimeType.startsWith(DRIVE_DOCS_MIME_PREFIX)) {
-      OutputStream outputStream = new ByteArrayOutputStream();
-      Drive.Files.Get get = service.files().get(currentFile.getId());
+      String mimeType = currentFile.getMimeType();
+      long offset = bytesFrom == null ? 0L : bytesFrom;
+      if (!mimeType.startsWith(DRIVE_DOCS_MIME_PREFIX)) {
+        OutputStream outputStream = new ByteArrayOutputStream();
+        Drive.Files.Get get = service.files().get(currentFile.getId());
 
-      if (bytesFrom != null && bytesTo != null) {
-        get.getMediaHttpDownloader().setDirectDownloadEnabled(true);
-        get.getRequestHeaders().setRange(String.format(RANGE_PATTERN, bytesFrom, bytesTo));
+        if (bytesFrom != null && bytesTo != null) {
+          get.getMediaHttpDownloader().setDirectDownloadEnabled(true);
+          get.getRequestHeaders().setRange(String.format(RANGE_PATTERN, bytesFrom, bytesTo));
+        }
+
+        get.executeMediaAndDownloadTo(outputStream);
+        fileFromFolder =
+            new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), offset, currentFile);
+      } else if (mimeType.equals(DRIVE_DOCUMENTS_MIME)) {
+        fileFromFolder = exportGoogleFormatFile(service, currentFile, config.getDocsExportingFormat());
+      } else if (mimeType.equals(DRIVE_SPREADSHEETS_MIME)) {
+        fileFromFolder = exportGoogleFormatFile(service, currentFile, config.getSheetsExportingFormat());
+      } else if (mimeType.equals(DRIVE_DRAWINGS_MIME)) {
+        fileFromFolder = exportGoogleFormatFile(service, currentFile, config.getDrawingsExportingFormat());
+      } else if (mimeType.equals(DRIVE_PRESENTATIONS_MIME)) {
+        fileFromFolder = exportGoogleFormatFile(service, currentFile, config.getPresentationsExportingFormat());
+      } else if (mimeType.equals(DRIVE_APPS_SCRIPTS_MIME)) {
+        fileFromFolder = exportGoogleFormatFile(service, currentFile, DEFAULT_APPS_SCRIPTS_EXPORT_MIME);
+      } else {
+        fileFromFolder =
+            new FileFromFolder(new byte[]{}, offset, currentFile);
       }
-
-      get.executeMediaAndDownloadTo(outputStream);
-      fileFromFolder =
-        new FileFromFolder(((ByteArrayOutputStream) outputStream).toByteArray(), offset, currentFile);
-    } else if (mimeType.equals(DRIVE_DOCUMENTS_MIME)) {
-      fileFromFolder = exportGoogleFormatFile(service, currentFile, config.getDocsExportingFormat());
-    } else if (mimeType.equals(DRIVE_SPREADSHEETS_MIME)) {
-      fileFromFolder = exportGoogleFormatFile(service, currentFile, config.getSheetsExportingFormat());
-    } else if (mimeType.equals(DRIVE_DRAWINGS_MIME)) {
-      fileFromFolder = exportGoogleFormatFile(service, currentFile, config.getDrawingsExportingFormat());
-    } else if (mimeType.equals(DRIVE_PRESENTATIONS_MIME)) {
-      fileFromFolder = exportGoogleFormatFile(service, currentFile, config.getPresentationsExportingFormat());
-    } else if (mimeType.equals(DRIVE_APPS_SCRIPTS_MIME)) {
-      fileFromFolder = exportGoogleFormatFile(service, currentFile, DEFAULT_APPS_SCRIPTS_EXPORT_MIME);
-    } else {
-      fileFromFolder =
-        new FileFromFolder(new byte[]{}, offset, currentFile);
-    }
-    return fileFromFolder;
+      return fileFromFolder;
+    });
   }
 
   // We should separate binary and Google Drive formats between two requests
-  public List<File> getFilesSummary() {
+  public List<File> getFilesSummary() throws ExecutionException, RetryException {
     List<ExportedType> exportedTypes = new ArrayList<>(config.getFileTypesToPull());
 
     // Google API doesn't support query requests with both binary and Google formats simultaneously.
@@ -129,12 +138,16 @@ public class GoogleDriveSourceClient extends GoogleDriveFilteringClient<GoogleDr
 
   // Google Drive API does not support partitioning for exporting Google Docs
   private FileFromFolder exportGoogleFormatFile(Drive service, File currentFile, String exportFormat)
-          throws IOException {
-    OutputStream outputStream = new ByteArrayOutputStream();
-    service.files().export(currentFile.getId(), exportFormat).executeMediaAndDownloadTo(outputStream);
-    byte[] content = ((ByteArrayOutputStream) outputStream).toByteArray();
-    currentFile.setMimeType(exportFormat);
-    currentFile.setSize((long) content.length);
-    return new FileFromFolder(content, 0L, currentFile);
+      throws ExecutionException, RetryException {
+    Retryer<FileFromFolder> fileFromFolderRetryer = APIRequestRepeater.getRetryer(config,
+        String.format("File exporting, id: '%s', export format: '%s'", currentFile.getId(), exportFormat));
+    return fileFromFolderRetryer.call(() -> {
+      OutputStream outputStream = new ByteArrayOutputStream();
+      service.files().export(currentFile.getId(), exportFormat).executeMediaAndDownloadTo(outputStream);
+      byte[] content = ((ByteArrayOutputStream) outputStream).toByteArray();
+      currentFile.setMimeType(exportFormat);
+      currentFile.setSize((long) content.length);
+      return new FileFromFolder(content, 0L, currentFile);
+    });
   }
 }

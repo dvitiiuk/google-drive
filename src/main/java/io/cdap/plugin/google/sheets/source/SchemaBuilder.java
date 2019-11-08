@@ -27,7 +27,7 @@ import java.util.List;
  * Util class for building pipeline schema.
  */
 public class SchemaBuilder {
-  public static final String SCHEMA_ROOT_RECORD_NAME = "Sheet";
+  public static final String SCHEMA_ROOT_RECORD_NAME = "RowRecord";
   public static final String SPREADSHEET_NAME_FIELD_NAME = "spreadSheetName";
   public static final String SHEET_TITLE_FIELD_NAME = "sheetTitle";
 

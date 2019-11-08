@@ -16,9 +16,10 @@
 
 package io.cdap.plugin.google.sheets.source;
 
+import com.github.rholder.retry.RetryException;
 import com.google.gson.reflect.TypeToken;
 import io.cdap.plugin.google.drive.source.GoogleDriveInputFormatProvider;
-import io.cdap.plugin.google.sheets.common.Sheet;
+import io.cdap.plugin.google.sheets.common.RowRecord;
 import io.cdap.plugin.google.sheets.source.utils.MetadataKeyValueAddress;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
@@ -28,26 +29,37 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
- * RecordReader implementation, which reads {@link Sheet} wrappers from Google Drive using
+ * RecordReader implementation, which reads {@link RowRecord} wrappers from Google Drive using
  * Google Drive API.
  */
-public class GoogleSheetsRecordReader extends RecordReader<NullWritable, Sheet> {
+public class GoogleSheetsRecordReader extends RecordReader<NullWritable, RowRecord> {
 
   private GoogleSheetsSourceClient googleSheetsSourceClient;
   private String fileId;
-  private String sheetTitle;
-  private int rowNumber;
-  private boolean isFileProcessed;
   private GoogleSheetsSourceConfig config;
   private LinkedHashMap<Integer, String> resolvedHeaders;
   private List<MetadataKeyValueAddress> metadataCoordinates;
 
+  private Queue<RowTask> rowTaskQueue = new ArrayDeque<>();
+  private RowTask currentRowTask;
+  private String currentSheetTitle;
+  private Map<String, String> sheetMetadata = Collections.EMPTY_MAP;
+
   @Override
-  public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) {
+  public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext)
+      throws IOException, InterruptedException {
     Configuration conf = taskAttemptContext.getConfiguration();
     String configJson = conf.get(GoogleDriveInputFormatProvider.PROPERTY_CONFIG_JSON);
     config = GoogleDriveInputFormatProvider.GSON.fromJson(configJson, GoogleSheetsSourceConfig.class);
@@ -55,18 +67,48 @@ public class GoogleSheetsRecordReader extends RecordReader<NullWritable, Sheet> 
 
     GoogleSheetsSplit split = (GoogleSheetsSplit) inputSplit;
     this.fileId = split.getFileId();
-    this.sheetTitle = split.getSheetTitle();
-    this.rowNumber = split.getRowNumber();
-    this.isFileProcessed = false;
-    Type headersType = new TypeToken<LinkedHashMap<Integer, String>>() { }.getType();
+    Type headersType = new TypeToken<LinkedHashMap<Integer, String>>() {
+    }.getType();
     this.resolvedHeaders = GoogleDriveInputFormatProvider.GSON.fromJson(split.getHeaders(), headersType);
-    Type metadataType = new TypeToken<List<MetadataKeyValueAddress>>() { }.getType();
+    Type metadataType = new TypeToken<List<MetadataKeyValueAddress>>() {
+    }.getType();
     this.metadataCoordinates = GoogleDriveInputFormatProvider.GSON.fromJson(split.getMetadates(), metadataType);
+
+    int firstDataRow = config.getActualFirstDataRow();
+    int lastDataRow = config.getActualLastDataRow();
+
+    Stream<Integer> rowsStream = IntStream.range(firstDataRow, lastDataRow + 1).boxed();
+    try {
+      switch (config.getSheetsToPull()) {
+        case ALL:
+          List<String> allTitles = googleSheetsSourceClient.getSheetsTitles(fileId);
+          rowTaskQueue.addAll(rowsStream.flatMap(i -> allTitles.stream().map(s -> new RowTask(s, i)))
+              .collect(Collectors.toList()));
+          break;
+        case NUMBERS:
+          List<Integer> sheetIndexes = config.getSheetsIdentifiers().stream()
+              .map(s -> Integer.parseInt(s)).collect(Collectors.toList());
+          List<String> sheetTitles = googleSheetsSourceClient.getSheets(fileId).stream()
+              .filter(s -> sheetIndexes.contains(s.getProperties().getIndex()))
+              .map(s -> s.getProperties().getTitle()).collect(Collectors.toList());
+          rowTaskQueue.addAll(rowsStream.flatMap(i -> sheetTitles.stream().map(s -> new RowTask(s, i)))
+              .collect(Collectors.toList()));
+          break;
+        case TITLES:
+          rowTaskQueue.addAll(rowsStream.flatMap(i -> config.getSheetsIdentifiers().stream()
+              .map(s -> new RowTask(s, i)))
+              .collect(Collectors.toList()));
+          break;
+      }
+    } catch (ExecutionException | RetryException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
   public boolean nextKeyValue() {
-    return !isFileProcessed;
+    currentRowTask = rowTaskQueue.poll();
+    return currentRowTask != null;
   }
 
   @Override
@@ -75,11 +117,22 @@ public class GoogleSheetsRecordReader extends RecordReader<NullWritable, Sheet> 
   }
 
   @Override
-  public Sheet getCurrentValue() throws IOException, InterruptedException {
-    // read file and content
-    isFileProcessed = true;
-    return googleSheetsSourceClient.getSheetContentWithQuoteBypass(fileId, sheetTitle, rowNumber, config,
-        resolvedHeaders, metadataCoordinates);
+  public RowRecord getCurrentValue() throws IOException, InterruptedException {
+    boolean isNewSheet = !currentRowTask.getSheetTitle().equals(currentSheetTitle);
+    currentSheetTitle = currentRowTask.getSheetTitle();
+    RowRecord rowRecord = null;
+    try {
+      rowRecord = googleSheetsSourceClient.getContent(fileId, currentSheetTitle,
+          currentRowTask.getRowNumber(), resolvedHeaders, isNewSheet ? metadataCoordinates : null);
+    } catch (ExecutionException | RetryException e) {
+      throw new InterruptedException(e.getMessage());
+    }
+    if (isNewSheet) {
+      sheetMetadata = rowRecord.getMetadata();
+    } else {
+      rowRecord.setMetadata(sheetMetadata);
+    }
+    return rowRecord;
   }
 
   @Override
@@ -91,5 +144,23 @@ public class GoogleSheetsRecordReader extends RecordReader<NullWritable, Sheet> 
   @Override
   public void close() {
 
+  }
+
+  class RowTask {
+    final String sheetTitle;
+    final int rowNumber;
+
+    RowTask(String sheetTitle, int rowNumber) {
+      this.sheetTitle = sheetTitle;
+      this.rowNumber = rowNumber;
+    }
+
+    public String getSheetTitle() {
+      return sheetTitle;
+    }
+
+    public int getRowNumber() {
+      return rowNumber;
+    }
   }
 }

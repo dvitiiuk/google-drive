@@ -21,21 +21,21 @@ import com.google.api.services.sheets.v4.model.CellData;
 import java.util.Map;
 
 /**
- * Representation for single sheet.
+ * Representation for single row data.
  */
-public class Sheet {
+public class RowRecord {
   private String spreadSheetName;
   private String sheetTitle;
   private Map<String, String> metadata;
-  private Map<String, CellData> headeredValues;
+  private Map<String, CellData> headeredCells;
   private boolean isEmptyData;
 
-  public Sheet(String spreadSheetName, String sheetTitle, Map<String, String> metadata,
-               Map<String, CellData> headeredValues, boolean isEmptyData) {
+  public RowRecord(String spreadSheetName, String sheetTitle, Map<String, String> metadata,
+                   Map<String, CellData> headeredCells, boolean isEmptyData) {
     this.spreadSheetName = spreadSheetName;
     this.sheetTitle = sheetTitle;
     this.metadata = metadata;
-    this.headeredValues = headeredValues;
+    this.headeredCells = headeredCells;
     this.isEmptyData = isEmptyData;
   }
 
@@ -51,11 +51,15 @@ public class Sheet {
     return metadata;
   }
 
-  public Map<String, CellData> getHeaderedValues() {
-    return headeredValues;
+  public Map<String, CellData> getHeaderedCells() {
+    return headeredCells;
   }
 
   public boolean isEmptyData() {
     return isEmptyData;
+  }
+
+  public void setMetadata(Map<String, String> metadata) {
+    this.metadata = metadata;
   }
 }

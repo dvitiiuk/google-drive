@@ -11,7 +11,7 @@ Properties
 
 **Directory identifier:** Identifier of the source folder.
 
-**Sheets to pull:** List with available sheet names.
+**Sheets to pull:** List with available rowRecord names.
 
 ### Filtering
 

@@ -16,36 +16,42 @@
 
 package io.cdap.plugin.google.sheets.sink;
 
+import com.github.rholder.retry.RetryException;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 import io.cdap.plugin.google.drive.sink.GoogleDriveOutputFormatProvider;
 import io.cdap.plugin.google.drive.sink.GoogleDriveSinkClient;
-import io.cdap.plugin.google.sheets.common.Sheet;
+import io.cdap.plugin.google.sheets.common.RowRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Writes {@link FileFromFolder} records to Google Drive via {@link GoogleDriveSinkClient}
  */
-public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, Sheet> {
+public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, RowRecord> {
 
   private GoogleSheetsSinkClient sheetsSinkClient;
+  private GoogleSheetsSinkConfig googleSheetsSinkConfig;
 
   public GoogleSheetsRecordWriter(TaskAttemptContext taskAttemptContext) {
     Configuration conf = taskAttemptContext.getConfiguration();
     String configJson = conf.get(GoogleDriveOutputFormatProvider.PROPERTY_CONFIG_JSON);
-    GoogleSheetsSinkConfig googleSheetsSinkConfig =
+    googleSheetsSinkConfig =
       GoogleSheetsOutputFormatProvider.GSON.fromJson(configJson, GoogleSheetsSinkConfig.class);
 
     sheetsSinkClient = new GoogleSheetsSinkClient(googleSheetsSinkConfig);
   }
 
   @Override
-  public void write(NullWritable nullWritable, Sheet sheet) throws IOException, InterruptedException {
-    sheetsSinkClient.createFile(sheet);
+  public void write(NullWritable nullWritable, RowRecord rowRecord) throws InterruptedException {
+    try {
+      sheetsSinkClient.createFile(rowRecord);
+    } catch (ExecutionException | RetryException e) {
+      throw new InterruptedException(e.getMessage());
+    }
   }
 
   @Override

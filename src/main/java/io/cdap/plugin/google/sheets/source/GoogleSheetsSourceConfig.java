@@ -16,6 +16,7 @@
 
 package io.cdap.plugin.google.sheets.source;
 
+import com.github.rholder.retry.RetryException;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.CellFormat;
@@ -53,6 +54,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -210,19 +212,25 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
         && validationResult.isCredentialsAvailable()) {
       GoogleDriveFilteringClient driveClient = new GoogleDriveFilteringClient(this);
       GoogleSheetsSourceClient sheetsSourceClient = new GoogleSheetsSourceClient(this);
-      List<File> spreadSheetsFiles =
-          driveClient.getFilesSummary(Collections.singletonList(ExportedType.SPREADSHEETS), FILES_TO_VALIDATE);
+      List<File> spreadSheetsFiles = null;
+      try {
+        spreadSheetsFiles = driveClient
+            .getFilesSummary(Collections.singletonList(ExportedType.SPREADSHEETS), FILES_TO_VALIDATE);
+      } catch (ExecutionException | RetryException e) {
+        collector.addFailure("Files summary retrieving failed", null)
+            .withStacktrace(e.getStackTrace());
+      }
 
       // validate source folder is not empty
       validateSourceFolder(collector, spreadSheetsFiles);
 
-      // validate titles/numbers set
-      validateSheetIdentifiers(collector, sheetsSourceClient, spreadSheetsFiles);
-
-      // validate all sheets have the same schema
       try {
+        // validate titles/numbers set
+        validateSheetIdentifiers(collector, sheetsSourceClient, spreadSheetsFiles);
+
+        // validate all sheets have the same schema
         validateSheetsSchema(collector, sheetsSourceClient, spreadSheetsFiles);
-      } catch (InterruptedException e) {
+      } catch (ExecutionException | RetryException e) {
         collector.addFailure(String.format("Exception during validation"), null)
             .withStacktrace(e.getStackTrace());
       }
@@ -242,42 +250,36 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
   }
 
   private void validateSheetIdentifiers(FailureCollector collector, GoogleSheetsSourceClient sheetsSourceClient,
-                                        List<File> spreadSheetsFiles) {
+                                        List<File> spreadSheetsFiles) throws ExecutionException, RetryException {
     if (!containsMacro(sheetsToPull) && collector.getValidationFailures().isEmpty()
         && !getSheetsToPull().equals(SheetsToPull.ALL)
         && checkPropertyIsSet(collector, sheetsIdentifiers, SHEETS_IDENTIFIERS, SHEETS_IDENTIFIERS_LABEL)) {
 
       String currentSpreadSheetId = null;
-      try {
-        Map<String, List<String>> allTitles = new HashMap<>();
-        Map<String, List<Integer>> allIndexes = new HashMap<>();
-        for (int i = 0; i < spreadSheetsFiles.size() && i < FILES_TO_VALIDATE; i++) {
-          File spreadSheetFile = spreadSheetsFiles.get(i);
-          currentSpreadSheetId = spreadSheetFile.getId();
-          List<Sheet> sheets = sheetsSourceClient.getSheets(currentSpreadSheetId);
-          allTitles.put(currentSpreadSheetId, sheets.stream()
-              .map(s -> s.getProperties().getTitle()).collect(Collectors.toList()));
-          allIndexes.put(currentSpreadSheetId, sheets.stream()
-              .map(s -> s.getProperties().getIndex()).collect(Collectors.toList()));
-        }
+      Map<String, List<String>> allTitles = new HashMap<>();
+      Map<String, List<Integer>> allIndexes = new HashMap<>();
+      for (int i = 0; i < spreadSheetsFiles.size() && i < FILES_TO_VALIDATE; i++) {
+        File spreadSheetFile = spreadSheetsFiles.get(i);
+        currentSpreadSheetId = spreadSheetFile.getId();
+        List<Sheet> sheets = sheetsSourceClient.getSheets(currentSpreadSheetId);
+        allTitles.put(currentSpreadSheetId, sheets.stream()
+            .map(s -> s.getProperties().getTitle()).collect(Collectors.toList()));
+        allIndexes.put(currentSpreadSheetId, sheets.stream()
+            .map(s -> s.getProperties().getIndex()).collect(Collectors.toList()));
+      }
 
-        SheetsToPull sheetsToPull = getSheetsToPull();
-        switch (sheetsToPull) {
-          case TITLES:
-            List<String> titles = getSheetsIdentifiers();
-            checkSheetIdentifiers(collector, titles, allTitles);
-            break;
-          case NUMBERS:
-            List<Integer> indexes = getSheetsIdentifiers().stream().map(Integer::parseInt).collect(Collectors.toList());
-            checkSheetIdentifiers(collector, indexes, allIndexes);
-            break;
-          default:
-            throw new InvalidPropertyTypeException(SHEETS_TO_PULL_LABEL, sheetsToPull.toString());
-        }
-      } catch (IOException | InterruptedException e) {
-        collector.addFailure(
-            String.format("Exception during sheet identifiers check, spreadsheet id: '%s'",
-                currentSpreadSheetId), null);
+      SheetsToPull sheetsToPull = getSheetsToPull();
+      switch (sheetsToPull) {
+        case TITLES:
+          List<String> titles = getSheetsIdentifiers();
+          checkSheetIdentifiers(collector, titles, allTitles);
+          break;
+        case NUMBERS:
+          List<Integer> indexes = getSheetsIdentifiers().stream().map(Integer::parseInt).collect(Collectors.toList());
+          checkSheetIdentifiers(collector, indexes, allIndexes);
+          break;
+        default:
+          throw new InvalidPropertyTypeException(SHEETS_TO_PULL_LABEL, sheetsToPull.toString());
       }
     }
   }
@@ -296,7 +298,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
   }
 
   private void validateSheetsSchema(FailureCollector collector, GoogleSheetsSourceClient sheetsSourceClient,
-                                    List<File> spreadSheetsFiles) throws InterruptedException {
+                                    List<File> spreadSheetsFiles) throws ExecutionException, RetryException {
     if (collector.getValidationFailures().isEmpty()) {
 
       String currentSpreadSheetId = null;
@@ -597,7 +599,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
   }
 
   Map<String, String> validateMetadataCells(FailureCollector collector, String propertyValue,
-                                                    String propertyName, boolean directOrder) {
+                                            String propertyName, boolean directOrder) {
     Map<String, String> pairs = metadataInputToMap(propertyValue, directOrder);
     Set<String> keys = new HashSet<>();
     Set<String> values = new HashSet<>();

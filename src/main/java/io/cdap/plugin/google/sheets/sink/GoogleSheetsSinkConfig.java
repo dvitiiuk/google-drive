@@ -22,7 +22,7 @@ import io.cdap.cdap.api.annotation.Macro;
 import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
-import io.cdap.plugin.google.common.GoogleAuthBaseConfig;
+import io.cdap.plugin.google.common.GoogleRetryingConfig;
 import io.cdap.plugin.google.sheets.sink.utils.NestedDataFormat;
 
 import javax.annotation.Nullable;
@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 /**
  * Configurations for Google Sheets Batch Sink plugin.
  */
-public class GoogleSheetsSinkConfig extends GoogleAuthBaseConfig {
+public class GoogleSheetsSinkConfig extends GoogleRetryingConfig {
   public static final String SHEET_NAME_FIELD_NAME = "sheetName";
   public static final String SCHEMA_SPREAD_SHEET_NAME_FIELD_NAME = "schemaSpreadSheetNameFieldName";
   public static final String SCHEMA_SHEET_NAME_FIELD_NAME = "schemaSheetNameFieldName";

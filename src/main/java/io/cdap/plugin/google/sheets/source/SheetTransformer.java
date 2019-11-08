@@ -20,7 +20,7 @@ import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.ExtendedValue;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
-import io.cdap.plugin.google.sheets.common.Sheet;
+import io.cdap.plugin.google.sheets.common.RowRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +32,7 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 
 /**
- * Transforms {@link Sheet} wrapper to {@link StructuredRecord} instance.
+ * Transforms {@link RowRecord} wrapper to {@link StructuredRecord} instance.
  */
 public class SheetTransformer {
   private static final Logger LOG = LoggerFactory.getLogger(SheetTransformer.class);
@@ -41,19 +41,19 @@ public class SheetTransformer {
   private static final ZonedDateTime SHEETS_START_DATE_TIME =
       ZonedDateTime.of(1899, 12, 30, 0, 0, 0, 0, ZoneId.ofOffset("UTC", ZoneOffset.UTC));
 
-  public static StructuredRecord transform(Sheet sheet, Schema schema, boolean extractMetadata,
+  public static StructuredRecord transform(RowRecord rowRecord, Schema schema, boolean extractMetadata,
                                            String metadataRecordName) {
     StructuredRecord.Builder builder = StructuredRecord.builder(schema);
     for (Schema.Field field : schema.getFields()) {
       String name = field.getName();
       if (name.equals(SchemaBuilder.SHEET_TITLE_FIELD_NAME)) {
-        builder.set(SchemaBuilder.SHEET_TITLE_FIELD_NAME, sheet.getSheetTitle());
+        builder.set(SchemaBuilder.SHEET_TITLE_FIELD_NAME, rowRecord.getSheetTitle());
       } else if (name.equals(SchemaBuilder.SPREADSHEET_NAME_FIELD_NAME)) {
-        builder.set(SchemaBuilder.SPREADSHEET_NAME_FIELD_NAME, sheet.getSpreadSheetName());
+        builder.set(SchemaBuilder.SPREADSHEET_NAME_FIELD_NAME, rowRecord.getSpreadSheetName());
       } else if (extractMetadata && name.equals(metadataRecordName)) {
-        builder.set(metadataRecordName, sheet.getMetadata());
+        builder.set(metadataRecordName, rowRecord.getMetadata());
       } else {
-        CellData cellData = sheet.getHeaderedValues().get(name);
+        CellData cellData = rowRecord.getHeaderedCells().get(name);
         if (cellData == null) {
           builder.set(name, null);
         } else {
