@@ -175,6 +175,81 @@
       ]
     },
     {
+      "label": "Metadata extraction",
+      "properties": [
+
+        {
+          "widget-type": "toggle",
+          "label": "Extract metadata",
+          "name": "extractMetadata",
+          "widget-attributes": {
+            "on": {
+              "value": "true",
+              "label": "Yes"
+            },
+            "off": {
+              "value": "false",
+              "label": "No"
+            },
+            "default": "false"
+          }
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Metadata record name",
+          "name": "metadataRecordName",
+          "widget-attributes": {
+            "default": "metadata"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "First header row",
+          "name": "firstHeaderRow",
+          "widget-attributes": {
+            "default": "0",
+            "min": "0"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Last header row",
+          "name": "lastHeaderRow",
+          "widget-attributes": {
+            "default": "0",
+            "min": "0"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "First footer row",
+          "name": "firstFooterRow",
+          "widget-attributes": {
+            "default": "0",
+            "min": "0"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Last footer row",
+          "name": "lastFooterRow",
+          "widget-attributes": {
+            "default": "0",
+            "min": "0"
+          }
+        },
+        {
+          "widget-type": "keyvalue",
+          "label": "Metadata cells",
+          "name": "metadataCells",
+          "widget-attributes": {
+            "delimiter": ",",
+            "kv-delimiter": ":"
+          }
+        }
+      ]
+    },
+    {
       "label": "Advanced",
       "properties": [
         {
@@ -245,66 +320,6 @@
           }
         },
         {
-          "widget-type": "textbox",
-          "label": "Metadata record name",
-          "name": "metadataRecordName",
-          "widget-attributes": {
-            "default": "metadata"
-          }
-        },
-        {
-          "widget-type": "toggle",
-          "label": "Extract metadata",
-          "name": "extractMetadata",
-          "widget-attributes": {
-            "on": {
-              "value": "true",
-              "label": "Yes"
-            },
-            "off": {
-              "value": "false",
-              "label": "No"
-            },
-            "default": "false"
-          }
-        },
-        {
-          "widget-type": "number",
-          "label": "First header row",
-          "name": "firstHeaderRow",
-          "widget-attributes": {
-            "default": "0",
-            "min": "0"
-          }
-        },
-        {
-          "widget-type": "number",
-          "label": "Last header row",
-          "name": "lastHeaderRow",
-          "widget-attributes": {
-            "default": "0",
-            "min": "0"
-          }
-        },
-        {
-          "widget-type": "number",
-          "label": "First footer row",
-          "name": "firstFooterRow",
-          "widget-attributes": {
-            "default": "0",
-            "min": "0"
-          }
-        },
-        {
-          "widget-type": "number",
-          "label": "Last footer row",
-          "name": "lastFooterRow",
-          "widget-attributes": {
-            "default": "0",
-            "min": "0"
-          }
-        },
-        {
           "widget-type": "number",
           "label": "Last data column",
           "name": "lastDataColumn",
@@ -320,24 +335,6 @@
           "widget-attributes": {
             "default": "1000",
             "min": "0"
-          }
-        },
-        {
-          "widget-type": "keyvalue",
-          "label": "Metadata key cells",
-          "name": "metadataKeyCells",
-          "widget-attributes": {
-            "delimiter": ",",
-            "kv-delimiter": ":"
-          }
-        },
-        {
-          "widget-type": "keyvalue",
-          "label": "Metadata value cells",
-          "name": "metadataValueCells",
-          "widget-attributes": {
-            "delimiter": ",",
-            "kv-delimiter": ":"
           }
         }
       ]
@@ -430,6 +427,10 @@
       },
       "show": [
         {
+          "name": "metadataRecordName",
+          "type": "property"
+        },
+        {
           "name": "firstHeaderRow",
           "type": "property"
         },
@@ -446,11 +447,7 @@
           "type": "property"
         },
         {
-          "name": "metadataKeyCells",
-          "type": "property"
-        },
-        {
-          "name": "metadataValueCells",
+          "name": "metadataCells",
           "type": "property"
         }
       ]

@@ -37,26 +37,19 @@ public class GoogleSheetsSourceConfigTest {
 
   @Test
   public void testMetadataInputToMap() {
-    String metadataCellsInput = "A1:name1,A2:name2,A5:name3";
-    Map<String, String> expectedKeyCells = new HashMap<String, String>() {{
-      put("A1", "name1");
-      put("A2", "name2");
-      put("A5", "name3");
-    }};
-    Map<String, String> expectedValueCells = new HashMap<String, String>() {{
-      put("name1", "A1");
-      put("name2", "A2");
-      put("name3", "A5");
+    String metadataCellsInput = "A1:B1,A2:B2,A5:B3";
+    Map<String, String> expectedKeyValues = new HashMap<String, String>() {{
+      put("A1", "B1");
+      put("A2", "B2");
+      put("A5", "B3");
     }};
 
-    Assert.assertEquals(expectedKeyCells, config.metadataInputToMap(metadataCellsInput, true));
-    Assert.assertEquals(expectedValueCells, config.metadataInputToMap(metadataCellsInput, false));
+    Assert.assertEquals(expectedKeyValues, config.metadataInputToMap(metadataCellsInput));
   }
 
   @Test
   public void testEmptyMetadataInputToMap() {
-    Assert.assertEquals(Collections.EMPTY_MAP, config.metadataInputToMap("", true));
-    Assert.assertEquals(Collections.EMPTY_MAP, config.metadataInputToMap("", false));
+    Assert.assertEquals(Collections.EMPTY_MAP, config.metadataInputToMap(""));
   }
 
   @Test
@@ -81,8 +74,7 @@ public class GoogleSheetsSourceConfigTest {
 
   @Test
   public void testGetMetadataCoordinates() throws NoSuchFieldException, IllegalAccessException {
-    setStringField("metadataKeyCells", "A1:name1,A2:name2,A5:name3");
-    setStringField("metadataValueCells", "name1:B2,name2:B4,name3:B7");
+    setStringField("metadataCells", "A1:B2,A2:B4,A5:B7");
     setBooleanField("extractMetadata", true);
 
     List<MetadataKeyValueAddress> metadataCoordinates = config.getMetadataCoordinates();
@@ -100,6 +92,7 @@ public class GoogleSheetsSourceConfigTest {
 
   @Test
   public void testValidateMetadataCellsOnlyHeader() throws NoSuchFieldException, IllegalAccessException {
+    setStringField("metadataCells", "A3:C3,Z3:AA3,B3:YU3");
     setStringField("firstHeaderRow", "3");
     setStringField("lastHeaderRow", "3");
     setStringField("firstFooterRow", "-1");
@@ -107,31 +100,31 @@ public class GoogleSheetsSourceConfigTest {
 
     FailureCollector collector = new DefaultFailureCollector("", Collections.EMPTY_MAP);
 
-    // all cells are from row with index 2
-    config.validateMetadataCells(collector, "A3:name1,Z3:name2,B3:name3",
-        GoogleSheetsSourceConfig.METADATA_KEY_CELLS, false);
+    // all cells are from row with index 3
+    config.validateMetadataCells(collector);
     Assert.assertTrue(collector.getValidationFailures().isEmpty());
 
-    // some cells are from rows with 1 and 3 indexes
+    // some cells are from rows with 2 and 4 indexes
     String beforeAddress = "A2";
     String afterAddress = "Z4";
-    config.validateMetadataCells(collector, String.format("%s:name1,%s:name2,B3:name3", beforeAddress, afterAddress),
-        GoogleSheetsSourceConfig.METADATA_KEY_CELLS, false);
+    setStringField("metadataCells", String.format("%s:C3,Z3:%s,B3:YU3", beforeAddress, afterAddress));
+    config.validateMetadataCells(collector);
     List<ValidationFailure> failures = collector.getValidationFailures();
     Assert.assertEquals(2, failures.size());
     Assert.assertTrue(failures.get(0).getMessage().equals(
-        String.format("Metadata cell '%s' is out of header or footer rows", beforeAddress))
+        String.format("Metadata cell '%s' is out of header or footer rows.", beforeAddress))
         || failures.get(0).getMessage().equals(
-            String.format("Metadata cell '%s' is out of header or footer rows", afterAddress)));
+            String.format("Metadata cell '%s' is out of header or footer rows.", afterAddress)));
     Assert.assertTrue(failures.get(1).getMessage().equals(
-        String.format("Metadata cell '%s' is out of header or footer rows", beforeAddress))
+        String.format("Metadata cell '%s' is out of header or footer rows.", beforeAddress))
         || failures.get(1).getMessage().equals(
-            String.format("Metadata cell '%s' is out of header or footer rows", afterAddress)));
+            String.format("Metadata cell '%s' is out of header or footer rows.", afterAddress)));
     Assert.assertNotEquals(failures.get(0).getMessage(), failures.get(1).getMessage());
   }
 
   @Test
   public void testValidateMetadataCellsOnlyFooter() throws NoSuchFieldException, IllegalAccessException {
+    setStringField("metadataCells", "A6:B7,Z7:U6,B8:A8");
     setStringField("firstHeaderRow", "-1");
     setStringField("lastHeaderRow", "-1");
     setStringField("firstFooterRow", "6");
@@ -139,33 +132,33 @@ public class GoogleSheetsSourceConfigTest {
 
     FailureCollector collector = new DefaultFailureCollector("", Collections.EMPTY_MAP);
 
-    // all cells are from rows with indexes 5-7
-    config.validateMetadataCells(collector, "A6:name1,Z7:name2,B8:name3",
-        GoogleSheetsSourceConfig.METADATA_KEY_CELLS, false);
+    // all cells are from rows with indexes 6-8
+    config.validateMetadataCells(collector);
 
     Assert.assertTrue(collector.getValidationFailures().isEmpty());
 
-    // some cells are from rows with 4 and 8 indexes
+    // some cells are from rows with 5 and 9 indexes
     String beforeAddress = "B5";
     String afterAddress = "X9";
-    config.validateMetadataCells(collector,
-        String.format("A6:name1,Z7:name2,%s:name3,%s:name4", beforeAddress, afterAddress),
-        GoogleSheetsSourceConfig.METADATA_KEY_CELLS, false);
+    setStringField("metadataCells",
+        String.format("A6:B7,Z7:U6,%s:A8,B8:%s", beforeAddress, afterAddress));
+    config.validateMetadataCells(collector);
     List<ValidationFailure> failures = collector.getValidationFailures();
     Assert.assertEquals(2, failures.size());
     Assert.assertTrue(failures.get(0).getMessage().equals(
-        String.format("Metadata cell '%s' is out of header or footer rows", beforeAddress))
+        String.format("Metadata cell '%s' is out of header or footer rows.", beforeAddress))
         || failures.get(0).getMessage().equals(
-        String.format("Metadata cell '%s' is out of header or footer rows", afterAddress)));
+        String.format("Metadata cell '%s' is out of header or footer rows.", afterAddress)));
     Assert.assertTrue(failures.get(1).getMessage().equals(
-        String.format("Metadata cell '%s' is out of header or footer rows", beforeAddress))
+        String.format("Metadata cell '%s' is out of header or footer rows.", beforeAddress))
         || failures.get(1).getMessage().equals(
-        String.format("Metadata cell '%s' is out of header or footer rows", afterAddress)));
+        String.format("Metadata cell '%s' is out of header or footer rows.", afterAddress)));
     Assert.assertNotEquals(failures.get(0).getMessage(), failures.get(1).getMessage());
   }
 
   @Test
   public void testValidateMetadataCellsHeaderAndFooter() throws NoSuchFieldException, IllegalAccessException {
+    setStringField("metadataCells", "D3:A3,A6:B6,Z7:F3,B8:V6");
     setStringField("firstHeaderRow", "3");
     setStringField("lastHeaderRow", "3");
     setStringField("firstFooterRow", "6");
@@ -173,28 +166,27 @@ public class GoogleSheetsSourceConfigTest {
 
     FailureCollector collector = new DefaultFailureCollector("", Collections.EMPTY_MAP);
 
-    // all cells are from rows with indexes 2-2 and 5-7
-    config.validateMetadataCells(collector, "D3:name0,A6:name1,Z7:name2,B8:name3",
-        GoogleSheetsSourceConfig.METADATA_KEY_CELLS, false);
+    // all cells are from rows with indexes 3-3 and 6-8
+    config.validateMetadataCells(collector);
 
     Assert.assertTrue(collector.getValidationFailures().isEmpty());
 
-    // some cells are from rows with 4 and 8 indexes
+    // some cells are from rows with 5 and 9 indexes
     String beforeAddress = "B5";
     String afterAddress = "X9";
-    config.validateMetadataCells(collector,
-        String.format("A6:name1,Z7:name2,%s:name3,%s:name4", beforeAddress, afterAddress),
-        GoogleSheetsSourceConfig.METADATA_KEY_CELLS, false);
+    setStringField("metadataCells",
+        String.format("A6:A3,Z7:B8,%s:C8,B8:%s", beforeAddress, afterAddress));
+    config.validateMetadataCells(collector);
     List<ValidationFailure> failures = collector.getValidationFailures();
     Assert.assertEquals(2, failures.size());
     Assert.assertTrue(failures.get(0).getMessage().equals(
-        String.format("Metadata cell '%s' is out of header or footer rows", beforeAddress))
+        String.format("Metadata cell '%s' is out of header or footer rows.", beforeAddress))
         || failures.get(0).getMessage().equals(
-        String.format("Metadata cell '%s' is out of header or footer rows", afterAddress)));
+        String.format("Metadata cell '%s' is out of header or footer rows.", afterAddress)));
     Assert.assertTrue(failures.get(1).getMessage().equals(
-        String.format("Metadata cell '%s' is out of header or footer rows", beforeAddress))
+        String.format("Metadata cell '%s' is out of header or footer rows.", beforeAddress))
         || failures.get(1).getMessage().equals(
-        String.format("Metadata cell '%s' is out of header or footer rows", afterAddress)));
+        String.format("Metadata cell '%s' is out of header or footer rows.", afterAddress)));
     Assert.assertNotEquals(failures.get(0).getMessage(), failures.get(1).getMessage());
   }
 

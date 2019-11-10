@@ -39,7 +39,7 @@ public class GoogleFilteringSourceConfig extends GoogleRetryingConfig {
   public static final String START_DATE_LABEL = "Start date";
   public static final String END_DATE_LABEL = "End date";
 
-  private static final String IS_VALID_FAILURE_MESSAGE_PATTERN = "'%s' property has invalid value %s";
+  private static final String IS_VALID_FAILURE_MESSAGE_PATTERN = "'%s' property has invalid value %s.";
 
   @Nullable
   @Name(FILTER)

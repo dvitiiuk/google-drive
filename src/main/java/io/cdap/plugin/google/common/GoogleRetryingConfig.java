@@ -31,17 +31,17 @@ public class GoogleRetryingConfig extends GoogleAuthBaseConfig {
   public static final String MAX_RETRY_JITTER_WAIT = "maxRetryJitterWait";
 
   @Name(MAX_RETRY_COUNT)
-  @Description("")
+  @Description("Maximum number of retry attempts.")
   @Macro
   protected Integer maxRetryCount;
 
   @Name(MAX_RETRY_WAIT)
-  @Description("")
+  @Description("Maximum wait time for attempt in seconds.")
   @Macro
   protected Integer maxRetryWait;
 
   @Name(MAX_RETRY_JITTER_WAIT)
-  @Description("")
+  @Description("Maximum additional wait time is milliseconds.")
   @Macro
   protected Integer maxRetryJitterWait;
 

@@ -51,24 +51,13 @@ import java.util.stream.Collectors;
 public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkConfig> {
   private static final Logger LOG = LoggerFactory.getLogger(GoogleSheetsSinkClient.class);
 
-  /*private final Retryer<Spreadsheet> createEmptySpreadsheetRetryer;
-  private final Retryer<Void> populateCellsRetryer;
-  private final Retryer<Void> moveSpreadsheetRetryer;*/
-
   public GoogleSheetsSinkClient(GoogleSheetsSinkConfig config) {
     super(config);
-
-    /*createEmptySpreadsheetRetryer =
-        APIRequestRepeater.getRetryer(config, "Creation of empty spreadsheet");
-    populateCellsRetryer =
-        APIRequestRepeater.getRetryer(config, "Populating of spreadsheet with record");
-    moveSpreadsheetRetryer =
-        APIRequestRepeater.getRetryer(config, "Moving the spreadsheet to destination folder");*/
   }
 
   public void createFile(RowRecord rowRecord) throws ExecutionException, RetryException {
     Spreadsheet spreadsheet = (Spreadsheet) APIRequestRepeater.getRetryer(config,
-        String.format("Creation of empty spreadsheet, name: '%s', sheet title: '%s'",
+        String.format("Creation of empty spreadsheet, name: '%s', sheet title: '%s'.",
             rowRecord.getSpreadSheetName(), rowRecord.getSheetTitle()))
         .call(() ->
             createEmptySpreadsheet(rowRecord.getSpreadSheetName(), rowRecord.getSheetTitle())
@@ -78,7 +67,7 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
     Integer sheetId = spreadsheet.getSheets().get(0).getProperties().getSheetId();
 
     APIRequestRepeater.getRetryer(config,
-        String.format("Populating of spreadsheet '%s' with record, sheet title name '%s'",
+        String.format("Populating of spreadsheet '%s' with record, sheet title name '%s'.",
             rowRecord.getSpreadSheetName(), rowRecord.getSheetTitle()))
         .call(() -> {
           populateCells(spreadSheetsId, sheetId, rowRecord);
@@ -86,7 +75,7 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
         });
 
     APIRequestRepeater.getRetryer(config,
-        String.format("Moving the spreadsheet '%s' to destination folder",
+        String.format("Moving the spreadsheet '%s' to destination folder.",
             rowRecord.getSpreadSheetName(), rowRecord.getSheetTitle()))
         .call(() -> {
           moveSpreadsheetToDestinationFolder(spreadSheetsId);

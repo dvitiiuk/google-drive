@@ -39,7 +39,6 @@ import io.cdap.plugin.google.sheets.source.utils.HeaderSelection;
 import io.cdap.plugin.google.sheets.source.utils.MetadataKeyValueAddress;
 import io.cdap.plugin.google.sheets.source.utils.SheetsToPull;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,8 +79,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
   public static final String LAST_FOOTER_ROW = "lastFooterRow";
   public static final String LAST_DATA_COLUMN = "lastDataColumn";
   public static final String LAST_DATA_ROW = "lastDataRow";
-  public static final String METADATA_KEY_CELLS = "metadataKeyCells";
-  public static final String METADATA_VALUE_CELLS = "metadataValueCells";
+  public static final String METADATA_CELLS = "metadataCells";
   public static final String NAME_SCHEMA = "schema";
 
   public static final String HEADERS_SELECTION_LABEL = "Header selection";
@@ -94,14 +92,14 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
 
   @Name(SHEETS_TO_PULL)
   @Description("Filter for specifying set of sheets to process.  " +
-      "For 'numbers' or 'titles' selections user can populate specific values in 'Sheets identifiers' field")
+      "For 'numbers' or 'titles' selections user can populate specific values in 'Sheets identifiers' field.")
   @Macro
   protected String sheetsToPull;
 
   @Nullable
   @Name(SHEETS_IDENTIFIERS)
   @Description("Set of sheets' numbers/titles to process. " +
-      "Is shown only when 'titles' or 'numbers' are selected for 'Sheets to pull' field. ")
+      "Is shown only when 'titles' or 'numbers' are selected for 'Sheets to pull' field.")
   @Macro
   protected String sheetsIdentifiers;
 
@@ -119,7 +117,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
   private String formatting;
 
   @Name(SKIP_EMPTY_DATA)
-  @Description("")
+  @Description("Field to allow skipping of empty structure records.")
   @Macro
   private boolean skipEmptyData;
 
@@ -136,7 +134,8 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
   private Integer customColumnNamesRow;
 
   @Name(METADATA_RECORD_NAME)
-  @Description("")
+  @Description("Name of the record with metadata content. " +
+      "It is needed to distinguish metadata record from possible column with the same name.")
   @Macro
   private String metadataRecordName;
 
@@ -174,27 +173,22 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
 
   @Nullable
   @Name(LAST_DATA_COLUMN)
-  @Description("Last column number of the maximal field of plugin work.")
+  @Description("Last column number of the maximal field of plugin work for data.")
   @Macro
   private String lastDataColumn;
 
   @Nullable
   @Name(LAST_DATA_ROW)
-  @Description("Last row number of the maximal field of plugin work.")
+  @Description("Last row number of the maximal field of plugin work for data.")
   @Macro
   private String lastDataRow;
 
   @Nullable
-  @Name(METADATA_KEY_CELLS)
-  @Description("")
+  @Name(METADATA_CELLS)
+  @Description("Set of the cells for key-value pairs to extract as metadata from the specified metadata sections. " +
+      "Only shown if Extract metadata is set to true. The cell numbers should be within the header or footer.")
   @Macro
-  private String metadataKeyCells;
-
-  @Nullable
-  @Name(METADATA_VALUE_CELLS)
-  @Description("")
-  @Macro
-  private String metadataValueCells;
+  private String metadataCells;
 
   private static LinkedHashMap<Integer, ColumnSchemaInfo> dataSchemaInfo = new LinkedHashMap<>();
   private static final int FILES_TO_VALIDATE = 5;
@@ -217,7 +211,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
         spreadSheetsFiles = driveClient
             .getFilesSummary(Collections.singletonList(ExportedType.SPREADSHEETS), FILES_TO_VALIDATE);
       } catch (ExecutionException | RetryException e) {
-        collector.addFailure("Files summary retrieving failed", null)
+        collector.addFailure("Files summary retrieving failed.", null)
             .withStacktrace(e.getStackTrace());
       }
 
@@ -231,7 +225,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
         // validate all sheets have the same schema
         validateSheetsSchema(collector, sheetsSourceClient, spreadSheetsFiles);
       } catch (ExecutionException | RetryException e) {
-        collector.addFailure(String.format("Exception during validation"), null)
+        collector.addFailure(String.format("Exception during validation."), null)
             .withStacktrace(e.getStackTrace());
       }
     }
@@ -243,7 +237,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
 
   private void validateSourceFolder(FailureCollector collector, List<File> spreadSheetsFiles) {
     if (spreadSheetsFiles.isEmpty()) {
-      collector.addFailure(String.format("Not spreadsheets were found in '%s' folder with '%s' filter",
+      collector.addFailure(String.format("Not spreadsheets were found in '%s' folder with '%s' filter.",
           getDirectoryIdentifier(), getFilter()), null)
           .withConfigProperty(DIRECTORY_IDENTIFIER).withConfigProperty(FILTER);
     }
@@ -290,7 +284,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
       List<I> availableTitles = spreadSheetTitles.getValue();
       if (!availableTitles.containsAll(requiredIdentifiers)) {
         collector.addFailure(
-            String.format("Spreadsheet '%s' doesn't have all required sheets. Required: %s, available: %s",
+            String.format("Spreadsheet '%s' doesn't have all required sheets. Required: %s, available: %s.",
                 spreadSheetTitles.getKey(), requiredIdentifiers, availableTitles), null)
             .withConfigProperty(sheetsIdentifiers);
       }
@@ -348,7 +342,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
               List<CellData> dataRow = headerDataRows.get(firstDataRow);
               if (CollectionUtils.isEmpty(columnsRow)) {
                 collector.addFailure(
-                    String.format("No headers found for row '%d', spreadsheet id '%s', sheet title '%s'",
+                    String.format("No headers found for row '%d', spreadsheet id '%s', sheet title '%s'.",
                         columnNamesRow, currentSpreadSheetId, currentSheetTitle), null)
                     .withConfigProperty(CUSTOM_COLUMN_NAMES_ROW);
                 return;
@@ -360,7 +354,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
                 if (!columnName.matcher(title).matches()) {
                   String defaultColumnName = defaultGeneratedHeader(i + 1);
                   LOG.warn(String.format("Original column name '%s' doesn't satisfy column name requirements '%s', " +
-                      "will be changed to default column name '%s'", title, columnName.pattern(), defaultColumnName));
+                      "will be changed to default column name '%s'.", title, columnName.pattern(), defaultColumnName));
                   title = defaultColumnName;
                 }
                 if (StringUtils.isNotEmpty(title)) {
@@ -370,13 +364,13 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
                       CellData dataCell = dataRow.get(i);
                       dataSchema = getCellSchema(dataCell);
                     } else {
-                      LOG.warn(String.format("There is empty data cell for '%s' column during data types defining",
+                      LOG.warn(String.format("There is empty data cell for '%s' column during data types defining.",
                           title));
                     }
                     resolvedSchemas.put(i, new ColumnSchemaInfo(title, dataSchema));
                   }
                   if (headerTitles.contains(title)) {
-                    collector.addFailure(String.format("Duplicate column name '%s'", title),
+                    collector.addFailure(String.format("Duplicate column name '%s'.", title),
                         null);
                   }
                   headerTitles.add(title);
@@ -391,7 +385,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
                 if (resultHeaderTitles.size() != headerTitles.size() || !resultHeaderTitles.equals(headerTitles)) {
                   collector.addFailure(
                       String.format("Headers form (spreadsheetId '%s', sheet title '%s') " +
-                              "and (spreadsheetId '%s', sheet title '%s') have different value: '%s' and '%s'",
+                              "and (spreadsheetId '%s', sheet title '%s') have different value: '%s' and '%s'.",
                           resultHeaderSheetTitle, resultHeaderSpreadsheetId, sheetTitle, currentSpreadSheetId,
                           resultHeaderTitles.toString(), headerTitles.toString()), null);
                 }
@@ -417,7 +411,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
         }
       } catch (IOException e) {
         collector.addFailure(
-            String.format("Exception during headers preparing, spreadsheet id: '%s', sheet title: '%s'",
+            String.format("Exception during headers preparing, spreadsheet id: '%s', sheet title: '%s'.",
                 currentSpreadSheetId, currentSheetTitle), null);
       }
     }
@@ -503,8 +497,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
 
   public void validateMetadata(FailureCollector collector) {
     if (extractMetadata
-        && checkPropertyIsSet(collector, metadataKeyCells, METADATA_KEY_CELLS, "")
-        && checkPropertyIsSet(collector, metadataValueCells, METADATA_VALUE_CELLS, "")
+        && checkPropertyIsSet(collector, metadataCells, METADATA_CELLS, "")
         & checkPropertyIsValid(collector, firstFooterRow != null && getFirstHeaderRow() > -2,
         FIRST_HEADER_ROW, getFirstHeaderRow(), "")
         & checkPropertyIsValid(collector, lastHeaderRow != null && getLastHeaderRow() > -2,
@@ -516,7 +509,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
 
       if (getFirstHeaderRow() == -1 && getLastHeaderRow() == -1
           && getFirstFooterRow() == -1 && getLastFooterRow() == -1) {
-        collector.addFailure("No header or footer rows specified", null)
+        collector.addFailure("No header or footer rows specified.", null)
             .withConfigProperty(firstHeaderRow)
             .withConfigProperty(lastHeaderRow)
             .withConfigProperty(firstFooterRow)
@@ -525,33 +518,33 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
       }
       if ((getFirstHeaderRow() != -1 && getLastHeaderRow() == -1)
           || (getFirstHeaderRow() == -1 && getLastHeaderRow() != -1)) {
-        collector.addFailure("Both first and last rows should be specified or not for header", null)
+        collector.addFailure("Both first and last rows should be specified or not for header.", null)
             .withConfigProperty(firstHeaderRow)
             .withConfigProperty(lastHeaderRow);
         return;
       }
       if ((getFirstFooterRow() != -1 && getLastFooterRow() == -1)
           || (getFirstFooterRow() == -1 && getLastFooterRow() != -1)) {
-        collector.addFailure("Both first and last rows should be specified or not for footer", null)
+        collector.addFailure("Both first and last rows should be specified or not for footer.", null)
             .withConfigProperty(firstFooterRow)
             .withConfigProperty(lastFooterRow);
         return;
       }
       if (getFirstHeaderRow() > getLastHeaderRow()) {
-        collector.addFailure("Header first row cannot be less of header last row", null)
+        collector.addFailure("Header first row cannot be less of header last row.", null)
             .withConfigProperty(firstHeaderRow)
             .withConfigProperty(lastHeaderRow);
         return;
       }
       if (getFirstFooterRow() > getLastFooterRow()) {
-        collector.addFailure("Footer first row cannot be less of footer last row", null)
+        collector.addFailure("Footer first row cannot be less of footer last row.", null)
             .withConfigProperty(firstFooterRow)
             .withConfigProperty(lastFooterRow);
         return;
       }
       // we should have at least one data row
       if (getLastHeaderRow() + 1 >= getFirstFooterRow()) {
-        collector.addFailure("Header and footer are intersected or there are no any data row between them",
+        collector.addFailure("Header and footer are intersected or there are no any data row between them.",
             null)
             .withConfigProperty(firstFooterRow)
             .withConfigProperty(lastFooterRow);
@@ -561,82 +554,60 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
       List<String> columnNames = dataSchemaInfo.values().stream().map(c -> c.getHeaderTitle())
           .collect(Collectors.toList());
       if (columnNames.contains(metadataRecordName)) {
-        collector.addFailure(String.format("Metadata record name '%s' coincides with one of the column names",
+        collector.addFailure(String.format("Metadata record name '%s' coincides with one of the column names.",
             metadataRecordName), null).withConfigProperty(METADATA_RECORD_NAME);
       }
 
-      Map<String, String> keyPairs = validateMetadataKeyCells(collector);
-      Map<String, String> valuePairs = validateMetadataValueCells(collector);
-      if (MapUtils.isNotEmpty(keyPairs) || MapUtils.isNotEmpty(valuePairs)) {
-        for (Map.Entry<String, String> key : keyPairs.entrySet()) {
-          String keyAddress = key.getKey();
-          String keyName = key.getValue();
-          if (!valuePairs.containsKey(keyAddress)) {
-            collector.addFailure(
-                String.format("There is no value cell for key '%s' with name '%s'", keyAddress, keyName), null)
-                .withConfigProperty(metadataKeyCells).withConfigProperty(metadataValueCells);
-          }
-        }
-        for (Map.Entry<String, String> value : valuePairs.entrySet()) {
-          String valueAddress = value.getKey();
-          String valueName = value.getValue();
-          if (!valuePairs.containsKey(valueAddress)) {
-            collector.addFailure(
-                String.format("There is no key cell for value '%s' with name '%s'", valueAddress, valueName), null)
-                .withConfigProperty(metadataKeyCells).withConfigProperty(metadataValueCells);
-          }
-        }
-      }
+      validateMetadataCells(collector);
     }
   }
 
-  public Map<String, String> validateMetadataKeyCells(FailureCollector collector) {
-    return validateMetadataCells(collector, metadataKeyCells, METADATA_KEY_CELLS, false);
-  }
-
-  public Map<String, String> validateMetadataValueCells(FailureCollector collector) {
-    return validateMetadataCells(collector, metadataValueCells, METADATA_VALUE_CELLS, true);
-  }
-
-  Map<String, String> validateMetadataCells(FailureCollector collector, String propertyValue,
-                                            String propertyName, boolean directOrder) {
-    Map<String, String> pairs = metadataInputToMap(propertyValue, directOrder);
+  Map<String, String> validateMetadataCells(FailureCollector collector) {
+    Map<String, String> pairs = metadataInputToMap(metadataCells);
     Set<String> keys = new HashSet<>();
     Set<String> values = new HashSet<>();
     for (Map.Entry<String, String> pairEntry : pairs.entrySet()) {
-      String name = pairEntry.getKey();
-      String address = pairEntry.getValue();
-      Matcher m = cellAddress.matcher(address);
-      if (m.find()) {
-        Integer row = Integer.parseInt(m.group(2));
-        if (!((row < getFirstHeaderRow() || row > getLastHeaderRow())
-            ^ (row < getFirstFooterRow() || row > getLastFooterRow()))) {
-          collector.addFailure(String.format("Metadata cell '%s' is out of header or footer rows", address),
-              null)
-              .withConfigProperty(propertyName);
+      String keyAddress = pairEntry.getKey();
+      String valueAddress = pairEntry.getValue();
+      if (validateMetadataAddress(collector, keyAddress) & validateMetadataAddress(collector, valueAddress)) {
+        if (keys.contains(keyAddress)) {
+          collector.addFailure(String.format("Duplicate key address '%s'.", keyAddress), null)
+              .withConfigProperty(METADATA_CELLS);
         }
-        if (keys.contains(address)) {
-          collector.addFailure(String.format("Duplicate address '%s'", address), null)
-              .withConfigProperty(propertyName);
+        keys.add(keyAddress);
+        if (values.contains(valueAddress)) {
+          collector.addFailure(String.format("Duplicate value address '%s'.", valueAddress), null)
+              .withConfigProperty(METADATA_CELLS);
         }
-        keys.add(address);
-        if (values.contains(name)) {
-          collector.addFailure(String.format("Duplicate name '%s'", name), null)
-              .withConfigProperty(propertyName);
-        }
-        values.add(name);
-      } else {
-        collector.addFailure(String.format("Invalid cell address '%s'", address), null)
-            .withConfigProperty(propertyName);
+        values.add(valueAddress);
       }
     }
     return pairs;
   }
 
-  Map<String, String> metadataInputToMap(String input, boolean directOrder) {
+  boolean validateMetadataAddress(FailureCollector collector, String address) {
+    Matcher m = cellAddress.matcher(address);
+    if (m.find()) {
+      Integer row = Integer.parseInt(m.group(2));
+      if (!((row < getFirstHeaderRow() || row > getLastHeaderRow())
+          ^ (row < getFirstFooterRow() || row > getLastFooterRow()))) {
+        collector.addFailure(String.format("Metadata cell '%s' is out of header or footer rows.", address),
+            null)
+            .withConfigProperty(METADATA_CELLS);
+        return false;
+      }
+    } else {
+      collector.addFailure(String.format("Invalid cell address '%s'.", address), null)
+          .withConfigProperty(METADATA_CELLS);
+      return false;
+    }
+    return true;
+  }
+
+  Map<String, String> metadataInputToMap(String input) {
     return Arrays.stream(input.split(",")).map(p -> p.split(":"))
         .filter(p -> p.length == 2)
-        .collect(Collectors.toMap(p -> directOrder ? p[0] : p[1], p -> directOrder ? p[1] : p[0]));
+        .collect(Collectors.toMap(p -> p[0], p -> p[1]));
   }
 
   public Formatting getFormatting() {
@@ -690,13 +661,8 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
   }
 
   @Nullable
-  public String getMetadataKeyCells() {
-    return metadataKeyCells;
-  }
-
-  @Nullable
-  public String getMetadataValueCells() {
-    return metadataValueCells;
+  public String getMetadataCells() {
+    return metadataCells;
   }
 
   public String getMetadataRecordName() {
@@ -720,12 +686,11 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
   public List<MetadataKeyValueAddress> getMetadataCoordinates() {
     List<MetadataKeyValueAddress> metadataCoordinates = new ArrayList<>();
     if (extractMetadata) {
-      Map<String, String> keyPairs = metadataInputToMap(metadataKeyCells, true);
-      Map<String, String> valuePairs = metadataInputToMap(metadataValueCells, true);
+      Map<String, String> keyValuePairs = metadataInputToMap(metadataCells);
 
-      for (Map.Entry<String, String> keyPair : keyPairs.entrySet()) {
-        metadataCoordinates.add(new MetadataKeyValueAddress(toCoordinate(keyPair.getKey()),
-            toCoordinate(valuePairs.get(keyPair.getValue()))));
+      for (Map.Entry<String, String> pair : keyValuePairs.entrySet()) {
+        metadataCoordinates.add(new MetadataKeyValueAddress(toCoordinate(pair.getKey()),
+            toCoordinate(pair.getValue())));
       }
     }
     return metadataCoordinates;
@@ -736,7 +701,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
     if (m.find()) {
       return new CellCoordinate(Integer.parseInt(m.group(2)), getNumberOfColumn(m.group(1)));
     }
-    throw new IllegalArgumentException(String.format("Cannot to parse '%s' cell address", address));
+    throw new IllegalArgumentException(String.format("Cannot to parse '%s' cell address.", address));
   }
 
   int getNumberOfColumn(String input) {
