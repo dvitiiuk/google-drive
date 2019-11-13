@@ -16,20 +16,9 @@
 
 package io.cdap.plugin.google.sheets.source;
 
-import com.google.api.services.sheets.v4.model.CellData;
-import io.cdap.cdap.api.data.format.StructuredRecord;
-import io.cdap.cdap.api.data.schema.Schema;
-import io.cdap.plugin.google.sheets.common.RowRecord;
-import io.cdap.plugin.google.sheets.sink.StructuredRecordToRowRecordTransformer;
-import io.cdap.plugin.google.sheets.source.utils.HeaderSelection;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class JSONComplexDataFormatterTest {
   private static final String SCHEMA_NAME = "default";
@@ -48,7 +37,7 @@ public class JSONComplexDataFormatterTest {
 
   @Test
   public void testFormat() throws IOException {
-    List<String> testList = Arrays.asList("firstElement", "secondElement", "thirdElement");
+    /*List<String> testList = Arrays.asList("firstElement", "secondElement", "thirdElement");
     Map<String, String> testMap = new HashMap<>();
     testMap.put("firstKey", "firstValue");
     testMap.put("secondKey", "secondValue");
@@ -76,11 +65,11 @@ public class JSONComplexDataFormatterTest {
             HeaderSelection.FIRST_ROW_AS_COLUMNS.getValue(),
             HeaderSelection.NO_COLUMN_NAMES.getValue(),
             HeaderSelection.CUSTOM_ROW_AS_COLUMNS.getValue()
-        ))/*,
+        ))*//*,
         Schema.Field.of(TEST_UNION_FIELD_NAME, Schema.unionOf(
             Schema.of(Schema.Type.STRING),
             Schema.of(Schema.Type.BOOLEAN)
-        ))*/);
+        ))*//*);
 
     StructuredRecord.Builder nestedBuilder = StructuredRecord.builder(
         testSchema.getField(TEST_RECORD_FIELD_NAME).getSchema());
@@ -89,9 +78,9 @@ public class JSONComplexDataFormatterTest {
     nestedBuilder.set(TEST_RECORD_SUB_3_FIELD_NAME, TEST_DOUBLE_VALUE);
     StructuredRecord nestedRecord = nestedBuilder.build();
 
-    /*StructuredRecord.Builder unionBuilder = StructuredRecord.builder(
+    *//*StructuredRecord.Builder unionBuilder = StructuredRecord.builder(
         testSchema.getField(TEST_UNION_FIELD_NAME).getSchema());
-    StructuredRecord union = unionBuilder.build();*/
+    StructuredRecord union = unionBuilder.build();*//*
 
     StructuredRecord.Builder builder = StructuredRecord.builder(testSchema);
     builder.set(TEST_RECORD_FIELD_NAME, nestedRecord);
@@ -127,6 +116,6 @@ public class JSONComplexDataFormatterTest {
     Assert.assertNotNull(enumData);
     Assert.assertEquals("{\"testEnum\":\"firstRowAsColumns\"}",
         enumData.getUserEnteredValue().getStringValue());
-
+*/
   }
 }

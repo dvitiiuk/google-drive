@@ -16,7 +16,7 @@
 
 package io.cdap.plugin.google.sheets.sink;
 
-import io.cdap.plugin.google.sheets.common.RowRecord;
+import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
@@ -29,9 +29,9 @@ import java.io.IOException;
 /**
  * An OutputFormat that sends the output of a Hadoop job to the Google Drive record writer
  */
-public class GoogleSheetsOutputFormat extends OutputFormat<NullWritable, RowRecord> {
+public class GoogleSheetsOutputFormat extends OutputFormat<NullWritable, MultipleRowsRecord> {
   @Override
-  public RecordWriter<NullWritable, RowRecord> getRecordWriter(TaskAttemptContext taskAttemptContext) {
+  public RecordWriter<NullWritable, MultipleRowsRecord> getRecordWriter(TaskAttemptContext taskAttemptContext) {
     return new GoogleSheetsRecordWriter(taskAttemptContext);
   }
 

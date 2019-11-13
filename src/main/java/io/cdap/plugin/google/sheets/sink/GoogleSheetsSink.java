@@ -30,7 +30,7 @@ import io.cdap.cdap.etl.api.batch.BatchRuntimeContext;
 import io.cdap.cdap.etl.api.batch.BatchSink;
 import io.cdap.cdap.etl.api.batch.BatchSinkContext;
 import io.cdap.plugin.common.LineageRecorder;
-import io.cdap.plugin.google.sheets.common.RowRecord;
+import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
 import io.cdap.plugin.google.sheets.sink.utils.NestedDataFormat;
 
 import java.io.IOException;
@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 @Plugin(type = BatchSink.PLUGIN_TYPE)
 @Name(GoogleSheetsSink.NAME)
 @Description("Sink plugin to save spreadsheets from the pipeline to Google Drive directory.")
-public class GoogleSheetsSink extends BatchSink<StructuredRecord, Void, RowRecord> {
+public class GoogleSheetsSink extends BatchSink<StructuredRecord, Void, MultipleRowsRecord> {
   public static final String NAME = "GoogleSheets";
 
   private final GoogleSheetsSinkConfig config;
@@ -98,8 +98,9 @@ public class GoogleSheetsSink extends BatchSink<StructuredRecord, Void, RowRecor
   }
 
   @Override
-  public void transform(StructuredRecord input, Emitter<KeyValue<Void, RowRecord>> emitter) throws IOException {
-    RowRecord rowRecord = transformer.transform(input);
-    emitter.emit(new KeyValue<>(null, rowRecord));
+  public void transform(StructuredRecord input, Emitter<KeyValue<Void, MultipleRowsRecord>> emitter)
+      throws IOException {
+    MultipleRowsRecord rowsRecord = transformer.transform(input);
+    emitter.emit(new KeyValue<>(null, rowsRecord));
   }
 }

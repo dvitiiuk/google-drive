@@ -19,12 +19,14 @@ package io.cdap.plugin.google.sheets.sink;
 import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.CellFormat;
 import com.google.api.services.sheets.v4.model.ExtendedValue;
+import com.google.api.services.sheets.v4.model.GridRange;
 import com.google.api.services.sheets.v4.model.NumberFormat;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.format.StructuredRecordStringConverter;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
-import io.cdap.plugin.google.sheets.common.RowRecord;
+import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
+import io.cdap.plugin.google.sheets.sink.utils.ComplexHeader;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -38,8 +40,9 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -71,11 +74,15 @@ public class StructuredRecordToRowRecordTransformer {
     this.complexDataFormatter = complexDataFormatter;
   }
 
-  public RowRecord transform(StructuredRecord input) throws IOException {
-    Map<String, CellData> data = new HashMap<>();
+  public MultipleRowsRecord transform(StructuredRecord input) {
+    List<List<CellData>> data = new ArrayList<>();
+    //List<String> headers = new ArrayList<>();
+    List<GridRange> mergeRanges = new ArrayList<>();
+    ComplexHeader complexHeader = new ComplexHeader(null);
     String spreadSheetName = null;
     String sheetName = null;
 
+    data.add(new ArrayList<>());
     Schema schema = input.getSchema();
     for (Schema.Field field : schema.getFields()) {
       String fieldName = field.getName();
@@ -83,24 +90,8 @@ public class StructuredRecordToRowRecordTransformer {
         spreadSheetName = input.get(spreadSheetNameFieldName);
       } else if (fieldName.equals(sheetNameFieldName)) {
         sheetName = input.get(sheetNameFieldName);
-      } else {
-        Schema fieldSchema = field.getSchema();
-        CellData cellData = new CellData();
-
-        if (input.get(fieldName) == null) {
-          data.put(fieldName, cellData);
-          continue;
-        }
-        Schema.LogicalType fieldLogicalType = fieldSchema.isNullableSimple() ?
-            fieldSchema.getNonNullable().getLogicalType() :
-            fieldSchema.getLogicalType();
-        if (fieldLogicalType != null) {
-          cellData = processDateTimeValue(fieldLogicalType, fieldName, input);
-        } else {
-          cellData = processSimpleTypes(fieldSchema, fieldName, input);
-        }
-        data.put(fieldName, cellData);
       }
+      processField(field, input, data, headers, mergeRanges, true);
     }
     if (spreadSheetName == null) {
       spreadSheetName = generateRandomName();
@@ -110,8 +101,58 @@ public class StructuredRecordToRowRecordTransformer {
       sheetName = this.sheetName;
     }
 
-    RowRecord rowRecord = new RowRecord(spreadSheetName, sheetName, null, data, false);
-    return rowRecord;
+    MultipleRowsRecord multipleRowsRecord = new MultipleRowsRecord(spreadSheetName, sheetName, headers,
+        data, mergeRanges);
+    return multipleRowsRecord;
+  }
+
+  private void processField(Schema.Field field, StructuredRecord input, List<List<CellData>> data,
+                            ComplexHeader complexHeader, List<GridRange> mergeRanges, boolean isComplexTypeSupported) {
+    String fieldName = field.getName();
+    Schema fieldSchema = field.getSchema();
+    CellData cellData = new CellData();
+
+    if (input.get(fieldName) == null) {
+      addDataValue(cellData, data, mergeRanges);
+      headers.add(fieldName);
+      return;
+    }
+    Schema.LogicalType fieldLogicalType = getFieldLogicalType(fieldSchema);
+    Schema.Type fieldType = getFieldType(fieldSchema);
+    if (fieldLogicalType != null) {
+      cellData = processDateTimeValue(fieldLogicalType, fieldName, input);
+      addDataValue(cellData, data, mergeRanges);
+    } else if (isSimpleType(fieldType)) {
+      cellData = processSimpleTypes(fieldType, input.get(fieldName));
+      addDataValue(cellData, data, mergeRanges);
+    } else if (isComplexType(fieldType)) {
+      if (isComplexTypeSupported) {
+        processComplexTypes(fieldType, fieldName, input, data, headers, mergeRanges);
+      } else {
+        throw new IllegalStateException("Nested arrays/records are not supported");
+      }
+    } else {
+      throw new IllegalStateException(String.format("Data type '%s' is not supported", fieldType));
+    }
+    headers.add(fieldName);
+  }
+
+  void addDataValue(CellData cellData, List<List<CellData>> data, List<GridRange> mergeRanges) {
+    data.forEach(r -> r.add(cellData));
+    mergeRanges.add(new GridRange().setStartRowIndex(0).setEndRowIndex(data.size())
+        .setStartColumnIndex(data.get(0).size() - 1).setEndColumnIndex(data.get(0).size()));
+  }
+
+  Schema.LogicalType getFieldLogicalType(Schema fieldSchema) {
+    return fieldSchema.isNullableSimple() ?
+        fieldSchema.getNonNullable().getLogicalType() :
+        fieldSchema.getLogicalType();
+  }
+
+  Schema.Type getFieldType(Schema fieldSchema) {
+    return fieldSchema.isNullableSimple() ?
+        fieldSchema.getNonNullable().getType() :
+        fieldSchema.getType();
   }
 
   CellData processDateTimeValue(Schema.LogicalType fieldLogicalType, String fieldName, StructuredRecord input) {
@@ -147,44 +188,105 @@ public class StructuredRecordToRowRecordTransformer {
     return cellData;
   }
 
-  CellData processSimpleTypes(Schema fieldSchema, String fieldName, StructuredRecord input) throws IOException {
+  CellData processSimpleTypes(Schema.Type fieldType, Object value) {
     CellData cellData = new CellData();
     ExtendedValue userEnteredValue = new ExtendedValue();
     CellFormat userEnteredFormat = new CellFormat();
-    Schema.Type fieldType = fieldSchema.isNullableSimple() ?
-        fieldSchema.getNonNullable().getType() :
-        fieldSchema.getType();
+
     switch (fieldType) {
       case STRING:
-        userEnteredValue.setStringValue(input.get(fieldName));
+        userEnteredValue.setStringValue((String) value);
         break;
       case BYTES:
-        userEnteredValue.setStringValue(new String((byte[]) input.get(fieldName)));
+        userEnteredValue.setStringValue(new String((byte[]) value));
         break;
       case BOOLEAN:
-        userEnteredValue.setBoolValue(input.get(fieldName));
+        userEnteredValue.setBoolValue((Boolean) value);
         break;
       case LONG:
-        userEnteredValue.setNumberValue((double) (Long) input.get(fieldName));
+        userEnteredValue.setNumberValue((double) (Long) value);
         break;
       case INT:
-        userEnteredValue.setNumberValue((double) (Integer) input.get(fieldName));
+        userEnteredValue.setNumberValue((double) (Integer) value);
         break;
       case DOUBLE:
-        userEnteredValue.setNumberValue(input.get(fieldName));
+        userEnteredValue.setNumberValue((Double) value);
         break;
       case FLOAT:
-        userEnteredValue.setNumberValue((double) (Long) input.get(fieldName));
+        userEnteredValue.setNumberValue((double) (Long) value);
         break;
       case NULL:
         // do nothing
         break;
-      default:
-        userEnteredValue = complexDataFormatter.format(fieldName, fieldSchema, fieldType, input.get(fieldName));
     }
     cellData.setUserEnteredValue(userEnteredValue);
     cellData.setUserEnteredFormat(userEnteredFormat);
     return cellData;
+  }
+
+  private void processComplexTypes(Schema.Type fieldType, String fieldName, StructuredRecord input,
+                                   List<List<CellData>> data, List<String> headers, List<GridRange> mergeRanges) {
+    switch(fieldType) {
+      case ARRAY:
+        List<Object> arrayData = input.get(fieldName);
+        List<CellData>[] extendedData = new ArrayList[data.size() * arrayData.size()];
+
+        Schema componentFieldSchema = input.getSchema().getField(fieldName).getSchema().getComponentSchema();
+        Schema.LogicalType componentFieldLogicalType = getFieldLogicalType(componentFieldSchema);
+        Schema.Type componentFieldType = getFieldType(componentFieldSchema);
+
+        for (GridRange range : mergeRanges) {
+          Integer newStartRowIndex = range.getStartRowIndex() * arrayData.size();
+          Integer newEndRowIndex = newStartRowIndex +
+              (range.getEndRowIndex() - range.getStartRowIndex()) * arrayData.size();
+          range.setStartRowIndex(newStartRowIndex).setEndRowIndex(newEndRowIndex);
+        }
+        for (int i = 0; i < arrayData.size(); i++) {
+          CellData nestedData;
+          if (componentFieldLogicalType != null) {
+            nestedData = processDateTimeValue(componentFieldLogicalType, fieldName, input);
+          } else if (isSimpleType(componentFieldType)) {
+            nestedData = processSimpleTypes(componentFieldType, arrayData.get(i));
+          } else {
+            throw new IllegalStateException();
+          }
+          for (int j = 0; j < data.size(); j++) {
+            List<CellData> flattenRow = copyRow(data.get(j));
+            flattenRow.add(nestedData);
+            mergeRanges.add(new GridRange().setStartRowIndex(i + arrayData.size() * j)
+                .setEndRowIndex(i + arrayData.size() * j + 1)
+                .setStartColumnIndex(flattenRow.size() - 1)
+                .setEndColumnIndex(flattenRow.size()));
+            extendedData[i + arrayData.size() * j] = flattenRow;
+          }
+        }
+        data.clear();
+        data.addAll(Arrays.asList(extendedData));
+        break;
+      case RECORD:
+        StructuredRecord nestedRecord = input.get(fieldName);
+        Schema schema = nestedRecord.getSchema();
+        for (Schema.Field field : schema.getFields()) {
+          processField(field, nestedRecord, data, headers, mergeRanges, false);
+        }
+        break;
+    }
+  }
+
+  List<CellData> copyRow(List<CellData> row) {
+    List<CellData> copiedRow = new ArrayList<>();
+    copiedRow.addAll(row);
+    return copiedRow;
+  }
+
+
+  boolean isSimpleType(Schema.Type fieldType) {
+    return Arrays.asList(Schema.Type.STRING, Schema.Type.BYTES, Schema.Type.BOOLEAN, Schema.Type.LONG,
+        Schema.Type.INT, Schema.Type.DOUBLE, Schema.Type.FLOAT, Schema.Type.NULL).contains(fieldType);
+  }
+
+  boolean isComplexType(Schema.Type fieldType) {
+    return fieldType.equals(Schema.Type.ARRAY) || fieldType.equals(Schema.Type.RECORD);
   }
 
   Double toSheetsDate(LocalDate date) {

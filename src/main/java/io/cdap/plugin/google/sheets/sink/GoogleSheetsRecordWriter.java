@@ -20,6 +20,7 @@ import com.github.rholder.retry.RetryException;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 import io.cdap.plugin.google.drive.sink.GoogleDriveOutputFormatProvider;
 import io.cdap.plugin.google.drive.sink.GoogleDriveSinkClient;
+import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
 import io.cdap.plugin.google.sheets.common.RowRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
@@ -31,7 +32,7 @@ import java.util.concurrent.ExecutionException;
 /**
  * Writes {@link FileFromFolder} records to Google Drive via {@link GoogleDriveSinkClient}
  */
-public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, RowRecord> {
+public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, MultipleRowsRecord> {
 
   private GoogleSheetsSinkClient sheetsSinkClient;
   private GoogleSheetsSinkConfig googleSheetsSinkConfig;
@@ -46,9 +47,9 @@ public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, RowReco
   }
 
   @Override
-  public void write(NullWritable nullWritable, RowRecord rowRecord) throws InterruptedException {
+  public void write(NullWritable nullWritable, MultipleRowsRecord rowsRecord) throws InterruptedException {
     try {
-      sheetsSinkClient.createFile(rowRecord);
+      sheetsSinkClient.createFile(rowsRecord);
     } catch (ExecutionException | RetryException e) {
       throw new InterruptedException(e.getMessage());
     }
