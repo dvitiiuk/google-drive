@@ -34,6 +34,8 @@ import com.google.api.services.sheets.v4.model.SpreadsheetProperties;
 import io.cdap.plugin.google.common.APIRequestRepeater;
 import io.cdap.plugin.google.sheets.common.GoogleSheetsClient;
 import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
+import io.cdap.plugin.google.sheets.sink.utils.ComplexHeader;
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,14 +79,6 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
         });
 
     APIRequestRepeater.getRetryer(config,
-        String.format("Merging of required cells for spreadsheet '%s', sheet title name '%s'.",
-            spreadsheetName, sheetTitle))
-        .call(() -> {
-          mergeCells(spreadSheetsId, sheetId, rowsRecord.getMergeRanges(), config.isWriteSchema() ? 1 : 0);
-          return null;
-        });
-
-    APIRequestRepeater.getRetryer(config,
         String.format("Moving the spreadsheet '%s' to destination folder.",
             spreadsheetName, sheetTitle))
         .call(() -> {
@@ -113,32 +107,12 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
 
   public void populateCells(String spreadSheetsId, Integer sheetId, MultipleRowsRecord rowsRecord)
       throws IOException {
-    AppendCellsRequest appendCellsRequest = new AppendCellsRequest();
-    appendCellsRequest.setSheetId(sheetId);
-    appendCellsRequest.setFields("*");
-    List<RowData> rows = new ArrayList<>();
-    if (config.isWriteSchema()) {
-      if (rowsRecord == null) {
-        LOG.error("RowRecord is null");
-      }
-      if (rowsRecord.getHeaders() == null) {
-        LOG.error("Headered cells are null");
-      }
-      if (rowsRecord.getHeaders().size() == 0) {
-        LOG.error("Headered cells are empty");
-      }
-      List<CellData> headerCells = rowsRecord.getHeaders().stream()
-          .map(h -> new CellData().setUserEnteredValue(new ExtendedValue().setStringValue(h)))
-          .collect(Collectors.toList());
-      rows.add(new RowData().setValues(headerCells));
-    }
-    rows.addAll(rowsRecord.getSingleRowRecords().stream()
-        .map(r -> new RowData().setValues(r)).collect(Collectors.toList()));
-    appendCellsRequest.setRows(rows);
 
     BatchUpdateSpreadsheetRequest requestBody = new BatchUpdateSpreadsheetRequest();
-    requestBody.setRequests(Collections.singletonList(new Request()
-        .setAppendCells(appendCellsRequest)));
+    requestBody.setRequests(new ArrayList<>());
+
+    requestBody.getRequests().add(prepareContentRequest(sheetId, rowsRecord));
+    requestBody.getRequests().addAll(prepareMergeRequests(sheetId, rowsRecord));
 
     Sheets.Spreadsheets.BatchUpdate request =
         service.spreadsheets().batchUpdate(spreadSheetsId, requestBody);
@@ -146,21 +120,111 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
     request.execute();
   }
 
-  public void mergeCells(String spreadSheetsId, Integer sheetId, List<GridRange> mergeRanges, int rowsShift)
-      throws IOException {
-    BatchUpdateSpreadsheetRequest requestBody = new BatchUpdateSpreadsheetRequest();
-    List<MergeCellsRequest> mergeRequests = mergeRanges.stream()
+  private Request prepareContentRequest(Integer sheetId, MultipleRowsRecord rowsRecord) {
+    AppendCellsRequest appendCellsRequest = new AppendCellsRequest();
+    appendCellsRequest.setSheetId(sheetId);
+    appendCellsRequest.setFields("*");
+    List<RowData> rows = new ArrayList<>();
+    if (config.isWriteSchema()) {
+      // root header is not displayed
+      int headersDepth = rowsRecord.getHeader().getDepth() - 1;
+      int headersWidth = rowsRecord.getHeader().getWidth();
+      List<ComplexHeader> realHeaders = rowsRecord.getHeader().getSubHeaders();
+      List<RowData> headerRows = new ArrayList<>();
+      for (int rowIndex = 0; rowIndex < headersDepth; rowIndex++) {
+        List<CellData> emptyCells = new ArrayList<>();
+        for (int columnIndex = 0; columnIndex < headersWidth; columnIndex++) {
+          emptyCells.add(new CellData());
+        }
+        headerRows.add(new RowData().setValues(emptyCells));
+      }
+      int widthShift = 0;
+      for (int headerIndex = 0; headerIndex < realHeaders.size(); headerIndex++) {
+        ComplexHeader header = realHeaders.get(headerIndex);
+        populateHeaderRows(header, headerRows, 0, widthShift);
+        widthShift += header.getWidth();
+      }
+
+      rows.addAll(headerRows);
+    }
+    rows.addAll(rowsRecord.getSingleRowRecords().stream()
+        .map(r -> new RowData().setValues(r)).collect(Collectors.toList()));
+    appendCellsRequest.setRows(rows);
+    return new Request().setAppendCells(appendCellsRequest);
+  }
+
+  private List<Request> prepareMergeRequests(Integer sheetId, MultipleRowsRecord rowsRecord) {
+    // prepare header merges
+    List<MergeCellsRequest> mergeRequests = new ArrayList<>();
+    int headersDepth = 0;
+    if (config.isWriteSchema()) {
+      // root header is not displayed
+      headersDepth = rowsRecord.getHeader().getDepth() - 1;
+      if (headersDepth > 1) {
+        List<ComplexHeader> realHeaders = rowsRecord.getHeader().getSubHeaders();
+
+        int widthShift = 0;
+        List<GridRange> headerRanges = new ArrayList<>();
+        for (int headerIndex = 0; headerIndex < realHeaders.size(); headerIndex++) {
+          ComplexHeader header = realHeaders.get(headerIndex);
+          calcHeaderMerges(header, headerRanges, 0, headersDepth, widthShift);
+          widthShift += header.getWidth();
+        }
+        mergeRequests.addAll(prepareMergeRequests(headerRanges, sheetId, 0));
+      }
+    }
+
+    // prepare content merges
+    if (config.isMergeDataCells()) {
+      mergeRequests.addAll(prepareMergeRequests(rowsRecord.getMergeRanges(), sheetId, headersDepth));
+    }
+    return mergeRequests.stream().map(r -> new Request().setMergeCells(r))
+        .collect(Collectors.toList());
+  }
+
+  private void populateHeaderRows(ComplexHeader header, List<RowData> headerRows, int depth, int widthShift) {
+    headerRows.get(depth).getValues().get(widthShift)
+        .setUserEnteredValue(new ExtendedValue().setStringValue(header.getName()));
+    // add empty cells to this level
+    for (int i = 0; i < header.getWidth() - 1; i++) {
+      headerRows.get(depth).getValues().add(new CellData());
+    }
+    int widthSubShift = widthShift;
+    for (ComplexHeader subHeader : header.getSubHeaders()) {
+      populateHeaderRows(subHeader, headerRows, depth + 1, widthSubShift);
+      widthSubShift += subHeader.getWidth();
+    }
+  }
+
+  private void calcHeaderMerges(ComplexHeader header, List<GridRange> headerRanges, int depth, int headersDepth,
+                                int widthShift) {
+    if (CollectionUtils.isEmpty(header.getSubHeaders())) {
+      if (depth + 1 < headersDepth) {
+        // add vertical merging
+        headerRanges.add(new GridRange().setStartRowIndex(depth).setEndRowIndex(headersDepth)
+            .setStartColumnIndex(widthShift).setEndColumnIndex(widthShift + 1));
+      }
+    } else {
+      // add horizontal merging
+      headerRanges.add(new GridRange().setStartRowIndex(depth).setEndRowIndex(depth + 1)
+          .setStartColumnIndex(widthShift).setEndColumnIndex(widthShift + header.getWidth()));
+
+      int widthSubShift = widthShift;
+      for (ComplexHeader subHeader : header.getSubHeaders()) {
+        calcHeaderMerges(subHeader, headerRanges, depth + 1, headersDepth, widthSubShift);
+        widthSubShift += subHeader.getWidth();
+      }
+    }
+  }
+
+  private List<MergeCellsRequest> prepareMergeRequests(List<GridRange> ranges, int sheetId, int rowsShift) {
+    return ranges.stream()
         .filter(r -> r.getStartRowIndex() != r.getEndRowIndex() || r.getStartColumnIndex() != r.getEndColumnIndex())
         .map(r -> new MergeCellsRequest().setMergeType("MERGE_ALL").setRange(r
             .setSheetId(sheetId)
             .setStartRowIndex(r.getStartRowIndex() + rowsShift)
             .setEndRowIndex(r.getEndRowIndex() + rowsShift)))
         .collect(Collectors.toList());
-    requestBody.setRequests(mergeRequests.stream().map(r -> new Request().setMergeCells(r))
-        .collect(Collectors.toList()));
-    Sheets.Spreadsheets.BatchUpdate request =
-        service.spreadsheets().batchUpdate(spreadSheetsId, requestBody);
-    request.execute();
   }
 
   public void moveSpreadsheetToDestinationFolder(String spreadSheetsId) throws IOException {

@@ -23,16 +23,11 @@ import com.google.api.services.sheets.v4.model.GridRange;
 import com.google.api.services.sheets.v4.model.NumberFormat;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
-import io.cdap.cdap.format.StructuredRecordStringConverter;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
 import io.cdap.plugin.google.sheets.sink.utils.ComplexHeader;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang3.RandomStringUtils;
 
-import java.io.IOException;
-import java.io.StringWriter;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -42,10 +37,7 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Transforms a {@link StructuredRecord}
@@ -62,23 +54,19 @@ public class StructuredRecordToRowRecordTransformer {
   private final String spreadSheetNameFieldName;
   private final String sheetNameFieldName;
   private final String sheetName;
-  private final ComplexDataFormatter complexDataFormatter;
 
   public StructuredRecordToRowRecordTransformer(String spreadSheetNameFieldName,
                                                 String sheetNameFieldName,
-                                                String sheetName,
-                                                ComplexDataFormatter complexDataFormatter) {
+                                                String sheetName) {
     this.spreadSheetNameFieldName = spreadSheetNameFieldName;
     this.sheetNameFieldName = sheetNameFieldName;
     this.sheetName = sheetName;
-    this.complexDataFormatter = complexDataFormatter;
   }
 
   public MultipleRowsRecord transform(StructuredRecord input) {
     List<List<CellData>> data = new ArrayList<>();
-    //List<String> headers = new ArrayList<>();
     List<GridRange> mergeRanges = new ArrayList<>();
-    ComplexHeader complexHeader = new ComplexHeader(null);
+    ComplexHeader header = new ComplexHeader(null);
     String spreadSheetName = null;
     String sheetName = null;
 
@@ -91,7 +79,7 @@ public class StructuredRecordToRowRecordTransformer {
       } else if (fieldName.equals(sheetNameFieldName)) {
         sheetName = input.get(sheetNameFieldName);
       }
-      processField(field, input, data, headers, mergeRanges, true);
+      processField(field, input, data, header, mergeRanges, true);
     }
     if (spreadSheetName == null) {
       spreadSheetName = generateRandomName();
@@ -101,24 +89,26 @@ public class StructuredRecordToRowRecordTransformer {
       sheetName = this.sheetName;
     }
 
-    MultipleRowsRecord multipleRowsRecord = new MultipleRowsRecord(spreadSheetName, sheetName, headers,
+    MultipleRowsRecord multipleRowsRecord = new MultipleRowsRecord(spreadSheetName, sheetName, header,
         data, mergeRanges);
     return multipleRowsRecord;
   }
 
   private void processField(Schema.Field field, StructuredRecord input, List<List<CellData>> data,
-                            ComplexHeader complexHeader, List<GridRange> mergeRanges, boolean isComplexTypeSupported) {
+                            ComplexHeader header, List<GridRange> mergeRanges, boolean isComplexTypeSupported) {
     String fieldName = field.getName();
     Schema fieldSchema = field.getSchema();
     CellData cellData = new CellData();
+    ComplexHeader subHeader = new ComplexHeader(fieldName);
 
     if (input.get(fieldName) == null) {
       addDataValue(cellData, data, mergeRanges);
-      headers.add(fieldName);
+      header.addHeader(subHeader);
       return;
     }
     Schema.LogicalType fieldLogicalType = getFieldLogicalType(fieldSchema);
     Schema.Type fieldType = getFieldType(fieldSchema);
+
     if (fieldLogicalType != null) {
       cellData = processDateTimeValue(fieldLogicalType, fieldName, input);
       addDataValue(cellData, data, mergeRanges);
@@ -127,14 +117,14 @@ public class StructuredRecordToRowRecordTransformer {
       addDataValue(cellData, data, mergeRanges);
     } else if (isComplexType(fieldType)) {
       if (isComplexTypeSupported) {
-        processComplexTypes(fieldType, fieldName, input, data, headers, mergeRanges);
+        processComplexTypes(fieldType, fieldName, input, data, subHeader, mergeRanges);
       } else {
         throw new IllegalStateException("Nested arrays/records are not supported");
       }
     } else {
       throw new IllegalStateException(String.format("Data type '%s' is not supported", fieldType));
     }
-    headers.add(fieldName);
+    header.addHeader(subHeader);
   }
 
   void addDataValue(CellData cellData, List<List<CellData>> data, List<GridRange> mergeRanges) {
@@ -225,7 +215,7 @@ public class StructuredRecordToRowRecordTransformer {
   }
 
   private void processComplexTypes(Schema.Type fieldType, String fieldName, StructuredRecord input,
-                                   List<List<CellData>> data, List<String> headers, List<GridRange> mergeRanges) {
+                                   List<List<CellData>> data, ComplexHeader header, List<GridRange> mergeRanges) {
     switch(fieldType) {
       case ARRAY:
         List<Object> arrayData = input.get(fieldName);
@@ -267,7 +257,7 @@ public class StructuredRecordToRowRecordTransformer {
         StructuredRecord nestedRecord = input.get(fieldName);
         Schema schema = nestedRecord.getSchema();
         for (Schema.Field field : schema.getFields()) {
-          processField(field, nestedRecord, data, headers, mergeRanges, false);
+          processField(field, nestedRecord, data, header, mergeRanges, false);
         }
         break;
     }
@@ -307,86 +297,5 @@ public class StructuredRecordToRowRecordTransformer {
 
   private String generateRandomName() {
     return RandomStringUtils.randomAlphanumeric(RANDOM_FILE_NAME_LENGTH);
-  }
-
-  /**
-   *
-   */
-  public interface ComplexDataFormatter {
-    ExtendedValue format(String fieldName, Schema fieldSchema, Schema.Type fieldType, Object data) throws IOException;
-  }
-
-  /**
-   *
-   */
-  public static class JSONComplexDataFormatter implements ComplexDataFormatter {
-
-    @Override
-    public ExtendedValue format(String fieldName, Schema fieldSchema, Schema.Type fieldType,
-                                Object data) throws IOException {
-      ExtendedValue result = new ExtendedValue();
-      switch (fieldType) {
-        case ARRAY:
-        case MAP:
-        case ENUM:
-        case UNION:
-          Schema wrapperSchema = Schema.recordOf(fieldName,
-              Collections.singleton(Schema.Field.of(fieldName, fieldSchema)));
-          StructuredRecord.Builder builder = StructuredRecord.builder(wrapperSchema);
-          builder.set(fieldName, data);
-          result.setStringValue(StructuredRecordStringConverter.toJsonString(builder.build()));
-          break;
-        case RECORD:
-          result.setStringValue(StructuredRecordStringConverter.toJsonString((StructuredRecord) data));
-          break;
-        default:
-          throw new IllegalStateException(String.format("'%s' data type is not supported", fieldType));
-      }
-      return result;
-    }
-  }
-
-  /**
-   *
-   */
-  public static class CSVComplexDataFormatter implements ComplexDataFormatter {
-
-    @Override
-    public ExtendedValue format(String fieldName, Schema fieldSchema, Schema.Type fieldType,
-                                Object data) throws IOException {
-      ExtendedValue result = new ExtendedValue();
-      switch (fieldType) {
-        case ARRAY:
-          CSVFormat arrayFormat = CSVFormat.newFormat(',').withQuote('"')
-            .withRecordSeparator("\r\n");
-          CSVPrinter arrayPrinter = new CSVPrinter(new StringWriter(), arrayFormat);
-          arrayPrinter.printRecord((List) data);
-          result.setStringValue(arrayPrinter.getOut().toString());
-          break;
-        case MAP:
-          Map<String, Object> mapData = (Map<String, Object>) data;
-          CSVFormat mapFormat = CSVFormat.newFormat(',').withQuote('"')
-              .withRecordSeparator("\r\n").withHeader(mapData.keySet().toArray(new String[]{}));
-          CSVPrinter mapPrinter = new CSVPrinter(new StringWriter(), mapFormat);
-          mapPrinter.printRecord(mapData.values());
-          result.setStringValue(mapPrinter.getOut().toString());
-          break;
-        case ENUM:
-        case UNION:
-        case RECORD:
-          StructuredRecord recordData = (StructuredRecord) data;
-          CSVFormat recordFormat = CSVFormat.newFormat(',').withQuote('"')
-              .withRecordSeparator("\r\n").withHeader(recordData.getSchema().getFields().stream()
-                  .map(f -> f.getName()).collect(Collectors.toList()).toArray(new String[]{}));
-          CSVPrinter recordPrinter = new CSVPrinter(new StringWriter(), recordFormat);
-          recordPrinter.printRecord(recordData.getSchema().getFields().stream()
-              .map(f -> recordData.get(f.getName())).collect(Collectors.toList()));
-          result.setStringValue(recordPrinter.getOut().toString());
-          break;
-        default:
-          throw new IllegalStateException(String.format("'%s' data type is not supported", fieldType));
-      }
-      return result;
-    }
   }
 }

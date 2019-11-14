@@ -48,7 +48,7 @@ public class StructuredRecordToRowRecordTransformerTest {
   @Test
   public void testToSheetsDate() {
     LocalDate testDate = LocalDate.of(2020, 01, 11);
-    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "", null);
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "");
     Double expected = transformer.toSheetsDate(testDate);
     Assert.assertEquals(Double.valueOf(43841.0), expected);
   }
@@ -57,7 +57,7 @@ public class StructuredRecordToRowRecordTransformerTest {
   public void testToSheetsDateTime() {
     ZonedDateTime testZonedDateTime = ZonedDateTime.of(1991, 03, 8, 13, 54, 20, 0,
         StructuredRecordToRowRecordTransformer.UTC_ZONE_ID);
-    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "", null);
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "");
     Double expected = transformer.toSheetsDateTime(testZonedDateTime);
     Assert.assertEquals(Double.valueOf(33305.57939814815), expected, Math.pow(10, -11));
   }
@@ -66,14 +66,14 @@ public class StructuredRecordToRowRecordTransformerTest {
   public void testToSheetsTime() {
     ZonedDateTime testZonedDateTime = ZonedDateTime.of(1991, 03, 8, 13, 54, 20, 0,
         StructuredRecordToRowRecordTransformer.UTC_ZONE_ID);
-    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "", null);
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "");
     Double expected = transformer.toSheetsDateTime(testZonedDateTime);
     Assert.assertEquals(Double.valueOf(33305.57939814815), expected, Math.pow(10, -11));
   }
 
   @Test
   public void testProcessDateTimeDateValue() {
-    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "", null);
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "");
 
     Schema dataSchema = Schema.recordOf(SCHEMA_NAME,
         Schema.Field.of(DATE_FIELD_NAME, Schema.of(Schema.LogicalType.DATE)));
@@ -98,7 +98,7 @@ public class StructuredRecordToRowRecordTransformerTest {
 
   @Test
   public void testProcessDateTimeTimeValue() {
-    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "", null);
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "");
 
     Schema timeSchema = Schema.recordOf(SCHEMA_NAME,
         Schema.Field.of(TIME_FIELD_NAME, Schema.of(Schema.LogicalType.TIME_MILLIS)));
@@ -124,7 +124,7 @@ public class StructuredRecordToRowRecordTransformerTest {
   @Test
   public void testProcessDateTimeDateTimeValue() {
     StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
-        "", "", "", null);
+        "", "", "");
 
     Schema dateTimeSchema = Schema.recordOf(SCHEMA_NAME,
         Schema.Field.of(DATE_TIME_FIELD_NAME, Schema.of(Schema.LogicalType.TIMESTAMP_MILLIS)));

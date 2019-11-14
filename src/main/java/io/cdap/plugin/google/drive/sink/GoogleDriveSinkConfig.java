@@ -16,13 +16,12 @@
 
 package io.cdap.plugin.google.drive.sink;
 
-import com.google.common.base.Strings;
 import io.cdap.cdap.api.annotation.Description;
 import io.cdap.cdap.api.annotation.Macro;
 import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
-import io.cdap.plugin.google.common.GoogleRetryingConfig;
+import io.cdap.plugin.google.common.GoogleInputSchemaFieldsUsageConfig;
 
 import java.io.IOException;
 import javax.annotation.Nullable;
@@ -30,7 +29,7 @@ import javax.annotation.Nullable;
 /**
  * Configurations for Google Drive Batch Sink plugin.
  */
-public class GoogleDriveSinkConfig extends GoogleRetryingConfig {
+public class GoogleDriveSinkConfig extends GoogleInputSchemaFieldsUsageConfig {
   public static final String SCHEMA_BODY_FIELD_NAME = "schemaBodyFieldName";
   public static final String SCHEMA_NAME_FIELD_NAME = "schemaNameFieldName";
   public static final String SCHEMA_MIME_FIELD_NAME = "schemaMimeFieldName";
@@ -70,36 +69,6 @@ public class GoogleDriveSinkConfig extends GoogleRetryingConfig {
     // validate mime field is in schema and has valid format
     validateSchemaField(collector, schema, SCHEMA_MIME_FIELD_NAME, schemaMimeFieldName,
                         "File mime field", Schema.Type.STRING);
-  }
-
-  private void validateSchemaField(FailureCollector collector, Schema schema, String propertyName,
-                                   String propertyValue, String propertyLabel, Schema.Type requiredSchemaType) {
-    if (!containsMacro(propertyName)) {
-      if (!Strings.isNullOrEmpty(propertyValue)) {
-        Schema.Field field = schema.getField(propertyValue);
-        if (field == null) {
-          collector.addFailure(String.format("Input schema doesn't contain '%s' field.", propertyValue),
-                               String.format("Provide existent field from input schema for '%s'.", propertyLabel))
-            .withConfigProperty(propertyName);
-        } else {
-          Schema fieldSchema = field.getSchema();
-          if (fieldSchema.isNullable()) {
-            fieldSchema = fieldSchema.getNonNullable();
-          }
-
-          if (fieldSchema.getLogicalType() != null || fieldSchema.getType() != requiredSchemaType) {
-            collector.addFailure(String.format("Field '%s' must be of type '%s' but is of type '%s'.",
-                                               field.getName(),
-                                               requiredSchemaType,
-                                               fieldSchema.getDisplayName()),
-                                 String.format("Provide field with '%s' format for '%s' property.",
-                                               requiredSchemaType,
-                                               propertyLabel))
-              .withConfigProperty(propertyName).withInputSchemaField(propertyValue);
-          }
-        }
-      }
-    }
   }
 
   public String getSchemaBodyFieldName() {

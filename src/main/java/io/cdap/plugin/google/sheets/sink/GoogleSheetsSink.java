@@ -31,7 +31,6 @@ import io.cdap.cdap.etl.api.batch.BatchSink;
 import io.cdap.cdap.etl.api.batch.BatchSinkContext;
 import io.cdap.plugin.common.LineageRecorder;
 import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
-import io.cdap.plugin.google.sheets.sink.utils.NestedDataFormat;
 
 import java.io.IOException;
 import java.util.stream.Collectors;
@@ -86,15 +85,9 @@ public class GoogleSheetsSink extends BatchSink<StructuredRecord, Void, Multiple
   @Override
   public void initialize(BatchRuntimeContext context) throws Exception {
     super.initialize(context);
-    StructuredRecordToRowRecordTransformer.ComplexDataFormatter complexDataFormatter;
-    if (config.getNestedDataFormat().equals(NestedDataFormat.JSON)) {
-      complexDataFormatter = new StructuredRecordToRowRecordTransformer.JSONComplexDataFormatter();
-    } else {
-      complexDataFormatter = new StructuredRecordToRowRecordTransformer.CSVComplexDataFormatter();
-    }
     transformer = new StructuredRecordToRowRecordTransformer(config.getSchemaSpreadSheetNameFieldName(),
                                                          config.getSchemaSheetNameFieldName(),
-                                                         config.getSheetName(), complexDataFormatter);
+                                                         config.getSheetName());
   }
 
   @Override

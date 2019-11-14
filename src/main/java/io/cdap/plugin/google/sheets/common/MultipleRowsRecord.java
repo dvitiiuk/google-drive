@@ -18,6 +18,7 @@ package io.cdap.plugin.google.sheets.common;
 
 import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.GridRange;
+import io.cdap.plugin.google.sheets.sink.utils.ComplexHeader;
 
 import java.util.List;
 
@@ -27,15 +28,15 @@ import java.util.List;
 public class MultipleRowsRecord {
   private String spreadSheetName;
   private String sheetTitle;
-  private List<String> headers;
+  private ComplexHeader header;
   private List<List<CellData>> singleRowRecords;
   private List<GridRange> mergeRanges;
 
-  public MultipleRowsRecord(String spreadSheetName, String sheetTitle, List<String> headers,
+  public MultipleRowsRecord(String spreadSheetName, String sheetTitle, ComplexHeader header,
                             List<List<CellData>> singleRowRecords, List<GridRange> mergeRanges) {
     this.spreadSheetName = spreadSheetName;
     this.sheetTitle = sheetTitle;
-    this.headers = headers;
+    this.header = header;
     this.singleRowRecords = singleRowRecords;
     this.mergeRanges = mergeRanges;
   }
@@ -48,8 +49,8 @@ public class MultipleRowsRecord {
     return sheetTitle;
   }
 
-  public List<String> getHeaders() {
-    return headers;
+  public ComplexHeader getHeader() {
+    return header;
   }
 
   public List<List<CellData>> getSingleRowRecords() {

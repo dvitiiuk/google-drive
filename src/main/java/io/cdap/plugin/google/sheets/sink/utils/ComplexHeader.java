@@ -21,6 +21,9 @@ import org.apache.commons.collections.CollectionUtils;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ *
+ */
 public class ComplexHeader {
   private final String name;
   private List<ComplexHeader> subHeaders = new ArrayList<>();
@@ -41,15 +44,27 @@ public class ComplexHeader {
     return subHeaders;
   }
 
-  public int getNestingLevel() {
+  public int getDepth() {
     if (CollectionUtils.isEmpty(subHeaders)) {
       return 1;
     } else {
       int maxLevel = 0;
       for (ComplexHeader header : subHeaders) {
-        maxLevel = Math.max(maxLevel, header.getNestingLevel());
+        maxLevel = Math.max(maxLevel, header.getDepth());
       }
       return maxLevel + 1;
+    }
+  }
+
+  public int getWidth() {
+    if (CollectionUtils.isEmpty(subHeaders)) {
+      return 1;
+    } else {
+      int width = 0;
+      for (ComplexHeader header : subHeaders) {
+        width += header.getWidth();
+      }
+      return width;
     }
   }
 }

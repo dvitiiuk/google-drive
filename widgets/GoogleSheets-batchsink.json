@@ -52,15 +52,19 @@
           }
         },
         {
-          "widget-type": "select",
-          "label": "Format for nested data",
-          "name": "nestedDataFormat",
+          "widget-type": "toggle",
+          "label": "Merge data cells",
+          "name": "mergeDataCells",
           "widget-attributes": {
-            "default": "JSON",
-            "values": [
-              "JSON",
-              "CSV"
-            ]
+            "on": {
+              "value": "true",
+              "label": "Yes"
+            },
+            "off": {
+              "value": "false",
+              "label": "No"
+            },
+            "default": "false"
           }
         }
       ]
