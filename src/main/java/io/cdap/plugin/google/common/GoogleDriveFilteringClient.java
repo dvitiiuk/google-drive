@@ -48,7 +48,7 @@ public class GoogleDriveFilteringClient<C extends GoogleFilteringSourceConfig> e
 
   public List<File> getFilesSummary(List<ExportedType> exportedTypes, int filesNumber)
       throws ExecutionException, RetryException {
-    Retryer<List<File>> filesSummaryRetryer = APIRequestRepeater.getRetryer(config,
+    Retryer<List<File>> filesSummaryRetryer = APIRequestRetryer.getRetryer(config,
         String.format("Get files summary, files: '%d'", filesNumber));
     return filesSummaryRetryer.call(() -> {
       List<File> files = new ArrayList<>();

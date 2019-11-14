@@ -30,14 +30,21 @@ import org.slf4j.LoggerFactory;
 
 import java.net.SocketTimeoutException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
  *
  */
-public abstract class APIRequestRepeater {
-  private static final Logger LOG = LoggerFactory.getLogger(APIRequestRepeater.class);
+public abstract class APIRequestRetryer {
+  private static final Logger LOG = LoggerFactory.getLogger(APIRequestRetryer.class);
+  protected static final int TOO_MANY_REQUESTS_CODE = 429;
+  protected static final int LIMIT_RATE_EXCEEDED_CODE = 403;
+  protected static final int BACKEND_ERROR_CODE = 500;
+  protected static final int SERVICE_UNAVAILABLE_CODE = 503;
+  protected static final String TOO_MANY_REQUESTS_MESSAGE = "Too Many Requests";
+  protected static final String LIMIT_RATE_EXCEEDED_MESSAGE = "Rate Limit Exceeded";
 
   public static <T> Retryer<T> getRetryer(GoogleRetryingConfig config, String operationDescription) {
     RetryListener listener = new RetryListener() {
@@ -58,7 +65,7 @@ public abstract class APIRequestRepeater {
       }
     };
     return RetryerBuilder.<T>newBuilder()
-        .retryIfException(APIRequestRepeater::checkThrowable)
+        .retryIfException(APIRequestRetryer::checkThrowable)
         .retryIfExceptionOfType(SocketTimeoutException.class)
         .withWaitStrategy(WaitStrategies.join(
             new TrueExponentialWaitStrategy(1000, TimeUnit.SECONDS.toMillis(config.getMaxRetryWait())),
@@ -78,27 +85,27 @@ public abstract class APIRequestRepeater {
   }
 
   private static boolean isTooManyRequestsError(GoogleJsonResponseException e) {
-    List<String> possibleMessages = Arrays.asList("Too Many Requests", "Rate Limit Exceeded");
-    int code = 429;
-    return e.getDetails().getCode() == code && possibleMessages.contains(e.getStatusMessage());
+    List<String> possibleMessages = Arrays.asList(TOO_MANY_REQUESTS_MESSAGE, LIMIT_RATE_EXCEEDED_MESSAGE);
+    return e.getDetails().getCode() == TOO_MANY_REQUESTS_CODE && possibleMessages.contains(e.getStatusMessage());
   }
 
   private static boolean isRateLimitError(GoogleJsonResponseException e) {
-    List<String> possibleMessages = Arrays.asList("Rate Limit Exceeded");
-    int code = 403;
-    return e.getDetails().getCode() == code && possibleMessages.contains(e.getStatusMessage());
+    List<String> possibleMessages = Collections.singletonList(LIMIT_RATE_EXCEEDED_MESSAGE);
+    return e.getDetails().getCode() == LIMIT_RATE_EXCEEDED_CODE && possibleMessages.contains(e.getStatusMessage());
   }
 
   private static boolean isBackendError(GoogleJsonResponseException e) {
-    int code = 500;
-    return e.getDetails().getCode() == code;
+    return e.getDetails().getCode() == BACKEND_ERROR_CODE;
   }
 
   private static boolean isServiceUnavailableError(GoogleJsonResponseException e) {
-    int code = 503;
-    return e.getDetails().getCode() == code;
+    return e.getDetails().getCode() == SERVICE_UNAVAILABLE_CODE;
   }
 
+  /**
+   * Default exponential strategy {@link com.github.rholder.retry.WaitStrategies.ExceptionWaitStrategy} starts
+   * from multiplier 2 instead of 1.
+   */
   private static class TrueExponentialWaitStrategy implements WaitStrategy {
 
     private final long multiplier;

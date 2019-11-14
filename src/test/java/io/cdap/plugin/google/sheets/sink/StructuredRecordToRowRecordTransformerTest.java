@@ -19,6 +19,7 @@ package io.cdap.plugin.google.sheets.sink;
 import com.google.api.services.sheets.v4.model.CellData;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
+import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import java.util.List;
 
 public class StructuredRecordToRowRecordTransformerTest {
   private static final String SCHEMA_NAME = "default";
@@ -148,81 +150,53 @@ public class StructuredRecordToRowRecordTransformerTest {
   }
 
   @Test
-  public void testTransformWithSpreadsheetAndSheetNames() throws IOException {
-    /*StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
+  public void testTransformWithSpreadsheetAndSheetNames() {
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
         SPREADSHEET_NAME_FIELD_NAME,
         SHEET_TITLE_FIELD_NAME,
-        PRESET_SHEET_TITLE,
-        new StructuredRecordToRowRecordTransformer.JSONComplexDataFormatter());
+        PRESET_SHEET_TITLE);
     StructuredRecord testRecord = getTestTransformRecord();
 
-    RowRecord result = transformer.transform(testRecord);
+    MultipleRowsRecord result = transformer.transform(testRecord);
 
     Assert.assertEquals(SPREADSHEET_NAME, result.getSpreadSheetName());
     Assert.assertEquals(SHEET_TITLE, result.getSheetTitle());
-    Assert.assertNull(result.getMetadata());
-    Assert.assertEquals(1, result.getHeaderedCells().size());
-    Assert.assertNotNull(result.getHeaderedCells().get(STRING_FIELD_NAME));
-    Assert.assertEquals(STRING_VALUE, result.getHeaderedCells().get(STRING_FIELD_NAME)
-        .getUserEnteredValue().getStringValue());*/
+
+    checkSimpleRecord(result);
   }
 
   @Test
   public void testTransformWithDefaultSheetName() throws IOException {
-    /*StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
         "",
         "",
-        PRESET_SHEET_TITLE,
-        new StructuredRecordToRowRecordTransformer.JSONComplexDataFormatter());
+        PRESET_SHEET_TITLE);
     StructuredRecord testRecord = getTestTransformRecord();
 
-    RowRecord result = transformer.transform(testRecord);
+    MultipleRowsRecord result = transformer.transform(testRecord);
 
     Assert.assertEquals(StructuredRecordToRowRecordTransformer.RANDOM_FILE_NAME_LENGTH,
         (Integer) result.getSpreadSheetName().length());
     Assert.assertEquals(PRESET_SHEET_TITLE, result.getSheetTitle());
-    Assert.assertNull(result.getMetadata());
-    Assert.assertEquals(3, result.getHeaderedCells().size());
 
-    Assert.assertNotNull(result.getHeaderedCells().get(SPREADSHEET_NAME_FIELD_NAME));
-    Assert.assertEquals(SPREADSHEET_NAME, result.getHeaderedCells().get(SPREADSHEET_NAME_FIELD_NAME)
-        .getUserEnteredValue().getStringValue());
-
-    Assert.assertNotNull(result.getHeaderedCells().get(SHEET_TITLE_FIELD_NAME));
-    Assert.assertEquals(SHEET_TITLE, result.getHeaderedCells().get(SHEET_TITLE_FIELD_NAME)
-        .getUserEnteredValue().getStringValue());
-
-    Assert.assertNotNull(result.getHeaderedCells().get(STRING_FIELD_NAME));
-    Assert.assertEquals(STRING_VALUE, result.getHeaderedCells().get(STRING_FIELD_NAME)
-        .getUserEnteredValue().getStringValue());*/
+    checkSimpleRecord(result);
   }
 
   @Test
   public void testTransformWithSpreadsheetAndDefaultSheetNames() throws IOException {
-    /*StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
         SPREADSHEET_NAME_FIELD_NAME,
         "",
-        PRESET_SHEET_TITLE,
-        new StructuredRecordToRowRecordTransformer.JSONComplexDataFormatter());
+        PRESET_SHEET_TITLE);
     StructuredRecord testRecord = getTestTransformRecord();
 
-    RowRecord result = transformer.transform(testRecord);
+    MultipleRowsRecord result = transformer.transform(testRecord);
 
     Assert.assertEquals(SPREADSHEET_NAME, result.getSpreadSheetName());
     Assert.assertEquals(PRESET_SHEET_TITLE, result.getSheetTitle());
-    Assert.assertNull(result.getMetadata());
-    Assert.assertEquals(2, result.getHeaderedCells().size());
 
-    Assert.assertNotNull(result.getHeaderedCells().get(SHEET_TITLE_FIELD_NAME));
-    Assert.assertEquals(SHEET_TITLE, result.getHeaderedCells().get(SHEET_TITLE_FIELD_NAME)
-        .getUserEnteredValue().getStringValue());
-
-    Assert.assertNotNull(result.getHeaderedCells().get(STRING_FIELD_NAME));
-    Assert.assertEquals(STRING_VALUE, result.getHeaderedCells().get(STRING_FIELD_NAME)
-        .getUserEnteredValue().getStringValue());*/
+    checkSimpleRecord(result);
   }
-
-
 
   private StructuredRecord getTestTransformRecord() {
     Schema testSchema = Schema.recordOf(SCHEMA_NAME,
@@ -235,6 +209,28 @@ public class StructuredRecordToRowRecordTransformerTest {
     builder.set(SHEET_TITLE_FIELD_NAME, SHEET_TITLE);
     builder.set(STRING_FIELD_NAME, STRING_VALUE);
     return builder.build();
+  }
+
+  private void checkSimpleRecord(MultipleRowsRecord result) {
+    // just one row
+    Assert.assertNotNull(result.getSingleRowRecords().size());
+    Assert.assertEquals(1, result.getSingleRowRecords().size());
+
+    // with three columns
+    List<CellData> row = result.getSingleRowRecords().get(0);
+    Assert.assertNotNull(row);
+    Assert.assertEquals(3, row.size());
+    Assert.assertEquals(SPREADSHEET_NAME, row.get(0).getUserEnteredValue().getStringValue());
+    Assert.assertEquals(SHEET_TITLE, row.get(1).getUserEnteredValue().getStringValue());
+    Assert.assertEquals(STRING_VALUE, row.get(2).getUserEnteredValue().getStringValue());
+
+    // check the headers
+    Assert.assertEquals(3, result.getHeader().getSubHeaders().size());
+    Assert.assertEquals(3, result.getHeader().getWidth());
+    Assert.assertEquals(1, result.getHeader().getDepth() - 1);
+    Assert.assertEquals(SPREADSHEET_NAME_FIELD_NAME, result.getHeader().getSubHeaders().get(0).getName());
+    Assert.assertEquals(SHEET_TITLE_FIELD_NAME, result.getHeader().getSubHeaders().get(1).getName());
+    Assert.assertEquals(STRING_FIELD_NAME, result.getHeader().getSubHeaders().get(2).getName());
   }
 
 

@@ -21,7 +21,7 @@ import com.github.rholder.retry.Retryer;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
-import io.cdap.plugin.google.common.APIRequestRepeater;
+import io.cdap.plugin.google.common.APIRequestRetryer;
 import io.cdap.plugin.google.common.GoogleDriveFilteringClient;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 import io.cdap.plugin.google.drive.source.utils.ExportedType;
@@ -67,7 +67,7 @@ public class GoogleDriveSourceClient extends GoogleDriveFilteringClient<GoogleDr
 
   public FileFromFolder getFilePartition(String fileId, Long bytesFrom, Long bytesTo)
       throws IOException, ExecutionException, RetryException {
-    Retryer<FileFromFolder> fileFromFolderRetryer = APIRequestRepeater.getRetryer(config,
+    Retryer<FileFromFolder> fileFromFolderRetryer = APIRequestRetryer.getRetryer(config,
         String.format("File retrieving, id: '%s'", fileId));
     return fileFromFolderRetryer.call(() -> {
       FileFromFolder fileFromFolder;
@@ -139,7 +139,7 @@ public class GoogleDriveSourceClient extends GoogleDriveFilteringClient<GoogleDr
   // Google Drive API does not support partitioning for exporting Google Docs
   private FileFromFolder exportGoogleFormatFile(Drive service, File currentFile, String exportFormat)
       throws ExecutionException, RetryException {
-    Retryer<FileFromFolder> fileFromFolderRetryer = APIRequestRepeater.getRetryer(config,
+    Retryer<FileFromFolder> fileFromFolderRetryer = APIRequestRetryer.getRetryer(config,
         String.format("File exporting, id: '%s', export format: '%s'", currentFile.getId(), exportFormat));
     return fileFromFolderRetryer.call(() -> {
       OutputStream outputStream = new ByteArrayOutputStream();

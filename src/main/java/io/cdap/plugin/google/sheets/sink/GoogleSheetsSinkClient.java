@@ -31,7 +31,7 @@ import com.google.api.services.sheets.v4.model.RowData;
 import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.SpreadsheetProperties;
-import io.cdap.plugin.google.common.APIRequestRepeater;
+import io.cdap.plugin.google.common.APIRequestRetryer;
 import io.cdap.plugin.google.sheets.common.GoogleSheetsClient;
 import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
 import io.cdap.plugin.google.sheets.sink.utils.ComplexHeader;
@@ -60,7 +60,7 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
   public void createFile(MultipleRowsRecord rowsRecord) throws ExecutionException, RetryException {
     String spreadsheetName = rowsRecord.getSpreadSheetName();
     String sheetTitle = rowsRecord.getSheetTitle();
-    Spreadsheet spreadsheet = (Spreadsheet) APIRequestRepeater.getRetryer(config,
+    Spreadsheet spreadsheet = (Spreadsheet) APIRequestRetryer.getRetryer(config,
         String.format("Creation of empty spreadsheet, name: '%s', sheet title: '%s'.",
             spreadsheetName, sheetTitle))
         .call(() ->
@@ -70,7 +70,7 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
     String spreadSheetsId = spreadsheet.getSpreadsheetId();
     Integer sheetId = spreadsheet.getSheets().get(0).getProperties().getSheetId();
 
-    APIRequestRepeater.getRetryer(config,
+    APIRequestRetryer.getRetryer(config,
         String.format("Populating of spreadsheet '%s' with record, sheet title name '%s'.",
             spreadsheetName, sheetTitle))
         .call(() -> {
@@ -78,7 +78,7 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
           return null;
         });
 
-    APIRequestRepeater.getRetryer(config,
+    APIRequestRetryer.getRetryer(config,
         String.format("Moving the spreadsheet '%s' to destination folder.",
             spreadsheetName, sheetTitle))
         .call(() -> {

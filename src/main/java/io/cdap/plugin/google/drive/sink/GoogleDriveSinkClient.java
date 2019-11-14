@@ -20,7 +20,7 @@ import com.github.rholder.retry.RetryException;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
-import io.cdap.plugin.google.common.APIRequestRepeater;
+import io.cdap.plugin.google.common.APIRequestRetryer;
 import io.cdap.plugin.google.common.GoogleDriveClient;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 
@@ -38,7 +38,7 @@ public class GoogleDriveSinkClient extends GoogleDriveClient<GoogleDriveSinkConf
   }
 
   public void createFile(FileFromFolder fileFromFolder) throws ExecutionException, RetryException {
-    APIRequestRepeater.getRetryer(config,
+    APIRequestRetryer.getRetryer(config,
         String.format("Creating of file with name '%s'", fileFromFolder.getFile().getName()))
         .call(() -> {
           String folderId = config.getDirectoryIdentifier();

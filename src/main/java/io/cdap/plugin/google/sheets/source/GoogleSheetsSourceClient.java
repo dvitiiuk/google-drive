@@ -23,7 +23,7 @@ import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.GridData;
 import com.google.api.services.sheets.v4.model.RowData;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
-import io.cdap.plugin.google.common.APIRequestRepeater;
+import io.cdap.plugin.google.common.APIRequestRetryer;
 import io.cdap.plugin.google.sheets.common.GoogleSheetsClient;
 import io.cdap.plugin.google.sheets.common.RowRecord;
 import io.cdap.plugin.google.sheets.source.utils.CellCoordinate;
@@ -49,15 +49,8 @@ import java.util.stream.Collectors;
 public class GoogleSheetsSourceClient extends GoogleSheetsClient<GoogleSheetsSourceConfig> {
   private static final Logger LOG = LoggerFactory.getLogger(GoogleSheetsSourceClient.class);
 
-  /*private final Retryer<RowRecord> getContentRetryer;
-  private final Retryer<List<String>> getSheetTitlesRetryer;
-  private final Retryer<List<com.google.api.services.sheets.v4.model.Sheet>> getSheetRetryer;*/
-
   public GoogleSheetsSourceClient(GoogleSheetsSourceConfig config) {
     super(config);
-    /*getContentRetryer = APIRequestRepeater.getRetryer(config, "Content retrieving");
-    getSheetTitlesRetryer = APIRequestRepeater.getRetryer(config, "Get spreadsheet titles");
-    getSheetRetryer = APIRequestRepeater.getRetryer(config, "Get spreadsheet");*/
   }
 
   @Override
@@ -68,7 +61,7 @@ public class GoogleSheetsSourceClient extends GoogleSheetsClient<GoogleSheetsSou
   @SuppressWarnings("unchecked")
   public List<com.google.api.services.sheets.v4.model.Sheet> getSheets(String spreadSheetId)
       throws ExecutionException, RetryException {
-    return (List<com.google.api.services.sheets.v4.model.Sheet>) APIRequestRepeater.getRetryer(config,
+    return (List<com.google.api.services.sheets.v4.model.Sheet>) APIRequestRetryer.getRetryer(config,
         String.format("Get spreadsheet, id: '%s'", spreadSheetId))
         .call(() -> {
           Spreadsheet spreadsheet = service.spreadsheets().get(spreadSheetId).execute();
@@ -79,7 +72,7 @@ public class GoogleSheetsSourceClient extends GoogleSheetsClient<GoogleSheetsSou
   @SuppressWarnings("unchecked")
   public List<String> getSheetsTitles(String spreadSheetId, List<Integer> indexes)
       throws ExecutionException, RetryException {
-    return (List<String>) APIRequestRepeater.getRetryer(config,
+    return (List<String>) APIRequestRetryer.getRetryer(config,
         String.format("Get sheet titles, spreadsheet id: '%s'", spreadSheetId))
         .call(() -> {
           Spreadsheet spreadsheet = service.spreadsheets().get(spreadSheetId).execute();
@@ -90,7 +83,7 @@ public class GoogleSheetsSourceClient extends GoogleSheetsClient<GoogleSheetsSou
 
   @SuppressWarnings("unchecked")
   public List<String> getSheetsTitles(String spreadSheetId) throws ExecutionException, RetryException {
-    return (List<String>) APIRequestRepeater.getRetryer(config,
+    return (List<String>) APIRequestRetryer.getRetryer(config,
         String.format("Get sheet titles, spreadsheet id: '%s'", spreadSheetId))
         .call(() -> {
           Spreadsheet spreadsheet = service.spreadsheets().get(spreadSheetId).execute();
@@ -103,7 +96,7 @@ public class GoogleSheetsSourceClient extends GoogleSheetsClient<GoogleSheetsSou
                               LinkedHashMap<Integer, String> resolvedHeaders,
                               List<MetadataKeyValueAddress> metadataCoordinates)
       throws ExecutionException, RetryException {
-    return (RowRecord) APIRequestRepeater.getRetryer(config,
+    return (RowRecord) APIRequestRetryer.getRetryer(config,
         String.format("Get content, spreadsheet id: '%s', sheet title: '%s', row number: '%d'",
             spreadSheetId, sheetTitle, rowNumber))
         .call(() -> {
