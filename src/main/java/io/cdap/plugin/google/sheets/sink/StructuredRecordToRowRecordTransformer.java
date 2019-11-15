@@ -260,6 +260,8 @@ public class StructuredRecordToRowRecordTransformer {
           processField(field, nestedRecord, data, header, mergeRanges, false);
         }
         break;
+      default:
+        throw new IllegalStateException();
     }
   }
 

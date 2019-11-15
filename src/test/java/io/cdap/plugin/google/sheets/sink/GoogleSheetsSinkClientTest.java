@@ -16,5 +16,56 @@
 
 package io.cdap.plugin.google.sheets.sink;
 
+import com.google.api.services.sheets.v4.model.Request;
+import com.google.api.services.sheets.v4.model.RowData;
+import io.cdap.plugin.google.common.AuthType;
+import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
+import io.cdap.plugin.google.sheets.sink.utils.ComplexHeader;
+import org.easymock.EasyMock;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 public class GoogleSheetsSinkClientTest {
+
+  @Test
+  public void testPrepareContentFlatHeaders()
+    throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    List<String> headerNames = Arrays.asList("h0", "h1", "h2", "h3");
+    GoogleSheetsSinkConfig sinkConfig = EasyMock.createMock(GoogleSheetsSinkConfig.class);
+    EasyMock.expect(sinkConfig.getAuthType()).andReturn(AuthType.OAUTH2).anyTimes();
+    EasyMock.expect(sinkConfig.getRefreshToken()).andReturn("dsfdsfdsfdsf").anyTimes();
+    EasyMock.expect(sinkConfig.getClientSecret()).andReturn("dsfdsfdsfdsf").anyTimes();
+    EasyMock.expect(sinkConfig.getClientId()).andReturn("dsdsrfegvrb").anyTimes();
+    EasyMock.expect(sinkConfig.isWriteSchema()).andReturn(true).anyTimes();
+
+    EasyMock.replay(sinkConfig);
+    GoogleSheetsSinkClient sinkClient = new GoogleSheetsSinkClient(sinkConfig);
+
+    ComplexHeader complexHeader = new ComplexHeader("root");
+    headerNames.stream().forEach(h -> complexHeader.addHeader(new ComplexHeader(h)));
+    MultipleRowsRecord rowsRecord = new MultipleRowsRecord("spreadsheetName", "sheetTitle",
+      complexHeader, Collections.emptyList(), Collections.emptyList());
+
+    Method prepareContentRequestMethod = GoogleSheetsSinkClient.class.getDeclaredMethod("prepareContentRequest",
+      Integer.class, MultipleRowsRecord.class, boolean.class);
+    prepareContentRequestMethod.setAccessible(true);
+
+    Request request = (Request) prepareContentRequestMethod.invoke(sinkClient, 0, rowsRecord, true);
+
+    List<RowData> rows = request.getAppendCells().getRows();
+    Assert.assertEquals(1, rows.size());
+
+    RowData headersRow = rows.get(0);
+    Assert.assertEquals(headerNames.size(), headersRow.getValues().size());
+
+    for (int i = 0; i < headerNames.size(); i++) {
+      Assert.assertEquals(headerNames.get(i), headersRow.getValues().get(i).getUserEnteredValue().getStringValue());
+    }
+  }
 }

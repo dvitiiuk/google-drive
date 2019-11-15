@@ -36,6 +36,18 @@ public class GoogleSheetsSinkConfig extends GoogleInputSchemaFieldsUsageConfig {
   public static final String SCHEMA_SHEET_NAME_FIELD_NAME = "schemaSheetNameFieldName";
   public static final String WRITE_SCHEMA_FIELD_NAME = "writeSchema";
   public static final String MERGE_DATA_CELLS_FIELD_NAME = "mergeDataCells";
+  public static final String TOP_LEVEL_SCHEMA_MESSAGE =
+    "Field '%s' has unsupported schema type '%s' and logical type '%s'.";
+  public static final String TOP_LEVEL_SCHEMA_CORRECTIVE_MESSAGE =
+    "Allowed top level logical types: [%s] and types: [%s].";
+  public static final String ARRAY_NESTED_SCHEMA_MESSAGE =
+    "Array field '%s' has unsupported components' schema type '%s' and logical type '%s'.";
+  public static final String ARRAY_NESTED_SCHEMA_CORRECTIVE_MESSAGE =
+    "Allowed array nested logical types: [%s] and types: [%s].";
+  public static final String RECORD_NESTED_SCHEMA_MESSAGE =
+    "Record '%s' has field '%s' with unsupported schema type '%s' and logical type '%s'";
+  public static final String RECORD_NESTED_SCHEMA_CORRECTIVE_MESSAGE =
+    "Allowed record nested logical types: [%s] and types: [%s]";
 
   public static final List<Schema.LogicalType> ALLOWED_LOGICAL_TYPES = Arrays.asList(Schema.LogicalType.DATE,
       Schema.LogicalType.TIME_MILLIS,
@@ -106,49 +118,42 @@ public class GoogleSheetsSinkConfig extends GoogleInputSchemaFieldsUsageConfig {
                         "File mime field", Schema.Type.STRING);
 
     // validate schema
-    validateSchema(collector, schema);
+    //validateSchema(collector, schema);
   }
 
   private void validateSchema(FailureCollector collector, Schema schema) {
     for (Schema.Field field : schema.getFields()) {
       Schema fieldSchema = field.getSchema();
-      if (!ALLOWED_LOGICAL_TYPES.contains(fieldSchema.getLogicalType())
-          && !ALLOWED_TYPES.contains(fieldSchema.getType())) {
-        collector.addFailure(
-            String.format("Field '%s' has unsupported schema type '%s' and logical type '%s'",
-                field.getName(), fieldSchema.getType(), fieldSchema.getLogicalType()),
-            String.format(String.format("Allowed top level logical types: [%s] and types: [%s]",
-                ALLOWED_LOGICAL_TYPES.toString(),
-                ALLOWED_TYPES.toString())));
-      }
+      checkSchemas(collector, fieldSchema, ALLOWED_LOGICAL_TYPES, ALLOWED_TYPES,
+        String.format(TOP_LEVEL_SCHEMA_MESSAGE, field.getName(), fieldSchema.getType(), fieldSchema.getLogicalType()),
+        String.format(TOP_LEVEL_SCHEMA_CORRECTIVE_MESSAGE, ALLOWED_LOGICAL_TYPES.toString(), ALLOWED_TYPES.toString()));
       // for array and record check that they don't have nested complex structures
       if (Schema.Type.ARRAY.equals(fieldSchema.getType())) {
         Schema componentSchema = fieldSchema.getComponentSchema();
-        if (!ALLOWED_LOGICAL_TYPES.contains(componentSchema.getLogicalType())
-            && !ALLOWED_NESTED_TYPES.contains(componentSchema.getType())) {
-          collector.addFailure(
-              String.format("Array field '%s' has unsupported schema type '%s' and logical type '%s'",
-                  field.getName(), componentSchema.getType(), componentSchema.getLogicalType()),
-              String.format(String.format("Allowed array logical types: [%s] and types: [%s]",
-                  ALLOWED_LOGICAL_TYPES.toString(),
-                  ALLOWED_NESTED_TYPES.toString())));
-        }
+        checkSchemas(collector, componentSchema, ALLOWED_LOGICAL_TYPES, ALLOWED_NESTED_TYPES,
+          String.format(ARRAY_NESTED_SCHEMA_MESSAGE, field.getName(),
+            componentSchema.getType(), componentSchema.getLogicalType()),
+          String.format(ARRAY_NESTED_SCHEMA_CORRECTIVE_MESSAGE, ALLOWED_LOGICAL_TYPES.toString(),
+            ALLOWED_NESTED_TYPES.toString()));
       }
       if (Schema.Type.RECORD.equals(fieldSchema.getType())) {
         for (Schema.Field nestedField : fieldSchema.getFields()) {
-          Schema nestedComponentSchema = nestedField.getSchema().getComponentSchema();
-          if (!ALLOWED_LOGICAL_TYPES.contains(nestedComponentSchema.getLogicalType())
-              && !ALLOWED_NESTED_TYPES.contains(nestedComponentSchema.getType())) {
-            collector.addFailure(
-                String.format("Record '%s' has field '%s' with unsupported schema type '%s' and logical type '%s'",
-                    field.getName(), nestedField.getName(), nestedComponentSchema.getType(),
-                    nestedComponentSchema.getLogicalType()),
-                String.format(String.format("Allowed record nested logical types: [%s] and types: [%s]",
-                    ALLOWED_LOGICAL_TYPES.toString(),
-                    ALLOWED_NESTED_TYPES.toString())));
-          }
+          Schema nestedComponentSchema = nestedField.getSchema();
+          checkSchemas(collector, nestedComponentSchema, ALLOWED_LOGICAL_TYPES, ALLOWED_NESTED_TYPES,
+            String.format(RECORD_NESTED_SCHEMA_MESSAGE, field.getName(), nestedField.getName(),
+              nestedComponentSchema.getType(), nestedComponentSchema.getLogicalType()),
+            String.format(String.format(RECORD_NESTED_SCHEMA_CORRECTIVE_MESSAGE,
+              ALLOWED_LOGICAL_TYPES.toString(), ALLOWED_NESTED_TYPES.toString())));
         }
       }
+    }
+  }
+
+  private void checkSchemas(FailureCollector collector, Schema fieldSchema,
+                            List<Schema.LogicalType> allowedLogicalTypes, List<Schema.Type> allowedTypes,
+                            String message, String correctiveAction) {
+    if (!allowedLogicalTypes.contains(fieldSchema.getLogicalType()) && !allowedTypes.contains(fieldSchema.getType())) {
+      collector.addFailure(message, correctiveAction);
     }
   }
 

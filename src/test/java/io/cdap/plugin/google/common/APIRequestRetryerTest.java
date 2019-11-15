@@ -90,7 +90,7 @@ public class APIRequestRetryerTest {
     final Exception exception;
     int counter = 0;
 
-    public TestAPIClass(Exception exception) {
+    TestAPIClass(Exception exception) {
       this.exception = exception;
     }
 

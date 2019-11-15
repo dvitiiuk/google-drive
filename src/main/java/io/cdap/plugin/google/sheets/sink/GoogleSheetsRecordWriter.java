@@ -17,16 +17,18 @@
 package io.cdap.plugin.google.sheets.sink;
 
 import com.github.rholder.retry.RetryException;
+import com.google.api.services.sheets.v4.model.Spreadsheet;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 import io.cdap.plugin.google.drive.sink.GoogleDriveOutputFormatProvider;
 import io.cdap.plugin.google.drive.sink.GoogleDriveSinkClient;
 import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
-import io.cdap.plugin.google.sheets.common.RowRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -36,6 +38,10 @@ public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, Multipl
 
   private GoogleSheetsSinkClient sheetsSinkClient;
   private GoogleSheetsSinkConfig googleSheetsSinkConfig;
+
+  private final Map<String, Map<String, Integer>> availableSheets = new HashMap<>();
+  private final Map<String, Map<String, Integer>> sheetContentShifts = new HashMap<>();
+  private final Map<String, String> availableFiles = new HashMap<>();
 
   public GoogleSheetsRecordWriter(TaskAttemptContext taskAttemptContext) {
     Configuration conf = taskAttemptContext.getConfiguration();
@@ -49,7 +55,38 @@ public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, Multipl
   @Override
   public void write(NullWritable nullWritable, MultipleRowsRecord rowsRecord) throws InterruptedException {
     try {
-      sheetsSinkClient.createFile(rowsRecord);
+      String spreadSheetName = rowsRecord.getSpreadSheetName();
+      String sheetTitle = rowsRecord.getSheetTitle();
+      boolean newSheet = false;
+      if (!availableFiles.keySet().contains(spreadSheetName)) {
+        // create spreadsheet file with sheet
+
+        Spreadsheet spreadsheet = sheetsSinkClient.createEmptySpreadsheet(spreadSheetName, sheetTitle);
+        String spreadSheetId = spreadsheet.getSpreadsheetId();
+        Integer sheetId = spreadsheet.getSheets().get(0).getProperties().getSheetId();
+
+        sheetsSinkClient.moveSpreadsheetToDestinationFolder(spreadSheetId, spreadSheetName, sheetTitle);
+
+        availableFiles.put(spreadSheetName, spreadSheetId);
+        availableSheets.put(spreadSheetName, new HashMap<>());
+        availableSheets.get(spreadSheetName).put(sheetTitle, sheetId);
+        sheetContentShifts.put(spreadSheetName, new HashMap<>());
+        sheetContentShifts.get(spreadSheetName).put(sheetTitle, 0);
+        newSheet = true;
+      }
+      String spreadSheetId = availableFiles.get(spreadSheetName);
+      if (!availableSheets.get(spreadSheetName).keySet().contains(sheetTitle)) {
+
+        // create new sheet
+        Integer sheetId = sheetsSinkClient.createSheet(spreadSheetId, spreadSheetName, sheetTitle);
+        availableSheets.get(spreadSheetName).put(sheetTitle, sheetId);
+        sheetContentShifts.get(spreadSheetName).put(sheetTitle, 0);
+        newSheet = true;
+      }
+      Integer spreadId = availableSheets.get(spreadSheetName).get(sheetTitle);
+      Integer contentShift = sheetContentShifts.get(spreadSheetName).get(sheetTitle);
+      int addedRowsNumber = sheetsSinkClient.populateCells(spreadSheetId, spreadId, rowsRecord, newSheet, contentShift);
+      sheetContentShifts.get(spreadSheetName).put(sheetTitle, contentShift + addedRowsNumber);
     } catch (ExecutionException | RetryException e) {
       throw new InterruptedException(e.getMessage());
     }
