@@ -23,10 +23,14 @@ import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.AddSheetRequest;
 import com.google.api.services.sheets.v4.model.AppendCellsRequest;
+import com.google.api.services.sheets.v4.model.AppendDimensionRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetResponse;
 import com.google.api.services.sheets.v4.model.CellData;
+import com.google.api.services.sheets.v4.model.DeleteDimensionRequest;
+import com.google.api.services.sheets.v4.model.DimensionRange;
 import com.google.api.services.sheets.v4.model.ExtendedValue;
+import com.google.api.services.sheets.v4.model.GridCoordinate;
 import com.google.api.services.sheets.v4.model.GridRange;
 import com.google.api.services.sheets.v4.model.MergeCellsRequest;
 import com.google.api.services.sheets.v4.model.Request;
@@ -34,6 +38,7 @@ import com.google.api.services.sheets.v4.model.RowData;
 import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.SpreadsheetProperties;
+import com.google.api.services.sheets.v4.model.UpdateCellsRequest;
 import io.cdap.plugin.google.common.APIRequestRetryer;
 import io.cdap.plugin.google.sheets.common.GoogleSheetsClient;
 import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
@@ -59,7 +64,7 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
     super(config);
   }
 
-  private void createFile(MultipleRowsRecord rowsRecord) throws ExecutionException, RetryException {
+  /*private void createFile(MultipleRowsRecord rowsRecord) throws ExecutionException, RetryException {
     String spreadsheetName = rowsRecord.getSpreadSheetName();
     String sheetTitle = rowsRecord.getSheetTitle();
     Spreadsheet spreadsheet = createEmptySpreadsheet(spreadsheetName, sheetTitle);
@@ -69,7 +74,7 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
 
     populateCells(spreadSheetsId, sheetId, rowsRecord, true, 0);
     moveSpreadsheetToDestinationFolder(spreadSheetsId, spreadsheetName, sheetTitle);
-  }
+  }*/
 
   public Spreadsheet createEmptySpreadsheet(String spreadsheetName, String sheetTitle)
     throws ExecutionException, RetryException {
@@ -98,7 +103,7 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
     Retryer<Integer> createSheetRetryer = APIRequestRetryer.getRetryer(config,
       String.format("Creation of empty sheet, spreadsheet name: '%s', sheet title: '%s'.",
         spreadSheetName, sheetTitle));
-    return createSheetRetryer.call(() -> {
+    Integer sheetId = createSheetRetryer.call(() -> {
       BatchUpdateSpreadsheetRequest requestBody = new BatchUpdateSpreadsheetRequest();
 
       AddSheetRequest addSheetRequest = new AddSheetRequest();
@@ -112,12 +117,35 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
 
       return response.getReplies().get(0).getAddSheet().getProperties().getSheetId();
     });
+
+    startDeleteDimensions(spreadSheetId, sheetId, sheetTitle);
+    return sheetId;
   }
 
-  public int populateCells(String spreadSheetsId, Integer sheetId, MultipleRowsRecord rowsRecord, boolean addHeaders,
+  public void startDeleteDimensions(String spreadSheetId, Integer sheetId, String sheetTitle)
+    throws ExecutionException, RetryException {
+    APIRequestRetryer.getRetryer(config,
+      String.format("Pre-removing of sheet '%s' dimensions", sheetTitle))
+      .call(() -> {
+        BatchUpdateSpreadsheetRequest requestBody = new BatchUpdateSpreadsheetRequest();
+
+        DeleteDimensionRequest deleteDimensionRequest = new DeleteDimensionRequest();
+        deleteDimensionRequest.setRange(
+          new DimensionRange().setSheetId(sheetId).setDimension("ROWS").setStartIndex(0).setEndIndex(999));
+        requestBody.setRequests(Collections.singletonList(new Request().setDeleteDimension(deleteDimensionRequest)));
+
+        Sheets.Spreadsheets.BatchUpdate request =
+          service.spreadsheets().batchUpdate(spreadSheetId, requestBody);
+
+        request.execute();
+        return null;
+      });
+  }
+
+  /*public int populateCells(String spreadSheetsId, Integer sheetId, MultipleRowsRecord rowsRecord, boolean addHeaders,
                            int contentShift)
     throws ExecutionException, RetryException {
-    Request contentRequest = prepareContentRequest(sheetId, rowsRecord, addHeaders);
+    Request contentRequest = prepareContentRequest(sheetId, rowsRecord);
     List<Request> mergeRequests = prepareMergeRequests(sheetId, rowsRecord, addHeaders, contentShift);
 
     APIRequestRetryer.getRetryer(config,
@@ -137,9 +165,113 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
         return null;
       });
     return contentRequest.getAppendCells().getRows().size();
+  }*/
+
+  public void extendDimension(String spreadSheetsId, String spreadSheetsName, String sheetTitle,
+                              int sheetId, int rowsToAdd) throws ExecutionException, RetryException {
+    if (rowsToAdd <= 0) {
+      return;
+    }
+    AppendDimensionRequest appendDimensionRequest = new AppendDimensionRequest();
+    appendDimensionRequest.setSheetId(sheetId);
+    appendDimensionRequest.setDimension("ROWS");
+    appendDimensionRequest.setLength(rowsToAdd);
+    Request appendRequest = new Request().setAppendDimension(appendDimensionRequest);
+
+    APIRequestRetryer.getRetryer(config,
+      String.format("Appending dimension of '%d' rows for spreadsheet '%s', sheet name '%s'.",
+        rowsToAdd, spreadSheetsName, sheetTitle))
+      .call(() -> {
+        BatchUpdateSpreadsheetRequest requestBody = new BatchUpdateSpreadsheetRequest();
+        requestBody.setRequests(Collections.singletonList(appendRequest));
+
+        Sheets.Spreadsheets.BatchUpdate request =
+          service.spreadsheets().batchUpdate(spreadSheetsId, requestBody);
+
+        request.execute();
+        return null;
+      });
   }
 
-  private Request prepareContentRequest(Integer sheetId, MultipleRowsRecord rowsRecord, boolean addHeaders) {
+  public int populateCells(String spreadSheetsId, String spreadSheetName, String sheetTitle,
+                           Request contentRequest, List<Request> mergeRequests,
+                           int shift)
+    throws ExecutionException, RetryException {
+
+    APIRequestRetryer.getRetryer(config,
+      String.format("Populating of spreadsheet '%s' with record, sheet title name '%s', shift: %d.",
+        spreadSheetName, sheetTitle, shift))
+      .call(() -> {
+        BatchUpdateSpreadsheetRequest requestBody = new BatchUpdateSpreadsheetRequest();
+        requestBody.setRequests(new ArrayList<>());
+
+        requestBody.getRequests().add(contentRequest);
+        requestBody.getRequests().addAll(mergeRequests);
+
+        Sheets.Spreadsheets.BatchUpdate request =
+          service.spreadsheets().batchUpdate(spreadSheetsId, requestBody);
+
+        request.execute();
+        return null;
+      });
+    return contentRequest.getUpdateCells().getRows().size();
+  }
+
+  public ContentRequest prepareContentRequest(Integer sheetId, List<MultipleRowsRecord> rowsRecords,
+                                              boolean addHeaders, int shift) {
+    UpdateCellsRequest updateCellsRequest = new UpdateCellsRequest();
+    updateCellsRequest.setFields("*");
+    updateCellsRequest.setStart(new GridCoordinate().setSheetId(sheetId).setColumnIndex(0).setRowIndex(shift));
+    List<RowData> rows = new ArrayList<>();
+    int rowsInHeader = 0;
+    int rowsInRecord = rowsRecords.get(0).getSingleRowRecords().size();
+    boolean headerProcessed = false;
+    for (MultipleRowsRecord rowsRecord : rowsRecords) {
+      if (config.isWriteSchema() && addHeaders && !headerProcessed) {
+        // root header is not displayed
+        int headersDepth = rowsRecord.getHeader().getDepth() - 1;
+        int headersWidth = rowsRecord.getHeader().getWidth();
+        List<ComplexHeader> realHeaders = rowsRecord.getHeader().getSubHeaders();
+        List<RowData> headerRows = new ArrayList<>();
+        for (int rowIndex = 0; rowIndex < headersDepth; rowIndex++) {
+          List<CellData> emptyCells = new ArrayList<>();
+          for (int columnIndex = 0; columnIndex < headersWidth; columnIndex++) {
+            emptyCells.add(new CellData());
+          }
+          headerRows.add(new RowData().setValues(emptyCells));
+        }
+        int widthShift = 0;
+        for (int headerIndex = 0; headerIndex < realHeaders.size(); headerIndex++) {
+          ComplexHeader header = realHeaders.get(headerIndex);
+          populateHeaderRows(header, headerRows, 0, widthShift);
+          widthShift += header.getWidth();
+        }
+        rowsInHeader = headerRows.size();
+        rows.addAll(headerRows);
+        headerProcessed = true;
+      }
+      rows.addAll(rowsRecord.getSingleRowRecords().stream()
+        .map(r -> new RowData().setValues(r)).collect(Collectors.toList()));
+      updateCellsRequest.setRows(rows);
+    }
+
+    return new ContentRequest(new Request().setUpdateCells(updateCellsRequest), rowsRecords.size(),
+      rowsInRecord, rowsInHeader, shift + updateCellsRequest.getRows().size());
+  }
+
+  public Request prepareContentRequest(Integer sheetId, MultipleRowsRecord rowsRecord) {
+    AppendCellsRequest appendCellsRequest = new AppendCellsRequest();
+    appendCellsRequest.setSheetId(sheetId);
+    appendCellsRequest.setFields("*");
+    List<RowData> rows = new ArrayList<>();
+
+    rows.addAll(rowsRecord.getSingleRowRecords().stream()
+      .map(r -> new RowData().setValues(r)).collect(Collectors.toList()));
+    appendCellsRequest.setRows(rows);
+    return new Request().setAppendCells(appendCellsRequest);
+  }
+
+  /*public Request prepareContentRequest(Integer sheetId, MultipleRowsRecord rowsRecord, boolean addHeaders) {
     AppendCellsRequest appendCellsRequest = new AppendCellsRequest();
     appendCellsRequest.setSheetId(sheetId);
     appendCellsRequest.setFields("*");
@@ -170,33 +302,39 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
       .map(r -> new RowData().setValues(r)).collect(Collectors.toList()));
     appendCellsRequest.setRows(rows);
     return new Request().setAppendCells(appendCellsRequest);
-  }
+  }*/
 
-  private List<Request> prepareMergeRequests(Integer sheetId, MultipleRowsRecord rowsRecord, boolean addHeaders,
-                                             int contentShift) {
+  public List<Request> prepareMergeRequests(Integer sheetId, List<MultipleRowsRecord> rowsRecords, boolean addHeaders,
+                                             int startShift) {
     // prepare header merges
     List<MergeCellsRequest> mergeRequests = new ArrayList<>();
-    if (config.isWriteSchema() && addHeaders) {
-      // root header is not displayed
-      int headersDepth = rowsRecord.getHeader().getDepth() - 1;
-      if (headersDepth > 1) {
-        List<ComplexHeader> realHeaders = rowsRecord.getHeader().getSubHeaders();
+    boolean headerProcessed = false;
+    int contentShift = startShift;
+    for (MultipleRowsRecord rowsRecord : rowsRecords) {
+      if (config.isWriteSchema() && addHeaders && !headerProcessed) {
+        // root header is not displayed
+        int headersDepth = rowsRecord.getHeader().getDepth() - 1;
+        if (headersDepth > 1) {
+          List<ComplexHeader> realHeaders = rowsRecord.getHeader().getSubHeaders();
 
-        int widthShift = 0;
-        List<GridRange> headerRanges = new ArrayList<>();
-        for (int headerIndex = 0; headerIndex < realHeaders.size(); headerIndex++) {
-          ComplexHeader header = realHeaders.get(headerIndex);
-          calcHeaderMerges(header, headerRanges, 0, headersDepth, widthShift);
-          widthShift += header.getWidth();
+          int widthShift = 0;
+          List<GridRange> headerRanges = new ArrayList<>();
+          for (int headerIndex = 0; headerIndex < realHeaders.size(); headerIndex++) {
+            ComplexHeader header = realHeaders.get(headerIndex);
+            calcHeaderMerges(header, headerRanges, 0, headersDepth, widthShift);
+            widthShift += header.getWidth();
+          }
+          mergeRequests.addAll(prepareMergeRequests(headerRanges, sheetId, 0));
         }
-        mergeRequests.addAll(prepareMergeRequests(headerRanges, sheetId, 0));
+        contentShift += headersDepth;
+        headerProcessed = true;
       }
-      contentShift = headersDepth;
-    }
 
-    // prepare content merges
-    if (config.isMergeDataCells()) {
-      mergeRequests.addAll(prepareMergeRequests(rowsRecord.getMergeRanges(), sheetId, contentShift));
+      // prepare content merges
+      if (config.isMergeDataCells()) {
+        mergeRequests.addAll(prepareMergeRequests(rowsRecord.getMergeRanges(), sheetId, contentShift));
+      }
+      contentShift += rowsRecord.getSingleRowRecords().size();
     }
     return mergeRequests.stream().map(r -> new Request().setMergeCells(r))
       .collect(Collectors.toList());
@@ -268,5 +406,45 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
   @Override
   protected List<String> getRequiredScopes() {
     return Arrays.asList(SheetsScopes.SPREADSHEETS, DriveScopes.DRIVE);
+  }
+
+  /**
+   *
+   */
+  public class ContentRequest {
+    private final Request contentRequest;
+    private final int numberOfRequests;
+    private final int rowsInRequest;
+    private final int rowsInHeader;
+    private final int lastRowIndex;
+
+    public ContentRequest(Request contentRequest, int numberOfRequests, int rowsInRequest, int rowsInHeader,
+                          int lastRowIndex) {
+      this.contentRequest = contentRequest;
+      this.numberOfRequests = numberOfRequests;
+      this.rowsInRequest = rowsInRequest;
+      this.rowsInHeader = rowsInHeader;
+      this.lastRowIndex = lastRowIndex;
+    }
+
+    public Request getContentRequest() {
+      return contentRequest;
+    }
+
+    public int getNumberOfRequests() {
+      return numberOfRequests;
+    }
+
+    public int getRowsInRequest() {
+      return rowsInRequest;
+    }
+
+    public int getRowsInHeader() {
+      return rowsInHeader;
+    }
+
+    public int getLastRowIndex() {
+      return lastRowIndex;
+    }
   }
 }

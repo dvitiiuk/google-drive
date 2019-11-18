@@ -351,13 +351,13 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
               for (int i = 0; i < columnsRow.size(); i++) {
                 CellData columnHeaderCell = columnsRow.get(i);
                 String title = columnHeaderCell.getFormattedValue();
-                if (!columnName.matcher(title).matches()) {
-                  String defaultColumnName = defaultGeneratedHeader(i + 1);
-                  LOG.warn(String.format("Original column name '%s' doesn't satisfy column name requirements '%s', " +
-                      "will be changed to default column name '%s'.", title, columnName.pattern(), defaultColumnName));
-                  title = defaultColumnName;
-                }
                 if (StringUtils.isNotEmpty(title)) {
+                  if (!columnName.matcher(title).matches()) {
+                    String defaultColumnName = defaultGeneratedHeader(i + 1);
+                    LOG.warn(String.format("Original column name '%s' doesn't satisfy column name requirements '%s', " +
+                      "will be changed to default column name '%s'.", title, columnName.pattern(), defaultColumnName));
+                    title = defaultColumnName;
+                  }
                   if (resultHeaderTitles == null) {
                     Schema dataSchema = Schema.of(Schema.Type.STRING);
                     if (dataRow != null && dataRow.size() > i) {
