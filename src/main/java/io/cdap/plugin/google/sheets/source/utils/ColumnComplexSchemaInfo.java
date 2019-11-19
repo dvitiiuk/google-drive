@@ -19,17 +19,24 @@ package io.cdap.plugin.google.sheets.source.utils;
 import io.cdap.cdap.api.data.schema.Schema;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
  */
-public class ColumnSchemaInfo implements Serializable {
+public class ColumnComplexSchemaInfo implements Serializable {
   private String headerTitle;
   private Schema dataSchema;
+  private List<ColumnComplexSchemaInfo> subColumns = new ArrayList<>();
 
-  public ColumnSchemaInfo(String headerTitle, Schema dataSchema) {
+  public ColumnComplexSchemaInfo(String headerTitle, Schema dataSchema) {
     this.headerTitle = headerTitle;
     this.dataSchema = dataSchema;
+  }
+
+  public void addSubColumn(ColumnComplexSchemaInfo columnComplexSchemaInfo) {
+    subColumns.add(columnComplexSchemaInfo);
   }
 
   public String getHeaderTitle() {
@@ -38,5 +45,9 @@ public class ColumnSchemaInfo implements Serializable {
 
   public Schema getDataSchema() {
     return dataSchema;
+  }
+
+  public List<ColumnComplexSchemaInfo> getSubColumns() {
+    return subColumns;
   }
 }

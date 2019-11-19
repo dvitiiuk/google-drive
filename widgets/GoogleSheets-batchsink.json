@@ -29,10 +29,18 @@
         },
         {
           "widget-type": "textbox",
-          "label": "Sheet name",
+          "label": "Default sheet name",
           "name": "sheetName",
           "widget-attributes": {
             "default": "Sheet 1"
+          }
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Default Spreadsheet name",
+          "name": "spreadSheetName",
+          "widget-attributes": {
+            "default": "Spreadsheet 1"
           }
         },
         {
@@ -49,22 +57,6 @@
               "label": "No"
             },
             "default": "true"
-          }
-        },
-        {
-          "widget-type": "toggle",
-          "label": "Merge data cells",
-          "name": "mergeDataCells",
-          "widget-attributes": {
-            "on": {
-              "value": "true",
-              "label": "Yes"
-            },
-            "off": {
-              "value": "false",
-              "label": "No"
-            },
-            "default": "false"
           }
         }
       ]
@@ -125,7 +117,7 @@
           "name": "maxRetryCount",
           "widget-attributes": {
             "min": "0",
-            "default": "10"
+            "default": "8"
           }
         },
         {
@@ -134,7 +126,7 @@
           "name": "maxRetryWait",
           "widget-attributes": {
             "min": "0",
-            "default": "500"
+            "default": "200"
           }
         },
         {
@@ -144,6 +136,86 @@
           "widget-attributes": {
             "min": "0",
             "default": "100"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Buffering and paralellization",
+      "properties": [
+        {
+          "widget-type": "number",
+          "label": "Threads number",
+          "name": "threadsNumber",
+          "widget-attributes": {
+            "min": "1",
+            "default": "5"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Maximal buffer size",
+          "name": "maxBufferSize",
+          "widget-attributes": {
+            "min": "1",
+            "default": "50"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Records queue length",
+          "name": "recordsQueueLength",
+          "widget-attributes": {
+            "min": "1",
+            "default": "500"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Maximum flush interval (s)",
+          "name": "maxFlushInterval",
+          "widget-attributes": {
+            "min": "1",
+            "default": "10"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Flush execution timeout (s)",
+          "name": "flushExecutionTimeout",
+          "widget-attributes": {
+            "min": "1",
+            "default": "500"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Advanced",
+      "properties": [
+        {
+          "widget-type": "number",
+          "label": "Minimal page extension size",
+          "name": "minPageExtensionSize",
+          "widget-attributes": {
+            "min": "1",
+            "default": "1000"
+          }
+        },
+        {
+          "widget-type": "toggle",
+          "label": "Merge data cells",
+          "name": "mergeDataCells",
+          "widget-attributes": {
+            "on": {
+              "value": "true",
+              "label": "Yes"
+            },
+            "off": {
+              "value": "false",
+              "label": "No"
+            },
+            "default": "false"
           }
         }
       ]

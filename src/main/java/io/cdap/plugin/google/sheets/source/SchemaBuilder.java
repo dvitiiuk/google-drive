@@ -17,11 +17,12 @@
 package io.cdap.plugin.google.sheets.source;
 
 import io.cdap.cdap.api.data.schema.Schema;
-import io.cdap.plugin.google.sheets.source.utils.ColumnSchemaInfo;
+import io.cdap.plugin.google.sheets.source.utils.ColumnComplexSchemaInfo;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Util class for building pipeline schema.
@@ -32,13 +33,21 @@ public class SchemaBuilder {
   public static final String SHEET_TITLE_FIELD_NAME = "sheetTitle";
 
   public static Schema buildSchema(GoogleSheetsSourceConfig config,
-                                   LinkedHashMap<Integer, ColumnSchemaInfo> dataSchemaInfo) {
+                                   LinkedHashMap<Integer, ColumnComplexSchemaInfo> dataSchemaInfo) {
     List<Schema.Field> generalFields = new ArrayList<>();
     generalFields.add(Schema.Field.of(SPREADSHEET_NAME_FIELD_NAME, Schema.of(Schema.Type.STRING)));
     generalFields.add(Schema.Field.of(SHEET_TITLE_FIELD_NAME, Schema.of(Schema.Type.STRING)));
 
-    for (ColumnSchemaInfo schemaInfo : dataSchemaInfo.values()) {
-      generalFields.add(Schema.Field.of(schemaInfo.getHeaderTitle(), Schema.nullableOf(schemaInfo.getDataSchema())));
+    for (ColumnComplexSchemaInfo schemaInfo : dataSchemaInfo.values()) {
+      if (schemaInfo.getSubColumns().isEmpty()) {
+        generalFields.add(Schema.Field.of(schemaInfo.getHeaderTitle(), Schema.nullableOf(schemaInfo.getDataSchema())));
+      } else {
+        List<Schema.Field> recordFields = schemaInfo.getSubColumns().stream()
+          .map(c -> Schema.Field.of(c.getHeaderTitle(), Schema.nullableOf(c.getDataSchema())))
+          .collect(Collectors.toList());
+        generalFields.add(Schema.Field.of(schemaInfo.getHeaderTitle(),
+          Schema.nullableOf(Schema.recordOf(schemaInfo.getHeaderTitle(), recordFields))));
+      }
     }
 
     if (config.isExtractMetadata()) {

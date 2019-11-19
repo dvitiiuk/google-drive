@@ -33,7 +33,7 @@ import io.cdap.plugin.google.common.ValidationResult;
 import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
 import io.cdap.plugin.google.drive.source.utils.ExportedType;
 import io.cdap.plugin.google.sheets.source.utils.CellCoordinate;
-import io.cdap.plugin.google.sheets.source.utils.ColumnSchemaInfo;
+import io.cdap.plugin.google.sheets.source.utils.ColumnComplexSchemaInfo;
 import io.cdap.plugin.google.sheets.source.utils.Formatting;
 import io.cdap.plugin.google.sheets.source.utils.HeaderSelection;
 import io.cdap.plugin.google.sheets.source.utils.MetadataKeyValueAddress;
@@ -94,14 +94,14 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
   @Description("Filter for specifying set of sheets to process.  " +
       "For 'numbers' or 'titles' selections user can populate specific values in 'Sheets identifiers' field.")
   @Macro
-  protected String sheetsToPull;
+  private String sheetsToPull;
 
   @Nullable
   @Name(SHEETS_IDENTIFIERS)
   @Description("Set of sheets' numbers/titles to process. " +
       "Is shown only when 'titles' or 'numbers' are selected for 'Sheets to pull' field.")
   @Macro
-  protected String sheetsIdentifiers;
+  private String sheetsIdentifiers;
 
   @Nullable
   @Name(NAME_SCHEMA)
@@ -190,7 +190,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
   @Macro
   private String metadataCells;
 
-  private static LinkedHashMap<Integer, ColumnSchemaInfo> dataSchemaInfo = new LinkedHashMap<>();
+  private static LinkedHashMap<Integer, ColumnComplexSchemaInfo> dataSchemaInfo = new LinkedHashMap<>();
   private static final int FILES_TO_VALIDATE = 5;
 
   public Schema getSchema() {
@@ -323,7 +323,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
         int columnNamesRow = getCustomColumnNamesRow();
         int firstDataRow = getActualFirstDataRow();
         if (!getColumnNamesSelection().equals(HeaderSelection.NO_COLUMN_NAMES)) {
-          LinkedHashMap<Integer, ColumnSchemaInfo> resolvedSchemas = new LinkedHashMap<>();
+          LinkedHashMap<Integer, ColumnComplexSchemaInfo> resolvedSchemas = new LinkedHashMap<>();
           List<String> resultHeaderTitles = null;
           String resultHeaderSheetTitle = null;
           String resultHeaderSpreadsheetId = null;
@@ -355,7 +355,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
                   if (!columnName.matcher(title).matches()) {
                     String defaultColumnName = defaultGeneratedHeader(i + 1);
                     LOG.warn(String.format("Original column name '%s' doesn't satisfy column name requirements '%s', " +
-                      "will be changed to default column name '%s'.", title, columnName.pattern(), defaultColumnName));
+                      "the default column name '%s' will be used.", title, columnName.pattern(), defaultColumnName));
                     title = defaultColumnName;
                   }
                   if (resultHeaderTitles == null) {
@@ -367,7 +367,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
                       LOG.warn(String.format("There is empty data cell for '%s' column during data types defining.",
                           title));
                     }
-                    resolvedSchemas.put(i, new ColumnSchemaInfo(title, dataSchema));
+                    resolvedSchemas.put(i, new ColumnComplexSchemaInfo(title, dataSchema));
                   }
                   if (headerTitles.contains(title)) {
                     collector.addFailure(String.format("Duplicate column name '%s'.", title),
@@ -466,10 +466,10 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
     }
   }
 
-  private LinkedHashMap<Integer, ColumnSchemaInfo> defaultGeneratedHeaders(int length) {
-    LinkedHashMap<Integer, ColumnSchemaInfo> headers = new LinkedHashMap<>();
+  private LinkedHashMap<Integer, ColumnComplexSchemaInfo> defaultGeneratedHeaders(int length) {
+    LinkedHashMap<Integer, ColumnComplexSchemaInfo> headers = new LinkedHashMap<>();
     for (int i = 1; i <= length; i++) {
-      headers.put(i - 1, new ColumnSchemaInfo(defaultGeneratedHeader(i), Schema.of(Schema.Type.STRING)));
+      headers.put(i - 1, new ColumnComplexSchemaInfo(defaultGeneratedHeader(i), Schema.of(Schema.Type.STRING)));
     }
     return headers;
   }

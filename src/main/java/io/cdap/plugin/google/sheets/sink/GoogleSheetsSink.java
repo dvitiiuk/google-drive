@@ -87,7 +87,9 @@ public class GoogleSheetsSink extends BatchSink<StructuredRecord, Void, Multiple
     super.initialize(context);
     transformer = new StructuredRecordToRowRecordTransformer(config.getSchemaSpreadSheetNameFieldName(),
                                                          config.getSchemaSheetNameFieldName(),
+                                                         config.getSpreadSheetName(),
                                                          config.getSheetName());
+
   }
 
   @Override

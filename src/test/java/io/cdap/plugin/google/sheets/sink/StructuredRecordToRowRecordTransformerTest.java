@@ -41,16 +41,18 @@ public class StructuredRecordToRowRecordTransformerTest {
   private static final LocalDate TEST_DATE = LocalDate.of(2019, 03, 14);
   private static final LocalTime TEST_TIME = LocalTime.of(13, 03, 14);
   private static final ZonedDateTime TEST_DATE_TIME = ZonedDateTime.of(TEST_DATE, TEST_TIME,
-      StructuredRecordToRowRecordTransformer.UTC_ZONE_ID);
+    StructuredRecordToRowRecordTransformer.UTC_ZONE_ID);
   private static final String SPREADSHEET_NAME = "spName";
   private static final String SHEET_TITLE = "title";
+  private static final String PRESET_SPREADSHEET_TITLE = "generalName";
   private static final String PRESET_SHEET_TITLE = "generalTitle";
   private static final String STRING_VALUE = "any string";
 
   @Test
   public void testToSheetsDate() {
     LocalDate testDate = LocalDate.of(2020, 01, 11);
-    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "");
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
+      "", "", "", "");
     Double expected = transformer.toSheetsDate(testDate);
     Assert.assertEquals(Double.valueOf(43841.0), expected);
   }
@@ -58,8 +60,8 @@ public class StructuredRecordToRowRecordTransformerTest {
   @Test
   public void testToSheetsDateTime() {
     ZonedDateTime testZonedDateTime = ZonedDateTime.of(1991, 03, 8, 13, 54, 20, 0,
-        StructuredRecordToRowRecordTransformer.UTC_ZONE_ID);
-    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "");
+      StructuredRecordToRowRecordTransformer.UTC_ZONE_ID);
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "", "");
     Double expected = transformer.toSheetsDateTime(testZonedDateTime);
     Assert.assertEquals(Double.valueOf(33305.57939814815), expected, Math.pow(10, -11));
   }
@@ -67,94 +69,95 @@ public class StructuredRecordToRowRecordTransformerTest {
   @Test
   public void testToSheetsTime() {
     ZonedDateTime testZonedDateTime = ZonedDateTime.of(1991, 03, 8, 13, 54, 20, 0,
-        StructuredRecordToRowRecordTransformer.UTC_ZONE_ID);
-    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "");
+      StructuredRecordToRowRecordTransformer.UTC_ZONE_ID);
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
+      "", "", "", "");
     Double expected = transformer.toSheetsDateTime(testZonedDateTime);
     Assert.assertEquals(Double.valueOf(33305.57939814815), expected, Math.pow(10, -11));
   }
 
   @Test
   public void testProcessDateTimeDateValue() {
-    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "");
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
+      "", "", "", "");
 
     Schema dataSchema = Schema.recordOf(SCHEMA_NAME,
-        Schema.Field.of(DATE_FIELD_NAME, Schema.of(Schema.LogicalType.DATE)));
+      Schema.Field.of(DATE_FIELD_NAME, Schema.of(Schema.LogicalType.DATE)));
     StructuredRecord.Builder builder = StructuredRecord.builder(dataSchema);
     builder.setDate(DATE_FIELD_NAME, TEST_DATE);
     StructuredRecord dateRecord = builder.build();
 
     CellData resultCell = transformer.processDateTimeValue(
-        dataSchema.getField(DATE_FIELD_NAME).getSchema().getLogicalType(),
-        DATE_FIELD_NAME,
-        dateRecord);
+      dataSchema.getField(DATE_FIELD_NAME).getSchema().getLogicalType(),
+      dateRecord.get(DATE_FIELD_NAME));
     Assert.assertNotNull(resultCell.getUserEnteredFormat());
     Assert.assertNotNull(resultCell.getUserEnteredValue());
     Assert.assertNotNull(resultCell.getUserEnteredValue().getNumberValue());
     Assert.assertNotNull(resultCell.getUserEnteredFormat().getNumberFormat());
 
     Assert.assertEquals(transformer.toSheetsDate(TEST_DATE),
-        resultCell.getUserEnteredValue().getNumberValue());
+      resultCell.getUserEnteredValue().getNumberValue());
     Assert.assertEquals(StructuredRecordToRowRecordTransformer.SHEETS_CELL_DATE_TYPE,
-        resultCell.getUserEnteredFormat().getNumberFormat().getType());
+      resultCell.getUserEnteredFormat().getNumberFormat().getType());
   }
 
   @Test
   public void testProcessDateTimeTimeValue() {
-    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer("", "", "");
+    StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
+      "", "", "", "");
 
     Schema timeSchema = Schema.recordOf(SCHEMA_NAME,
-        Schema.Field.of(TIME_FIELD_NAME, Schema.of(Schema.LogicalType.TIME_MILLIS)));
+      Schema.Field.of(TIME_FIELD_NAME, Schema.of(Schema.LogicalType.TIME_MILLIS)));
     StructuredRecord.Builder builder = StructuredRecord.builder(timeSchema);
     builder.setTime(TIME_FIELD_NAME, TEST_TIME);
     StructuredRecord dateRecord = builder.build();
 
     CellData resultCell = transformer.processDateTimeValue(
-        timeSchema.getField(TIME_FIELD_NAME).getSchema().getLogicalType(),
-        TIME_FIELD_NAME,
-        dateRecord);
+      timeSchema.getField(TIME_FIELD_NAME).getSchema().getLogicalType(),
+      dateRecord.get(TIME_FIELD_NAME));
     Assert.assertNotNull(resultCell.getUserEnteredFormat());
     Assert.assertNotNull(resultCell.getUserEnteredValue());
     Assert.assertNotNull(resultCell.getUserEnteredValue().getNumberValue());
     Assert.assertNotNull(resultCell.getUserEnteredFormat().getNumberFormat());
 
     Assert.assertEquals(transformer.toSheetsTime(TEST_TIME),
-        resultCell.getUserEnteredValue().getNumberValue());
+      resultCell.getUserEnteredValue().getNumberValue());
     Assert.assertEquals(StructuredRecordToRowRecordTransformer.SHEETS_CELL_TIME_TYPE,
-        resultCell.getUserEnteredFormat().getNumberFormat().getType());
+      resultCell.getUserEnteredFormat().getNumberFormat().getType());
   }
 
   @Test
   public void testProcessDateTimeDateTimeValue() {
     StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
-        "", "", "");
+      "", "", "", "");
 
     Schema dateTimeSchema = Schema.recordOf(SCHEMA_NAME,
-        Schema.Field.of(DATE_TIME_FIELD_NAME, Schema.of(Schema.LogicalType.TIMESTAMP_MILLIS)));
+      Schema.Field.of(DATE_TIME_FIELD_NAME, Schema.of(Schema.LogicalType.TIMESTAMP_MILLIS)));
     StructuredRecord.Builder builder = StructuredRecord.builder(dateTimeSchema);
     builder.setTimestamp(DATE_TIME_FIELD_NAME, TEST_DATE_TIME);
     StructuredRecord dateRecord = builder.build();
 
     CellData resultCell = transformer.processDateTimeValue(
-        dateTimeSchema.getField(DATE_TIME_FIELD_NAME).getSchema().getLogicalType(),
-        DATE_TIME_FIELD_NAME,
-        dateRecord);
+      dateTimeSchema.getField(DATE_TIME_FIELD_NAME).getSchema().getLogicalType(),
+      dateRecord.get(DATE_TIME_FIELD_NAME));
     Assert.assertNotNull(resultCell.getUserEnteredFormat());
     Assert.assertNotNull(resultCell.getUserEnteredValue());
     Assert.assertNotNull(resultCell.getUserEnteredValue().getNumberValue());
     Assert.assertNotNull(resultCell.getUserEnteredFormat().getNumberFormat());
 
     Assert.assertEquals(transformer.toSheetsDateTime(TEST_DATE_TIME),
-        resultCell.getUserEnteredValue().getNumberValue());
+      resultCell.getUserEnteredValue().getNumberValue());
     Assert.assertEquals(StructuredRecordToRowRecordTransformer.SHEETS_CELL_DATE_TIME_TYPE,
-        resultCell.getUserEnteredFormat().getNumberFormat().getType());
+      resultCell.getUserEnteredFormat().getNumberFormat().getType());
   }
 
   @Test
   public void testTransformWithSpreadsheetAndSheetNames() {
     StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
-        SPREADSHEET_NAME_FIELD_NAME,
-        SHEET_TITLE_FIELD_NAME,
-        PRESET_SHEET_TITLE);
+      SPREADSHEET_NAME_FIELD_NAME,
+      SHEET_TITLE_FIELD_NAME,
+      PRESET_SPREADSHEET_TITLE,
+      PRESET_SHEET_TITLE);
     StructuredRecord testRecord = getTestTransformRecord();
 
     MultipleRowsRecord result = transformer.transform(testRecord);
@@ -166,17 +169,17 @@ public class StructuredRecordToRowRecordTransformerTest {
   }
 
   @Test
-  public void testTransformWithDefaultSheetName() throws IOException {
+  public void testTransformWithDefaultName() throws IOException {
     StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
-        "",
-        "",
-        PRESET_SHEET_TITLE);
+      "",
+      "",
+      PRESET_SPREADSHEET_TITLE,
+      PRESET_SHEET_TITLE);
     StructuredRecord testRecord = getTestTransformRecord();
 
     MultipleRowsRecord result = transformer.transform(testRecord);
 
-    Assert.assertEquals(StructuredRecordToRowRecordTransformer.RANDOM_FILE_NAME_LENGTH,
-        (Integer) result.getSpreadSheetName().length());
+    Assert.assertEquals(PRESET_SPREADSHEET_TITLE, result.getSpreadSheetName());
     Assert.assertEquals(PRESET_SHEET_TITLE, result.getSheetTitle());
 
     checkSimpleRecord(result);
@@ -185,9 +188,10 @@ public class StructuredRecordToRowRecordTransformerTest {
   @Test
   public void testTransformWithSpreadsheetAndDefaultSheetNames() throws IOException {
     StructuredRecordToRowRecordTransformer transformer = new StructuredRecordToRowRecordTransformer(
-        SPREADSHEET_NAME_FIELD_NAME,
-        "",
-        PRESET_SHEET_TITLE);
+      SPREADSHEET_NAME_FIELD_NAME,
+      "",
+      "",
+      PRESET_SHEET_TITLE);
     StructuredRecord testRecord = getTestTransformRecord();
 
     MultipleRowsRecord result = transformer.transform(testRecord);
@@ -200,9 +204,9 @@ public class StructuredRecordToRowRecordTransformerTest {
 
   private StructuredRecord getTestTransformRecord() {
     Schema testSchema = Schema.recordOf(SCHEMA_NAME,
-        Schema.Field.of(SPREADSHEET_NAME_FIELD_NAME, Schema.of(Schema.Type.STRING)),
-        Schema.Field.of(SHEET_TITLE_FIELD_NAME, Schema.of(Schema.Type.STRING)),
-        Schema.Field.of(STRING_FIELD_NAME, Schema.of(Schema.Type.STRING)));
+      Schema.Field.of(SPREADSHEET_NAME_FIELD_NAME, Schema.of(Schema.Type.STRING)),
+      Schema.Field.of(SHEET_TITLE_FIELD_NAME, Schema.of(Schema.Type.STRING)),
+      Schema.Field.of(STRING_FIELD_NAME, Schema.of(Schema.Type.STRING)));
 
     StructuredRecord.Builder builder = StructuredRecord.builder(testSchema);
     builder.set(SPREADSHEET_NAME_FIELD_NAME, SPREADSHEET_NAME);
@@ -232,6 +236,4 @@ public class StructuredRecordToRowRecordTransformerTest {
     Assert.assertEquals(SHEET_TITLE_FIELD_NAME, result.getHeader().getSubHeaders().get(1).getName());
     Assert.assertEquals(STRING_FIELD_NAME, result.getHeader().getSubHeaders().get(2).getName());
   }
-
-
 }

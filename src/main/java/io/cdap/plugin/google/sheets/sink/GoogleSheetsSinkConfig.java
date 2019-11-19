@@ -32,10 +32,18 @@ import javax.annotation.Nullable;
  */
 public class GoogleSheetsSinkConfig extends GoogleInputSchemaFieldsUsageConfig {
   public static final String SHEET_NAME_FIELD_NAME = "sheetName";
+  public static final String SPREADSHEET_NAME_FIELD_NAME = "spreadSheetName";
   public static final String SCHEMA_SPREAD_SHEET_NAME_FIELD_NAME = "schemaSpreadSheetNameFieldName";
   public static final String SCHEMA_SHEET_NAME_FIELD_NAME = "schemaSheetNameFieldName";
   public static final String WRITE_SCHEMA_FIELD_NAME = "writeSchema";
   public static final String MERGE_DATA_CELLS_FIELD_NAME = "mergeDataCells";
+  public static final String MIN_PAGE_EXTENSION_PAGE_FIELD_NAME = "minPageExtensionSize";
+  public static final String THREADS_NUMBER_FIELD_NAME = "threadsNumber";
+  public static final String MAX_BUFFER_SIZE_FIELD_NAME = "maxBufferSize";
+  public static final String RECORDS_QUEUE_LENGTH_FIELD_NAME = "recordsQueueLength";
+  public static final String MAX_FLUSH_INTERVAL_FIELD_NAME = "maxFlushInterval";
+  public static final String FLUSH_EXECUTION_TIMEOUT_FIELD_NAME = "flushExecutionTimeout";
+
   public static final String TOP_LEVEL_SCHEMA_MESSAGE =
     "Field '%s' has unsupported schema type '%s' and logical type '%s'.";
   public static final String TOP_LEVEL_SCHEMA_CORRECTIVE_MESSAGE =
@@ -76,17 +84,21 @@ public class GoogleSheetsSinkConfig extends GoogleInputSchemaFieldsUsageConfig {
       Schema.Type.NULL);
 
   @Name(SHEET_NAME_FIELD_NAME)
-  @Description("Name of the schema field (should be BYTES type) which will be used as body of file.\n" +
-    "The minimal input schema should contain only this field.")
+  @Description("Default sheet title. Is used when user don't specify schema field as sheet title.")
   @Macro
-  protected String sheetName;
+  private String sheetName;
+
+  @Name(SPREADSHEET_NAME_FIELD_NAME)
+  @Description("Default spreadsheet file name. Is used when user don't specify schema field as spreadsheet name.")
+  @Macro
+  private String spreadSheetName;
 
   @Nullable
   @Name(SCHEMA_SPREAD_SHEET_NAME_FIELD_NAME)
   @Description("Name of the schema field (should be STRING type) which will be used as name of file. \n" +
     "Is optional. In the case it is not set files have randomly generated 16-symbols names.")
   @Macro
-  protected String schemaSpreadSheetNameFieldName;
+  private String schemaSpreadSheetNameFieldName;
 
   @Nullable
   @Name(SCHEMA_SHEET_NAME_FIELD_NAME)
@@ -94,7 +106,7 @@ public class GoogleSheetsSinkConfig extends GoogleInputSchemaFieldsUsageConfig {
     "All MIME types are supported except Google Drive types: https://developers.google.com/drive/api/v3/mime-types.\n" +
     "Is optional. In the case it is not set Google API will try to recognize file's MIME type automatically.")
   @Macro
-  protected String schemaSheetNameFieldName;
+  private String schemaSheetNameFieldName;
 
   @Name(WRITE_SCHEMA_FIELD_NAME)
   @Description("")
@@ -106,19 +118,49 @@ public class GoogleSheetsSinkConfig extends GoogleInputSchemaFieldsUsageConfig {
   @Macro
   private boolean mergeDataCells;
 
+  @Name(MIN_PAGE_EXTENSION_PAGE_FIELD_NAME)
+  @Description("")
+  @Macro
+  private int minPageExtensionSize;
+
+  @Name(THREADS_NUMBER_FIELD_NAME)
+  @Description("")
+  @Macro
+  private int threadsNumber;
+
+  @Name(MAX_BUFFER_SIZE_FIELD_NAME)
+  @Description("")
+  @Macro
+  private int maxBufferSize;
+
+  @Name(RECORDS_QUEUE_LENGTH_FIELD_NAME)
+  @Description("")
+  @Macro
+  private int recordsQueueLength;
+
+  @Name(MAX_FLUSH_INTERVAL_FIELD_NAME)
+  @Description("")
+  @Macro
+  private int maxFlushInterval;
+
+  @Name(FLUSH_EXECUTION_TIMEOUT_FIELD_NAME)
+  @Description("")
+  @Macro
+  private int flushExecutionTimeout;
+
   public void validate(FailureCollector collector, Schema schema) {
     super.validate(collector);
 
     // validate name field is in schema and has valid format
     validateSchemaField(collector, schema, SCHEMA_SPREAD_SHEET_NAME_FIELD_NAME, schemaSpreadSheetNameFieldName,
-                        "File name field", Schema.Type.STRING);
+                        "Spreadsheet name field", Schema.Type.STRING);
 
     // validate mime field is in schema and has valid format
     validateSchemaField(collector, schema, SCHEMA_SHEET_NAME_FIELD_NAME, schemaSpreadSheetNameFieldName,
-                        "File mime field", Schema.Type.STRING);
+                        "Sheet name field", Schema.Type.STRING);
 
     // validate schema
-    //validateSchema(collector, schema);
+    validateSchema(collector, schema);
   }
 
   private void validateSchema(FailureCollector collector, Schema schema) {
@@ -152,13 +194,23 @@ public class GoogleSheetsSinkConfig extends GoogleInputSchemaFieldsUsageConfig {
   private void checkSchemas(FailureCollector collector, Schema fieldSchema,
                             List<Schema.LogicalType> allowedLogicalTypes, List<Schema.Type> allowedTypes,
                             String message, String correctiveAction) {
-    if (!allowedLogicalTypes.contains(fieldSchema.getLogicalType()) && !allowedTypes.contains(fieldSchema.getType())) {
+    Schema.LogicalType nonNullableLogicalType = fieldSchema.isNullable() ?
+      fieldSchema.getNonNullable().getLogicalType() :
+      fieldSchema.getLogicalType();
+    Schema.Type nonNullableType = fieldSchema.isNullable() ?
+      fieldSchema.getNonNullable().getType() :
+      fieldSchema.getType();
+    if (!allowedLogicalTypes.contains(nonNullableLogicalType) && !allowedTypes.contains(nonNullableType)) {
       collector.addFailure(message, correctiveAction);
     }
   }
 
   public String getSheetName() {
     return sheetName;
+  }
+
+  public String getSpreadSheetName() {
+    return spreadSheetName;
   }
 
   @Nullable
@@ -177,5 +229,29 @@ public class GoogleSheetsSinkConfig extends GoogleInputSchemaFieldsUsageConfig {
 
   public boolean isMergeDataCells() {
     return mergeDataCells;
+  }
+
+  public int getMinPageExtensionSize() {
+    return minPageExtensionSize;
+  }
+
+  public int getThreadsNumber() {
+    return threadsNumber;
+  }
+
+  public int getMaxBufferSize() {
+    return maxBufferSize;
+  }
+
+  public int getRecordsQueueLength() {
+    return recordsQueueLength;
+  }
+
+  public int getMaxFlushInterval() {
+    return maxFlushInterval;
+  }
+
+  public int getFlushExecutionTimeout() {
+    return flushExecutionTimeout;
   }
 }

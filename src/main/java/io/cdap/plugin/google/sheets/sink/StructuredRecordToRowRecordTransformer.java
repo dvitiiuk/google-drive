@@ -26,8 +26,9 @@ import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
 import io.cdap.plugin.google.sheets.sink.utils.ComplexHeader;
-import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.collections.CollectionUtils;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -37,7 +38,9 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Transforms a {@link StructuredRecord}
@@ -53,13 +56,16 @@ public class StructuredRecordToRowRecordTransformer {
 
   private final String spreadSheetNameFieldName;
   private final String sheetNameFieldName;
+  private final String spreadSheetName;
   private final String sheetName;
 
   public StructuredRecordToRowRecordTransformer(String spreadSheetNameFieldName,
                                                 String sheetNameFieldName,
+                                                String spreadSheetName,
                                                 String sheetName) {
     this.spreadSheetNameFieldName = spreadSheetNameFieldName;
     this.sheetNameFieldName = sheetNameFieldName;
+    this.spreadSheetName = spreadSheetName;
     this.sheetName = sheetName;
   }
 
@@ -82,7 +88,7 @@ public class StructuredRecordToRowRecordTransformer {
       processField(field, input, data, header, mergeRanges, true);
     }
     if (spreadSheetName == null) {
-      spreadSheetName = generateRandomName();
+      spreadSheetName = this.spreadSheetName;
     }
 
     if (sheetName == null) {
@@ -98,22 +104,19 @@ public class StructuredRecordToRowRecordTransformer {
                             ComplexHeader header, List<GridRange> mergeRanges, boolean isComplexTypeSupported) {
     String fieldName = field.getName();
     Schema fieldSchema = field.getSchema();
-    CellData cellData = new CellData();
+    CellData cellData;
     ComplexHeader subHeader = new ComplexHeader(fieldName);
 
-    if (input.get(fieldName) == null) {
-      addDataValue(cellData, data, mergeRanges);
-      header.addHeader(subHeader);
-      return;
-    }
     Schema.LogicalType fieldLogicalType = getFieldLogicalType(fieldSchema);
     Schema.Type fieldType = getFieldType(fieldSchema);
 
+    Object value = input == null ? null : input.get(fieldName);
+
     if (fieldLogicalType != null) {
-      cellData = processDateTimeValue(fieldLogicalType, fieldName, input);
+      cellData = processDateTimeValue(fieldLogicalType, value);
       addDataValue(cellData, data, mergeRanges);
     } else if (isSimpleType(fieldType)) {
-      cellData = processSimpleTypes(fieldType, input.get(fieldName));
+      cellData = processSimpleTypes(fieldType, value);
       addDataValue(cellData, data, mergeRanges);
     } else if (isComplexType(fieldType)) {
       if (isComplexTypeSupported) {
@@ -134,41 +137,58 @@ public class StructuredRecordToRowRecordTransformer {
   }
 
   Schema.LogicalType getFieldLogicalType(Schema fieldSchema) {
-    return fieldSchema.isNullableSimple() ?
+    return fieldSchema.isNullable() ?
         fieldSchema.getNonNullable().getLogicalType() :
         fieldSchema.getLogicalType();
   }
 
   Schema.Type getFieldType(Schema fieldSchema) {
-    return fieldSchema.isNullableSimple() ?
+    return fieldSchema.isNullable() ?
         fieldSchema.getNonNullable().getType() :
         fieldSchema.getType();
   }
 
-  CellData processDateTimeValue(Schema.LogicalType fieldLogicalType, String fieldName, StructuredRecord input) {
+  CellData processDateTimeValue(Schema.LogicalType fieldLogicalType, Object value) {
     CellData cellData = new CellData();
     ExtendedValue userEnteredValue = new ExtendedValue();
     CellFormat userEnteredFormat = new CellFormat();
     NumberFormat dateFormat = new NumberFormat();
     switch (fieldLogicalType) {
       case DATE:
-        LocalDate date = input.getDate(fieldName);
-        userEnteredValue.setNumberValue(toSheetsDate(date));
-
+        if (value != null) {
+          LocalDate date = LocalDate.ofEpochDay((Integer) value);
+          userEnteredValue.setNumberValue(toSheetsDate(date));
+        }
         dateFormat.setType(SHEETS_CELL_DATE_TYPE);
         break;
       case TIMESTAMP_MILLIS:
+        if (value != null) {
+          ZonedDateTime dateTime = getZonedDateTime((long) value, TimeUnit.MILLISECONDS,
+            ZoneId.ofOffset("UTC", ZoneOffset.UTC));
+          userEnteredValue.setNumberValue(toSheetsDateTime(dateTime));
+        }
+        dateFormat.setType(SHEETS_CELL_DATE_TIME_TYPE);
+        break;
       case TIMESTAMP_MICROS:
-        ZonedDateTime dateTime = input.getTimestamp(fieldName);
-        userEnteredValue.setNumberValue(toSheetsDateTime(dateTime));
-
+        if (value != null) {
+          ZonedDateTime dateTime = getZonedDateTime((long) value, TimeUnit.MICROSECONDS,
+            ZoneId.ofOffset("UTC", ZoneOffset.UTC));
+          userEnteredValue.setNumberValue(toSheetsDateTime(dateTime));
+        }
         dateFormat.setType(SHEETS_CELL_DATE_TIME_TYPE);
         break;
       case TIME_MILLIS:
+        if (value != null) {
+          LocalTime time = LocalTime.ofNanoOfDay(TimeUnit.MILLISECONDS.toNanos((Integer) value));
+          userEnteredValue.setNumberValue(toSheetsTime(time));
+        }
+        dateFormat.setType(SHEETS_CELL_TIME_TYPE);
+        break;
       case TIME_MICROS:
-        LocalTime time = input.getTime(fieldName);
-        userEnteredValue.setNumberValue(toSheetsTime(time));
-
+        if (value != null) {
+          LocalTime time = LocalTime.ofNanoOfDay(TimeUnit.MICROSECONDS.toNanos((Long) value));
+          userEnteredValue.setNumberValue(toSheetsTime(time));
+        }
         dateFormat.setType(SHEETS_CELL_TIME_TYPE);
         break;
     }
@@ -178,7 +198,18 @@ public class StructuredRecordToRowRecordTransformer {
     return cellData;
   }
 
+  private ZonedDateTime getZonedDateTime(long ts, TimeUnit unit, ZoneId zoneId) {
+    long mod = unit.convert(1, TimeUnit.SECONDS);
+    int fraction = (int) (ts % mod);
+    long tsInSeconds = unit.toSeconds(ts);
+    Instant instant = Instant.ofEpochSecond(tsInSeconds, unit.toNanos(fraction));
+    return ZonedDateTime.ofInstant(instant, zoneId);
+  }
+
   CellData processSimpleTypes(Schema.Type fieldType, Object value) {
+    if (value == null) {
+      return new CellData();
+    }
     CellData cellData = new CellData();
     ExtendedValue userEnteredValue = new ExtendedValue();
     CellFormat userEnteredFormat = new CellFormat();
@@ -219,9 +250,13 @@ public class StructuredRecordToRowRecordTransformer {
     switch(fieldType) {
       case ARRAY:
         List<Object> arrayData = input.get(fieldName);
+        if (CollectionUtils.isEmpty(arrayData)) {
+          arrayData = Collections.singletonList(null);
+        }
         List<CellData>[] extendedData = new ArrayList[data.size() * arrayData.size()];
 
-        Schema componentFieldSchema = input.getSchema().getField(fieldName).getSchema().getComponentSchema();
+        Schema componentFieldSchema = getNonNullableSchema(input.getSchema().getField(fieldName).getSchema())
+          .getComponentSchema();
         Schema.LogicalType componentFieldLogicalType = getFieldLogicalType(componentFieldSchema);
         Schema.Type componentFieldType = getFieldType(componentFieldSchema);
 
@@ -232,9 +267,9 @@ public class StructuredRecordToRowRecordTransformer {
           range.setStartRowIndex(newStartRowIndex).setEndRowIndex(newEndRowIndex);
         }
         for (int i = 0; i < arrayData.size(); i++) {
-          CellData nestedData;
+          CellData nestedData = new CellData();
           if (componentFieldLogicalType != null) {
-            nestedData = processDateTimeValue(componentFieldLogicalType, fieldName, input);
+            nestedData = processDateTimeValue(componentFieldLogicalType, arrayData.get(i));
           } else if (isSimpleType(componentFieldType)) {
             nestedData = processSimpleTypes(componentFieldType, arrayData.get(i));
           } else {
@@ -255,7 +290,7 @@ public class StructuredRecordToRowRecordTransformer {
         break;
       case RECORD:
         StructuredRecord nestedRecord = input.get(fieldName);
-        Schema schema = nestedRecord.getSchema();
+        Schema schema = getNonNullableSchema(input.getSchema().getField(fieldName).getSchema());
         for (Schema.Field field : schema.getFields()) {
           processField(field, nestedRecord, data, header, mergeRanges, false);
         }
@@ -263,6 +298,12 @@ public class StructuredRecordToRowRecordTransformer {
       default:
         throw new IllegalStateException();
     }
+  }
+
+  private Schema getNonNullableSchema(Schema fieldSchema) {
+    return fieldSchema.isNullable() ?
+      fieldSchema.getNonNullable() :
+      fieldSchema;
   }
 
   List<CellData> copyRow(List<CellData> row) {
@@ -295,9 +336,5 @@ public class StructuredRecordToRowRecordTransformer {
   Double toSheetsTime(LocalTime localTime) {
     long micros = localTime.getLong(ChronoField.MICRO_OF_DAY);
     return (double) micros / (double) ChronoField.MICRO_OF_DAY.range().getMaximum();
-  }
-
-  private String generateRandomName() {
-    return RandomStringUtils.randomAlphanumeric(RANDOM_FILE_NAME_LENGTH);
   }
 }
