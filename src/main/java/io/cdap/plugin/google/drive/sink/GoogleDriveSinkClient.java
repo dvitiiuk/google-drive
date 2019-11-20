@@ -24,6 +24,7 @@ import io.cdap.plugin.google.common.APIRequestRetryer;
 import io.cdap.plugin.google.common.GoogleDriveClient;
 import io.cdap.plugin.google.drive.common.FileFromFolder;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -45,12 +46,14 @@ public class GoogleDriveSinkClient extends GoogleDriveClient<GoogleDriveSinkConf
 
           File fileToWrite = new File();
 
-    fileToWrite.setName(fileFromFolder.getFile().getName());
-    fileToWrite.setMimeType(fileFromFolder.getFile().getMimeType());
-    fileToWrite.setParents(Collections.singletonList(folderId));
-    ByteArrayContent fileContent = new ByteArrayContent(fileFromFolder.getFile().getMimeType(),
-        fileFromFolder.getContent());
-    service.files().create(fileToWrite, fileContent).execute();
+          fileToWrite.setName(fileFromFolder.getFile().getName());
+          fileToWrite.setMimeType(fileFromFolder.getFile().getMimeType());
+          fileToWrite.setParents(Collections.singletonList(folderId));
+          ByteArrayContent fileContent = new ByteArrayContent(fileFromFolder.getFile().getMimeType(),
+            fileFromFolder.getContent());
+          service.files().create(fileToWrite, fileContent).execute();
+          return null;
+        });
   }
 
   @Override

@@ -26,6 +26,7 @@ import io.cdap.plugin.google.drive.source.utils.DateRange;
 import io.cdap.plugin.google.drive.source.utils.ExportedType;
 import io.cdap.plugin.google.drive.source.utils.ModifiedDateRangeUtils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -38,7 +39,7 @@ import java.util.concurrent.ExecutionException;
 public class GoogleDriveFilteringClient<C extends GoogleFilteringSourceConfig> extends GoogleDriveClient<C> {
   public static final String DRIVE_FOLDER_MIME = "application/vnd.google-apps.folder";
 
-  public GoogleDriveFilteringClient(C config) {
+  public GoogleDriveFilteringClient(C config) throws IOException {
     super(config);
   }
 

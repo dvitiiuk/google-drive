@@ -23,7 +23,6 @@ import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.plugin.google.common.GoogleInputSchemaFieldsUsageConfig;
 
-import java.io.IOException;
 import javax.annotation.Nullable;
 
 /**
@@ -83,10 +82,5 @@ public class GoogleDriveSinkConfig extends GoogleInputSchemaFieldsUsageConfig {
   @Nullable
   public String getSchemaMimeFieldName() {
     return schemaMimeFieldName;
-  }
-
-  @Override
-  protected GoogleDriveClient getDriveClient() throws IOException {
-    return new GoogleDriveSinkClient(this);
   }
 }

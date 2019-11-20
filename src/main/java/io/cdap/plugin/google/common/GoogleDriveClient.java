@@ -24,7 +24,6 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
-import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -59,7 +58,7 @@ public class GoogleDriveClient<C extends GoogleAuthBaseConfig> {
    * @return filled credential.
    * @throws IOException on issues with service account file reading.
    */
-  private Credential getCredentials() throws IOException {
+  protected Credential getCredentials() throws IOException {
     GoogleCredential credential;
 
     // TODO fix authentication after OAuth2 will be provided by cdap
@@ -88,7 +87,7 @@ public class GoogleDriveClient<C extends GoogleAuthBaseConfig> {
         throw new IllegalStateException(String.format("Untreated value '%s' for authentication type.", authType));
     }
 
-    return credential.createScoped(Collections.singleton(getRequiredScope()));
+    return credential.createScoped(getRequiredScopes());
     // end of workaround
   }
 

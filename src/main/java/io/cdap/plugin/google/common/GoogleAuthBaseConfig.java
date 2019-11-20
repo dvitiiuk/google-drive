@@ -112,7 +112,8 @@ public abstract class GoogleAuthBaseConfig extends PluginConfig {
           propertiesAreValid = validateAccountFilePath(collector);
           break;
         default:
-          throw new InvalidPropertyTypeException(GoogleAuthBaseConfig.AUTH_TYPE_LABEL, authType.toString());
+          throw new InvalidPropertyTypeException(GoogleAuthBaseConfig.AUTH_TYPE_LABEL, authType.toString(),
+            AuthType.getAllowedValues());
       }
       if (propertiesAreValid) {
         try {
@@ -135,8 +136,6 @@ public abstract class GoogleAuthBaseConfig extends PluginConfig {
     }
     return validationResult;
   }
-
-  protected abstract GoogleDriveClient getDriveClient() throws IOException;
 
   private boolean validateAuthType(FailureCollector collector) {
     if (!containsMacro(AUTH_TYPE)) {

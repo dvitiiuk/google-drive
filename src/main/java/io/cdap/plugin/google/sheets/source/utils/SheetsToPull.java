@@ -19,6 +19,9 @@ package io.cdap.plugin.google.sheets.source.utils;
 import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
 import io.cdap.plugin.google.sheets.source.GoogleSheetsSourceConfig;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -43,6 +46,11 @@ public enum SheetsToPull {
     return Stream.of(SheetsToPull.values())
         .filter(keyType -> keyType.getValue().equalsIgnoreCase(value))
         .findAny()
-        .orElseThrow(() -> new InvalidPropertyTypeException(GoogleSheetsSourceConfig.SHEETS_TO_PULL_LABEL, value));
+        .orElseThrow(() -> new InvalidPropertyTypeException(GoogleSheetsSourceConfig.SHEETS_TO_PULL_LABEL, value,
+          getAllowedValues()));
+  }
+  public static List<String> getAllowedValues() {
+    return Arrays.stream(SheetsToPull.values()).map(v -> v.getValue())
+      .collect(Collectors.toList());
   }
 }

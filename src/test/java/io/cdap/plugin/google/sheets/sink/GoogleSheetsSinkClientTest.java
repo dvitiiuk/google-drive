@@ -22,7 +22,7 @@ import io.cdap.plugin.google.sheets.sink.utils.ComplexHeader;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
-import java.lang.reflect.InvocationTargetException;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -30,8 +30,7 @@ import java.util.List;
 public class GoogleSheetsSinkClientTest {
 
   @Test
-  public void testPrepareContentFlatHeaders()
-    throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+  public void testPrepareContentFlatHeaders() throws IOException {
     List<String> headerNames = Arrays.asList("h0", "h1", "h2", "h3");
     GoogleSheetsSinkConfig sinkConfig = EasyMock.createMock(GoogleSheetsSinkConfig.class);
     EasyMock.expect(sinkConfig.getAuthType()).andReturn(AuthType.OAUTH2).anyTimes();

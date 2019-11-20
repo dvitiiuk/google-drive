@@ -31,7 +31,8 @@ import java.io.IOException;
  */
 public class GoogleSheetsOutputFormat extends OutputFormat<NullWritable, MultipleRowsRecord> {
   @Override
-  public RecordWriter<NullWritable, MultipleRowsRecord> getRecordWriter(TaskAttemptContext taskAttemptContext) {
+  public RecordWriter<NullWritable, MultipleRowsRecord> getRecordWriter(TaskAttemptContext taskAttemptContext)
+    throws IOException {
     return new GoogleSheetsRecordWriter(taskAttemptContext);
   }
 

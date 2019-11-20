@@ -70,7 +70,7 @@ public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, Multipl
   private ScheduledExecutorService formerScheduledExecutorService;
   private boolean stopSignal;
 
-  public GoogleSheetsRecordWriter(TaskAttemptContext taskAttemptContext) {
+  public GoogleSheetsRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException {
     Configuration conf = taskAttemptContext.getConfiguration();
     String configJson = conf.get(GoogleDriveOutputFormatProvider.PROPERTY_CONFIG_JSON);
     googleSheetsSinkConfig =

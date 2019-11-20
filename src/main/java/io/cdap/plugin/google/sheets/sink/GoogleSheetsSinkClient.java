@@ -45,6 +45,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -58,7 +59,7 @@ import java.util.stream.Collectors;
 public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkConfig> {
   private static final Logger LOG = LoggerFactory.getLogger(GoogleSheetsSinkClient.class);
 
-  public GoogleSheetsSinkClient(GoogleSheetsSinkConfig config) {
+  public GoogleSheetsSinkClient(GoogleSheetsSinkConfig config) throws IOException {
     super(config);
   }
 

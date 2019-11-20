@@ -204,8 +204,15 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
     ValidationResult validationResult = super.validate(collector);
     if (!containsMacro(filter) && collector.getValidationFailures().isEmpty()
         && validationResult.isCredentialsAvailable()) {
-      GoogleDriveFilteringClient driveClient = new GoogleDriveFilteringClient(this);
-      GoogleSheetsSourceClient sheetsSourceClient = new GoogleSheetsSourceClient(this);
+      GoogleDriveFilteringClient driveClient = null;
+      GoogleSheetsSourceClient sheetsSourceClient = null;
+      try {
+        driveClient = new GoogleDriveFilteringClient(this);
+        sheetsSourceClient = new GoogleSheetsSourceClient(this);
+      } catch (IOException e) {
+        collector.addFailure(String.format("", ""), null);
+        return validationResult;
+      }
       List<File> spreadSheetsFiles = null;
       try {
         spreadSheetsFiles = driveClient
@@ -273,7 +280,8 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
           checkSheetIdentifiers(collector, indexes, allIndexes);
           break;
         default:
-          throw new InvalidPropertyTypeException(SHEETS_TO_PULL_LABEL, sheetsToPull.toString());
+          throw new InvalidPropertyTypeException(SHEETS_TO_PULL_LABEL, sheetsToPull.toString(),
+            SheetsToPull.getAllowedValues());
       }
     }
   }
@@ -316,7 +324,8 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
                   getSheetsIdentifiers().stream().map(Integer::parseInt).collect(Collectors.toList())));
               break;
             default:
-              throw new InvalidPropertyTypeException(SHEETS_TO_PULL_LABEL, sheetsToPull.toString());
+              throw new InvalidPropertyTypeException(SHEETS_TO_PULL_LABEL, sheetsToPull.toString(),
+                SheetsToPull.getAllowedValues());
           }
         }
 

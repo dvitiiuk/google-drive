@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 public class GoogleSheetsSourceClient extends GoogleSheetsClient<GoogleSheetsSourceConfig> {
   private static final Logger LOG = LoggerFactory.getLogger(GoogleSheetsSourceClient.class);
 
-  public GoogleSheetsSourceClient(GoogleSheetsSourceConfig config) {
+  public GoogleSheetsSourceClient(GoogleSheetsSourceConfig config) throws IOException {
     super(config);
   }
 

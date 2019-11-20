@@ -23,6 +23,7 @@ import com.google.api.services.sheets.v4.Sheets;
 import io.cdap.plugin.google.common.GoogleAuthBaseConfig;
 import io.cdap.plugin.google.common.GoogleDriveClient;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -35,7 +36,7 @@ public abstract class GoogleSheetsClient<C extends GoogleAuthBaseConfig> extends
   protected Sheets service;
   protected Drive drive;
 
-  public GoogleSheetsClient(C config) {
+  public GoogleSheetsClient(C config) throws IOException {
     super(config);
     service = new Sheets.Builder(httpTransport, JSON_FACTORY, getCredentials())
       .build();

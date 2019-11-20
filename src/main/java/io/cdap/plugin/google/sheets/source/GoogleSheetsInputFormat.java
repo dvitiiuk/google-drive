@@ -31,6 +31,7 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,7 +48,7 @@ public class GoogleSheetsInputFormat extends InputFormat {
   private static final AtomicInteger g = new AtomicInteger(0);
 
   @Override
-  public List<InputSplit> getSplits(JobContext jobContext) {
+  public List<InputSplit> getSplits(JobContext jobContext) throws IOException {
     Configuration conf = jobContext.getConfiguration();
 
     String configJson = conf.get(GoogleDriveInputFormatProvider.PROPERTY_CONFIG_JSON);
