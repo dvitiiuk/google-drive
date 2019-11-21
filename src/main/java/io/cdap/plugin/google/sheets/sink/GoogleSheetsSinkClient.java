@@ -57,6 +57,8 @@ import java.util.stream.Collectors;
  */
 public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkConfig> {
 
+  public static final String MERGE_ALL_MERGE_TYPE = "MERGE_ALL";
+
   public GoogleSheetsSinkClient(GoogleSheetsSinkConfig config) throws IOException {
     super(config);
   }
@@ -259,21 +261,21 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
           calcHeaderMerges(header, headerRanges, 0, headersDepth, widthShift);
           widthShift += header.getWidth();
         }
-        mergeRequests.addAll(prepareMergeRequests(headerRanges, sheetId, 0));
+        mergeRequests.addAll(shiftAndNameMergeRequests(headerRanges, sheetId, 0));
       }
       contentShift += headersDepth;
     }
 
     // prepare content merges
     if (config.isMergeDataCells()) {
-      mergeRequests.addAll(prepareMergeRequests(record.getMergeRanges(), sheetId, contentShift));
+      mergeRequests.addAll(shiftAndNameMergeRequests(record.getMergeRanges(), sheetId, contentShift));
     }
     return mergeRequests.stream().map(r -> new Request().setMergeCells(r))
       .collect(Collectors.toList());
   }
 
   /**
-   * Method to populate header cells.
+   * Method to populate nested header cells.
    * @param header  complex nested header.
    * @param headerRows list of the rows to extend.
    * @param depth level of depth of complex header to process.
@@ -290,7 +292,8 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
   }
 
   /**
-   * Method to generate relative merge ranges for headers.
+   * Method to generate relative merge ranges for headers. Accepts single top level complex header.
+   * So for multiple headers this method should be executed several times.
    * @param header complex nested header.
    * @param headerRanges merge ranges to be extended with news.
    * @param depth level of depth of complex header to process.
@@ -320,15 +323,17 @@ public class GoogleSheetsSinkClient extends GoogleSheetsClient<GoogleSheetsSinkC
 
   /**
    * Method to convert relative merge coordinated to absolute with use of shift value.
+   * Grid range has half opened indexes, so the method increments start row/column index before comparing.
    * @param ranges merge ranges with relative coordinates.
    * @param sheetId target sheet ID.
    * @param rowsShift shift of ranges from the sheet start.
    * @return merge requests with absolute coordinates.
    */
-  private List<MergeCellsRequest> prepareMergeRequests(List<GridRange> ranges, int sheetId, int rowsShift) {
+  private List<MergeCellsRequest> shiftAndNameMergeRequests(List<GridRange> ranges, int sheetId, int rowsShift) {
     return ranges.stream()
-      .filter(r -> r.getStartRowIndex() != r.getEndRowIndex() || r.getStartColumnIndex() != r.getEndColumnIndex())
-      .map(r -> new MergeCellsRequest().setMergeType("MERGE_ALL").setRange(r
+      .filter(r -> r.getStartRowIndex() < r.getEndRowIndex() && r.getStartColumnIndex() < r.getEndColumnIndex())
+      .filter(r -> r.getStartRowIndex() + 1 < r.getEndRowIndex() || r.getStartColumnIndex() + 1 < r.getEndColumnIndex())
+      .map(r -> new MergeCellsRequest().setMergeType(MERGE_ALL_MERGE_TYPE).setRange(r
         .setSheetId(sheetId)
         .setStartRowIndex(r.getStartRowIndex() + rowsShift)
         .setEndRowIndex(r.getEndRowIndex() + rowsShift)))
