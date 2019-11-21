@@ -17,16 +17,16 @@
 package io.cdap.plugin.google.common;
 
 /**
- *
+ * Wrapper to save validation results. Is used to transfer validation results.
  */
 public class ValidationResult {
-  private boolean credentialsAvailable = false;
+  private boolean directoryAccessible = false;
 
-  public boolean isCredentialsAvailable() {
-    return credentialsAvailable;
+  public boolean isDirectoryAccessible() {
+    return directoryAccessible;
   }
 
-  public void setCredentialsAvailable(boolean credentialsAvailable) {
-    this.credentialsAvailable = credentialsAvailable;
+  public void setDirectoryAccessible(boolean directoryAccessible) {
+    this.directoryAccessible = directoryAccessible;
   }
 }

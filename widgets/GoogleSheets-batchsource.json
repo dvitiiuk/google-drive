@@ -289,7 +289,7 @@
         },
         {
           "widget-type": "radio-group",
-          "label": "Column Names Selection",
+          "label": "Column names selection",
           "name": "columnNamesSelection",
           "widget-attributes": {
             "layout": "inline",

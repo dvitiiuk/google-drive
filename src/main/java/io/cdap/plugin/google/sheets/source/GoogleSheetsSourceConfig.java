@@ -203,7 +203,7 @@ public class GoogleSheetsSourceConfig extends GoogleFilteringSourceConfig {
   public ValidationResult validate(FailureCollector collector) {
     ValidationResult validationResult = super.validate(collector);
     if (!containsMacro(filter) && collector.getValidationFailures().isEmpty()
-        && validationResult.isCredentialsAvailable()) {
+        && validationResult.isDirectoryAccessible()) {
       GoogleDriveFilteringClient driveClient = null;
       GoogleSheetsSourceClient sheetsSourceClient = null;
       try {

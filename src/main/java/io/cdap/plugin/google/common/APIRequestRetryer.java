@@ -24,18 +24,26 @@ import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.github.rholder.retry.WaitStrategy;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.api.client.http.HttpResponseException;
 import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.SocketTimeoutException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- *
+ * Utility class that provides retry capabilities for API calls.
+ * Supported exceptions for retry:
+ *  - SocketTimeoutException.
+ *  - GoogleJsonResponseException (429 ('Too Many Requests', 'Rate Limit Exceeded')).
+ *  - GoogleJsonResponseException (403 ('Rate Limit Exceeded')).
+ *  - GoogleJsonResponseException (500).
+ *  - GoogleJsonResponseException (503).
+ *  - HttpResponseException (500).
+ *  - HttpResponseException (403 ('Rate Limit Exceeded')).
  */
 public abstract class APIRequestRetryer {
   private static final Logger LOG = LoggerFactory.getLogger(APIRequestRetryer.class);
@@ -45,41 +53,62 @@ public abstract class APIRequestRetryer {
   protected static final int SERVICE_UNAVAILABLE_CODE = 503;
   protected static final String TOO_MANY_REQUESTS_MESSAGE = "Too Many Requests";
   protected static final String LIMIT_RATE_EXCEEDED_MESSAGE = "Rate Limit Exceeded";
+  protected static final String FORBIDDEN_STATUS_MESSAGE = "Forbidden";
 
   public static <T> Retryer<T> getRetryer(GoogleRetryingConfig config, String operationDescription) {
     RetryListener listener = new RetryListener() {
       @Override
       public <V> void onRetry(Attempt<V> attempt) {
         if (attempt.hasException()) {
-          if (attempt.getExceptionCause() instanceof GoogleJsonResponseException) {
-            GoogleJsonResponseException e = (GoogleJsonResponseException) attempt.getExceptionCause();
+          Throwable exceptionCause = attempt.getExceptionCause();
+          if (exceptionCause instanceof GoogleJsonResponseException
+            && APIRequestRetryer.checkGoogleJsonResponseException(exceptionCause)) {
+            GoogleJsonResponseException e = (GoogleJsonResponseException) exceptionCause;
             LOG.warn(String.format(
-                "Error code: '%d', message: '%s'. Attempt: '%d'. Delay since first: '%d'. Description: " +
-                    operationDescription,
-                e.getDetails().getCode(),
-                e.getStatusMessage(),
-                attempt.getAttemptNumber(),
-                attempt.getDelaySinceFirstAttempt()));
+              "Error code: '%d', message: '%s'. Attempt: '%d'. Delay since first: '%d'. Description: '%s'.",
+              e.getDetails().getCode(),
+              e.getStatusMessage(),
+              attempt.getAttemptNumber(),
+              attempt.getDelaySinceFirstAttempt(),
+              operationDescription));
+          } else {
+            LOG.warn(String.format(
+              "Error message: '%s'. Attempt: '%d'. Delay since first: '%d'. Description: '%s'.",
+              exceptionCause.getMessage(),
+              attempt.getAttemptNumber(),
+              attempt.getDelaySinceFirstAttempt(),
+              operationDescription));
           }
         }
       }
     };
     return RetryerBuilder.<T>newBuilder()
-        .retryIfException(APIRequestRetryer::checkThrowable)
-        .retryIfExceptionOfType(SocketTimeoutException.class)
-        .withWaitStrategy(WaitStrategies.join(
-            new TrueExponentialWaitStrategy(1000, TimeUnit.SECONDS.toMillis(config.getMaxRetryWait())),
-            WaitStrategies.randomWait(config.getMaxRetryJitterWait(), TimeUnit.MILLISECONDS)))
-        .withStopStrategy(StopStrategies.stopAfterAttempt(config.getMaxRetryCount()))
-        .withRetryListener(listener)
-        .build();
+      .retryIfException(APIRequestRetryer::checkThrowable)
+      .retryIfExceptionOfType(SocketTimeoutException.class)
+      .withWaitStrategy(WaitStrategies.join(
+        new TrueExponentialWaitStrategy(1000, TimeUnit.SECONDS.toMillis(config.getMaxRetryWait())),
+        WaitStrategies.randomWait(config.getMaxRetryJitterWait(), TimeUnit.MILLISECONDS)))
+      .withStopStrategy(StopStrategies.stopAfterAttempt(config.getMaxRetryCount()))
+      .withRetryListener(listener)
+      .build();
   }
 
   private static boolean checkThrowable(Throwable t) {
+    return checkGoogleJsonResponseException(t) || checkHttpResponseException(t);
+  }
+
+  private static boolean checkGoogleJsonResponseException(Throwable t) {
     if (t instanceof GoogleJsonResponseException) {
       GoogleJsonResponseException e = (GoogleJsonResponseException) t;
-      return isTooManyRequestsError(e) || isRateLimitError(e)
-          || isBackendError(e) || isServiceUnavailableError(e);
+      return isTooManyRequestsError(e) || isRateLimitError(e) || isBackendError(e) || isServiceUnavailableError(e);
+    }
+    return false;
+  }
+
+  private static boolean checkHttpResponseException(Throwable t) {
+    if (t instanceof HttpResponseException) {
+      HttpResponseException e = (HttpResponseException) t;
+      return isRateLimitError(e) || isInternalServerError(e);
     }
     return false;
   }
@@ -90,8 +119,9 @@ public abstract class APIRequestRetryer {
   }
 
   private static boolean isRateLimitError(GoogleJsonResponseException e) {
-    List<String> possibleMessages = Collections.singletonList(LIMIT_RATE_EXCEEDED_MESSAGE);
-    return e.getDetails().getCode() == LIMIT_RATE_EXCEEDED_CODE && possibleMessages.contains(e.getStatusMessage());
+    return e.getDetails().getCode() == LIMIT_RATE_EXCEEDED_CODE
+      && (LIMIT_RATE_EXCEEDED_MESSAGE.equals(e.getStatusMessage())
+      || e.getDetails().getMessage().contains(LIMIT_RATE_EXCEEDED_MESSAGE));
   }
 
   private static boolean isBackendError(GoogleJsonResponseException e) {
@@ -100,6 +130,16 @@ public abstract class APIRequestRetryer {
 
   private static boolean isServiceUnavailableError(GoogleJsonResponseException e) {
     return e.getDetails().getCode() == SERVICE_UNAVAILABLE_CODE;
+  }
+
+  private static boolean isRateLimitError(HttpResponseException e) {
+    return e.getStatusCode() == LIMIT_RATE_EXCEEDED_CODE
+      && e.getStatusMessage().equals(FORBIDDEN_STATUS_MESSAGE)
+      && e.getContent().contains(LIMIT_RATE_EXCEEDED_MESSAGE);
+  }
+
+  private static boolean isInternalServerError(HttpResponseException e) {
+    return e.getStatusCode() == BACKEND_ERROR_CODE;
   }
 
   /**
@@ -112,13 +152,13 @@ public abstract class APIRequestRetryer {
     private final long maximumWait;
 
     TrueExponentialWaitStrategy(long multiplier,
-                                   long maximumWait) {
+                                long maximumWait) {
       Preconditions.checkArgument(multiplier > 0L,
-          "multiplier must be > 0 but is %d", multiplier);
+        "multiplier must be > 0 but is %d", multiplier);
       Preconditions.checkArgument(maximumWait >= 0L,
-          "maximumWait must be >= 0 but is %d", maximumWait);
+        "maximumWait must be >= 0 but is %d", maximumWait);
       Preconditions.checkArgument(multiplier < maximumWait,
-          "multiplier must be < maximumWait but is %d", multiplier);
+        "multiplier must be < maximumWait but is %d", multiplier);
       this.multiplier = multiplier;
       this.maximumWait = maximumWait;
     }

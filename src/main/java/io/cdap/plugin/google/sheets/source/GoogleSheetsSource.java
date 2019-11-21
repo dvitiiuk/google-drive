@@ -30,7 +30,7 @@ import io.cdap.cdap.etl.api.PipelineConfigurer;
 import io.cdap.cdap.etl.api.batch.BatchSource;
 import io.cdap.cdap.etl.api.batch.BatchSourceContext;
 import io.cdap.plugin.common.LineageRecorder;
-import io.cdap.plugin.google.sheets.common.RowRecord;
+import io.cdap.plugin.google.sheets.source.utils.RowRecord;
 import org.apache.hadoop.io.NullWritable;
 
 import java.util.stream.Collectors;

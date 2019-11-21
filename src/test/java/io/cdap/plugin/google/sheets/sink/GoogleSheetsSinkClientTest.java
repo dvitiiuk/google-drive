@@ -17,8 +17,8 @@
 package io.cdap.plugin.google.sheets.sink;
 
 import io.cdap.plugin.google.common.AuthType;
-import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
 import io.cdap.plugin.google.sheets.sink.utils.ComplexHeader;
+import io.cdap.plugin.google.sheets.sink.utils.FlatternedRowsRecord;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
@@ -44,11 +44,11 @@ public class GoogleSheetsSinkClientTest {
 
     ComplexHeader complexHeader = new ComplexHeader("root");
     headerNames.stream().forEach(h -> complexHeader.addHeader(new ComplexHeader(h)));
-    MultipleRowsRecord rowsRecord = new MultipleRowsRecord("spreadsheetName", "sheetTitle",
+    FlatternedRowsRecord rowsRecord = new FlatternedRowsRecord("spreadsheetName", "sheetTitle",
       complexHeader, Collections.emptyList(), Collections.emptyList());
 
     /*Method prepareContentRequestMethod = GoogleSheetsSinkClient.class.getDeclaredMethod("prepareContentRequest",
-      Integer.class, MultipleRowsRecord.class, boolean.class);
+      Integer.class, FlatternedRowsRecord.class, boolean.class);
     prepareContentRequestMethod.setAccessible(true);
 
     Request request = (Request) prepareContentRequestMethod.invoke(sinkClient, 0, rowsRecord, true);

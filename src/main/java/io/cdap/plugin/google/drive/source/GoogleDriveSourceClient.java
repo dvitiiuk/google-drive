@@ -68,7 +68,7 @@ public class GoogleDriveSourceClient extends GoogleDriveFilteringClient<GoogleDr
   public FileFromFolder getFilePartition(String fileId, Long bytesFrom, Long bytesTo)
       throws IOException, ExecutionException, RetryException {
     Retryer<FileFromFolder> fileFromFolderRetryer = APIRequestRetryer.getRetryer(config,
-        String.format("File retrieving, id: '%s'", fileId));
+        String.format("File retrieving, id: '%s'.", fileId));
     return fileFromFolderRetryer.call(() -> {
       FileFromFolder fileFromFolder;
 
@@ -140,7 +140,7 @@ public class GoogleDriveSourceClient extends GoogleDriveFilteringClient<GoogleDr
   private FileFromFolder exportGoogleFormatFile(Drive service, File currentFile, String exportFormat)
       throws ExecutionException, RetryException {
     Retryer<FileFromFolder> fileFromFolderRetryer = APIRequestRetryer.getRetryer(config,
-        String.format("File exporting, id: '%s', export format: '%s'", currentFile.getId(), exportFormat));
+        String.format("File exporting, id: '%s', export format: '%s'.", currentFile.getId(), exportFormat));
     return fileFromFolderRetryer.call(() -> {
       OutputStream outputStream = new ByteArrayOutputStream();
       service.files().export(currentFile.getId(), exportFormat).executeMediaAndDownloadTo(outputStream);

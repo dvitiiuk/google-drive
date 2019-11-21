@@ -20,7 +20,7 @@ import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.ExtendedValue;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
-import io.cdap.plugin.google.sheets.common.RowRecord;
+import io.cdap.plugin.google.sheets.source.utils.RowRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

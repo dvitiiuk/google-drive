@@ -96,55 +96,60 @@ public class GoogleSheetsSinkConfig extends GoogleInputSchemaFieldsUsageConfig {
   @Nullable
   @Name(SCHEMA_SPREAD_SHEET_NAME_FIELD_NAME)
   @Description("Name of the schema field (should be STRING type) which will be used as name of file. \n" +
-    "Is optional. In the case it is not set files have randomly generated 16-symbols names.")
+    "Is optional. In the case it is not set Google API will use the value of **Default Spreadsheet name** property.")
   @Macro
   private String schemaSpreadSheetNameFieldName;
 
   @Nullable
   @Name(SCHEMA_SHEET_NAME_FIELD_NAME)
-  @Description("Name of the schema field (should be STRING type) which will be used as MIME type of file. \n" +
-    "All MIME types are supported except Google Drive types: https://developers.google.com/drive/api/v3/mime-types.\n" +
-    "Is optional. In the case it is not set Google API will try to recognize file's MIME type automatically.")
+  @Description("Name of the schema field (should be STRING type) which will be used as sheet title. \n" +
+    "Is optional. In the case it is not set Google API will use the value of **Default sheet name** property.")
   @Macro
   private String schemaSheetNameFieldName;
 
   @Name(WRITE_SCHEMA_FIELD_NAME)
-  @Description("")
+  @Description("Toggle that defines should the sink write out the input schema as first row of an out sheet.")
   @Macro
   private boolean writeSchema;
 
   @Name(MERGE_DATA_CELLS_FIELD_NAME)
-  @Description("")
+  @Description("Toggle that defines should the sink merge data cells created as result of input arrays flatterning.")
   @Macro
   private boolean mergeDataCells;
 
   @Name(MIN_PAGE_EXTENSION_PAGE_FIELD_NAME)
-  @Description("")
+  @Description("Minimal size of sheet extension when default sheet size (1000) was exceeded.")
   @Macro
   private int minPageExtensionSize;
 
   @Name(THREADS_NUMBER_FIELD_NAME)
-  @Description("")
+  @Description("Number of threads which send batched API requests. " +
+    "The greater value allows to process records quickly, but requires extended Google Sheets API quota.")
   @Macro
   private int threadsNumber;
 
   @Name(MAX_BUFFER_SIZE_FIELD_NAME)
-  @Description("")
+  @Description("Maximal size in records of the batch API request. " +
+    "The greater value allows to reduce the number of API requests, but causes growing of their size.")
   @Macro
   private int maxBufferSize;
 
   @Name(RECORDS_QUEUE_LENGTH_FIELD_NAME)
-  @Description("")
+  @Description("Size of the queue used to receive records and for onwards grouping of them to batched API requests. " +
+    "For the greater value there is more likely that the sink will group arrived records in the butches of " +
+    "maximal size. Also greater value means more memory consumption.")
   @Macro
   private int recordsQueueLength;
 
   @Name(MAX_FLUSH_INTERVAL_FIELD_NAME)
-  @Description("")
+  @Description("Interval with what the sink will try to get batched requests from the records queue and " +
+    "send them to threads for sending to Sheets API.")
   @Macro
   private int maxFlushInterval;
 
   @Name(FLUSH_EXECUTION_TIMEOUT_FIELD_NAME)
-  @Description("")
+  @Description("Maximal time the single thread should process the batched API request. " +
+    "Be careful, the number of retries and maximal retry time also should be taken into account.")
   @Macro
   private int flushExecutionTimeout;
 

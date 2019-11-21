@@ -14,24 +14,22 @@
  * the License.
  */
 
-package io.cdap.plugin.google.sheets.common;
-
-import com.google.api.services.sheets.v4.model.CellData;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
+package io.cdap.plugin.google.sheets.sink.utils;
 
 /**
- * Representation for single row data.
+ * Type of dimension extending.
  */
-public class SingleRowRecord {
-  private LinkedHashMap<String, CellData> headeredCells;
+public enum DimensionType {
+  ROWS("ROWS"),
+  COLUMNS("COLUMNS");
 
-  public SingleRowRecord(LinkedHashMap<String, CellData> headeredCells) {
-    this.headeredCells = headeredCells;
+  private final String value;
+
+  DimensionType(String value) {
+    this.value = value;
   }
 
-  public Map<String, CellData> getHeaderedCells() {
-    return headeredCells;
+  public String getValue() {
+    return value;
   }
 }

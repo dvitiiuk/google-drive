@@ -14,31 +14,29 @@
  * the License.
  */
 
-package io.cdap.plugin.google.sheets.common;
+package io.cdap.plugin.google.sheets.source.utils;
 
 import com.google.api.services.sheets.v4.model.CellData;
-import com.google.api.services.sheets.v4.model.GridRange;
-import io.cdap.plugin.google.sheets.sink.utils.ComplexHeader;
 
-import java.util.List;
+import java.util.Map;
 
 /**
- *
+ * Representation for single row data.
  */
-public class MultipleRowsRecord {
+public class RowRecord {
   private String spreadSheetName;
   private String sheetTitle;
-  private ComplexHeader header;
-  private List<List<CellData>> singleRowRecords;
-  private List<GridRange> mergeRanges;
+  private Map<String, String> metadata;
+  private Map<String, CellData> headeredCells;
+  private boolean isEmptyData;
 
-  public MultipleRowsRecord(String spreadSheetName, String sheetTitle, ComplexHeader header,
-                            List<List<CellData>> singleRowRecords, List<GridRange> mergeRanges) {
+  public RowRecord(String spreadSheetName, String sheetTitle, Map<String, String> metadata,
+                   Map<String, CellData> headeredCells, boolean isEmptyData) {
     this.spreadSheetName = spreadSheetName;
     this.sheetTitle = sheetTitle;
-    this.header = header;
-    this.singleRowRecords = singleRowRecords;
-    this.mergeRanges = mergeRanges;
+    this.metadata = metadata;
+    this.headeredCells = headeredCells;
+    this.isEmptyData = isEmptyData;
   }
 
   public String getSpreadSheetName() {
@@ -49,15 +47,19 @@ public class MultipleRowsRecord {
     return sheetTitle;
   }
 
-  public ComplexHeader getHeader() {
-    return header;
+  public Map<String, String> getMetadata() {
+    return metadata;
   }
 
-  public List<List<CellData>> getSingleRowRecords() {
-    return singleRowRecords;
+  public Map<String, CellData> getHeaderedCells() {
+    return headeredCells;
   }
 
-  public List<GridRange> getMergeRanges() {
-    return mergeRanges;
+  public boolean isEmptyData() {
+    return isEmptyData;
+  }
+
+  public void setMetadata(Map<String, String> metadata) {
+    this.metadata = metadata;
   }
 }

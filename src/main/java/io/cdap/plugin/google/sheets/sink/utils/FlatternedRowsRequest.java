@@ -21,42 +21,26 @@ import com.google.api.services.sheets.v4.model.Request;
 import java.util.List;
 
 /**
- *
+ * Wrapper for API requests related to one flatterned record.
  */
-public class FlatternedRecordRequest {
+public class FlatternedRowsRequest {
   private final Request contentRequest;
   private final List<Request> mergeRequests;
-  private final Integer sheetId;
-  private final int rowsInRequest;
-  private final int rowsInHeader;
   private final int lastRowIndex;
 
   private String spreadSheetName;
   private String sheetTitle;
-  private String spreadSheetId;
 
-  public FlatternedRecordRequest(Request contentRequest, List<Request> mergeRequests,
-                                 Integer sheetId, int rowsInRequest, int rowsInHeader,
-                                 int lastRowIndex) {
+  public FlatternedRowsRequest(Request contentRequest, List<Request> mergeRequests,
+                               int lastRowIndex) {
 
     this.contentRequest = contentRequest;
     this.mergeRequests = mergeRequests;
-    this.sheetId = sheetId;
-    this.rowsInRequest = rowsInRequest;
-    this.rowsInHeader = rowsInHeader;
     this.lastRowIndex = lastRowIndex;
   }
 
   public Request getContentRequest() {
     return contentRequest;
-  }
-
-  public int getRowsInRequest() {
-    return rowsInRequest;
-  }
-
-  public int getRowsInHeader() {
-    return rowsInHeader;
   }
 
   public int getLastRowIndex() {
@@ -75,23 +59,11 @@ public class FlatternedRecordRequest {
     return sheetTitle;
   }
 
-  public Integer getSheetId() {
-    return sheetId;
-  }
-
-  public String getSpreadSheetId() {
-    return spreadSheetId;
-  }
-
   public void setSpreadSheetName(String spreadSheetName) {
     this.spreadSheetName = spreadSheetName;
   }
 
   public void setSheetTitle(String sheetTitle) {
     this.sheetTitle = sheetTitle;
-  }
-
-  public void setSpreadSheetId(String spreadSheetId) {
-    this.spreadSheetId = spreadSheetId;
   }
 }

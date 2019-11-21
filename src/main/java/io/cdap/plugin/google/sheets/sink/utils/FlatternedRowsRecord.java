@@ -14,29 +14,30 @@
  * the License.
  */
 
-package io.cdap.plugin.google.sheets.common;
+package io.cdap.plugin.google.sheets.sink.utils;
 
 import com.google.api.services.sheets.v4.model.CellData;
+import com.google.api.services.sheets.v4.model.GridRange;
 
-import java.util.Map;
+import java.util.List;
 
 /**
- * Representation for single row data.
+ * Wrapper for record flatterned into several rows.
  */
-public class RowRecord {
+public class FlatternedRowsRecord {
   private String spreadSheetName;
   private String sheetTitle;
-  private Map<String, String> metadata;
-  private Map<String, CellData> headeredCells;
-  private boolean isEmptyData;
+  private ComplexHeader header;
+  private List<List<CellData>> singleRowRecords;
+  private List<GridRange> mergeRanges;
 
-  public RowRecord(String spreadSheetName, String sheetTitle, Map<String, String> metadata,
-                   Map<String, CellData> headeredCells, boolean isEmptyData) {
+  public FlatternedRowsRecord(String spreadSheetName, String sheetTitle, ComplexHeader header,
+                              List<List<CellData>> singleRowRecords, List<GridRange> mergeRanges) {
     this.spreadSheetName = spreadSheetName;
     this.sheetTitle = sheetTitle;
-    this.metadata = metadata;
-    this.headeredCells = headeredCells;
-    this.isEmptyData = isEmptyData;
+    this.header = header;
+    this.singleRowRecords = singleRowRecords;
+    this.mergeRanges = mergeRanges;
   }
 
   public String getSpreadSheetName() {
@@ -47,19 +48,15 @@ public class RowRecord {
     return sheetTitle;
   }
 
-  public Map<String, String> getMetadata() {
-    return metadata;
+  public ComplexHeader getHeader() {
+    return header;
   }
 
-  public Map<String, CellData> getHeaderedCells() {
-    return headeredCells;
+  public List<List<CellData>> getSingleRowRecords() {
+    return singleRowRecords;
   }
 
-  public boolean isEmptyData() {
-    return isEmptyData;
-  }
-
-  public void setMetadata(Map<String, String> metadata) {
-    this.metadata = metadata;
+  public List<GridRange> getMergeRanges() {
+    return mergeRanges;
   }
 }

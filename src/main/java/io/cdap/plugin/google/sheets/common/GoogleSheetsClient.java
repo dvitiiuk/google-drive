@@ -27,9 +27,9 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Base client for working with Google Drive API
+ * Base client for working with Google Drive API.
  *
- * @param <C> configuration
+ * @param <C> configuration.
  */
 public abstract class GoogleSheetsClient<C extends GoogleAuthBaseConfig> extends GoogleDriveClient<C> {
   private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();

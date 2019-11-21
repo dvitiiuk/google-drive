@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
+ * Wrapper for nested headers.
  */
 public class ComplexHeader {
   private final String name;

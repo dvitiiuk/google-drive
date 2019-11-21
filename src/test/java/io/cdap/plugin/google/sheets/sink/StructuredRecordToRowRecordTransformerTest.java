@@ -19,7 +19,7 @@ package io.cdap.plugin.google.sheets.sink;
 import com.google.api.services.sheets.v4.model.CellData;
 import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
-import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
+import io.cdap.plugin.google.sheets.sink.utils.FlatternedRowsRecord;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -160,7 +160,7 @@ public class StructuredRecordToRowRecordTransformerTest {
       PRESET_SHEET_TITLE);
     StructuredRecord testRecord = getTestTransformRecord();
 
-    MultipleRowsRecord result = transformer.transform(testRecord);
+    FlatternedRowsRecord result = transformer.transform(testRecord);
 
     Assert.assertEquals(SPREADSHEET_NAME, result.getSpreadSheetName());
     Assert.assertEquals(SHEET_TITLE, result.getSheetTitle());
@@ -177,7 +177,7 @@ public class StructuredRecordToRowRecordTransformerTest {
       PRESET_SHEET_TITLE);
     StructuredRecord testRecord = getTestTransformRecord();
 
-    MultipleRowsRecord result = transformer.transform(testRecord);
+    FlatternedRowsRecord result = transformer.transform(testRecord);
 
     Assert.assertEquals(PRESET_SPREADSHEET_TITLE, result.getSpreadSheetName());
     Assert.assertEquals(PRESET_SHEET_TITLE, result.getSheetTitle());
@@ -194,7 +194,7 @@ public class StructuredRecordToRowRecordTransformerTest {
       PRESET_SHEET_TITLE);
     StructuredRecord testRecord = getTestTransformRecord();
 
-    MultipleRowsRecord result = transformer.transform(testRecord);
+    FlatternedRowsRecord result = transformer.transform(testRecord);
 
     Assert.assertEquals(SPREADSHEET_NAME, result.getSpreadSheetName());
     Assert.assertEquals(PRESET_SHEET_TITLE, result.getSheetTitle());
@@ -215,7 +215,7 @@ public class StructuredRecordToRowRecordTransformerTest {
     return builder.build();
   }
 
-  private void checkSimpleRecord(MultipleRowsRecord result) {
+  private void checkSimpleRecord(FlatternedRowsRecord result) {
     // just one row
     Assert.assertNotNull(result.getSingleRowRecords().size());
     Assert.assertEquals(1, result.getSingleRowRecords().size());

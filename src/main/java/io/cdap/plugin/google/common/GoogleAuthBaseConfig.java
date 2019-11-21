@@ -84,8 +84,8 @@ public abstract class GoogleAuthBaseConfig extends PluginConfig {
   @Nullable
   @Name(ACCOUNT_FILE_PATH)
   @Description("Path on the local file system of the service account key used for authorization. " +
-    "Can be set to 'auto-detect' when running on a Dataproc cluster. " +
-    "When running on other clusters, the file must be present on every node in the cluster." +
+    "Can be set to 'auto-detect' for getting service account from system variable. " +
+    "The file/system variable must be present on every node in the cluster. " +
     "Service account json can be generated on Google Cloud " +
     "Service Account page (https://console.cloud.google.com/iam-admin/serviceaccounts).")
   @Macro
@@ -125,7 +125,7 @@ public abstract class GoogleAuthBaseConfig extends PluginConfig {
           // validate directory
           validateDirectoryIdentifier(collector, client);
 
-          validationResult.setCredentialsAvailable(true);
+          validationResult.setDirectoryAccessible(true);
         } catch (Exception e) {
           collector.addFailure(
             String.format("Exception during authentication/directory properties check: %s.", e.getMessage()),

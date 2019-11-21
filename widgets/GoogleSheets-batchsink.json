@@ -14,8 +14,21 @@
         },
         {
           "widget-type": "textbox",
+          "label": "Directory identifier",
+          "name": "directoryIdentifier"
+        },
+        {
+          "widget-type": "textbox",
           "label": "Spreadsheet name field",
           "name": "schemaSpreadSheetNameFieldName"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Default spreadsheet name",
+          "name": "spreadSheetName",
+          "widget-attributes": {
+            "default": "Spreadsheet 1"
+          }
         },
         {
           "widget-type": "textbox",
@@ -24,23 +37,10 @@
         },
         {
           "widget-type": "textbox",
-          "label": "Directory identifier",
-          "name": "directoryIdentifier"
-        },
-        {
-          "widget-type": "textbox",
           "label": "Default sheet name",
           "name": "sheetName",
           "widget-attributes": {
             "default": "Sheet 1"
-          }
-        },
-        {
-          "widget-type": "textbox",
-          "label": "Default Spreadsheet name",
-          "name": "spreadSheetName",
-          "widget-attributes": {
-            "default": "Spreadsheet 1"
           }
         },
         {

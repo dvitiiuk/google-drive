@@ -21,7 +21,7 @@ import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.etl.api.FailureCollector;
 
 /**
- *
+ * Base Google config for validating of properties that use schema field names as values.
  */
 public class GoogleInputSchemaFieldsUsageConfig extends GoogleRetryingConfig {
 
@@ -31,8 +31,8 @@ public class GoogleInputSchemaFieldsUsageConfig extends GoogleRetryingConfig {
       if (!Strings.isNullOrEmpty(propertyValue)) {
         Schema.Field field = schema.getField(propertyValue);
         if (field == null) {
-          collector.addFailure(String.format("Input schema doesn't contain '%s' field", propertyValue),
-              String.format("Provide existent field from input schema for '%s'", propertyLabel))
+          collector.addFailure(String.format("Input schema doesn't contain '%s' field.", propertyValue),
+              String.format("Provide existent field from input schema for '%s'.", propertyLabel))
               .withConfigProperty(propertyName);
         } else {
           Schema fieldSchema = field.getSchema();
@@ -41,11 +41,11 @@ public class GoogleInputSchemaFieldsUsageConfig extends GoogleRetryingConfig {
           }
 
           if (fieldSchema.getLogicalType() != null || fieldSchema.getType() != requiredSchemaType) {
-            collector.addFailure(String.format("Field '%s' must be of type '%s' but is of type '%s'",
+            collector.addFailure(String.format("Field '%s' must be of type '%s' but is of type '%s'.",
                 field.getName(),
                 requiredSchemaType,
                 fieldSchema.getDisplayName()),
-                String.format("Provide field with '%s' format for '%s' property",
+                String.format("Provide field with '%s' format for '%s' property.",
                     requiredSchemaType,
                     propertyLabel))
                 .withConfigProperty(propertyName).withInputSchemaField(propertyValue);

@@ -33,7 +33,7 @@ import java.util.List;
 /**
  * Base client for working with Google Drive API.
  *
- * @param <C> configuration
+ * @param <C> configuration.
  */
 public class GoogleDriveClient<C extends GoogleAuthBaseConfig> {
   private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();

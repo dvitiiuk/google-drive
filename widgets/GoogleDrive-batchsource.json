@@ -341,25 +341,25 @@
       "properties": [
         {
           "widget-type": "number",
-          "label": "Max Retry Count",
+          "label": "Max retry count",
           "name": "maxRetryCount",
           "widget-attributes": {
             "min": "0",
-            "default": "10"
+            "default": "8"
           }
         },
         {
           "widget-type": "number",
-          "label": "Max Retry Wait",
+          "label": "Max retry wait",
           "name": "maxRetryWait",
           "widget-attributes": {
             "min": "0",
-            "default": "500"
+            "default": "200"
           }
         },
         {
           "widget-type": "number",
-          "label": "Max Retry Jitter Wait",
+          "label": "Max retry jitter wait",
           "name": "maxRetryJitterWait",
           "widget-attributes": {
             "min": "0",

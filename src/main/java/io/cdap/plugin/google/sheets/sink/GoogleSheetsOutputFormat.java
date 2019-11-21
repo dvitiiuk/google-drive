@@ -16,7 +16,7 @@
 
 package io.cdap.plugin.google.sheets.sink;
 
-import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
+import io.cdap.plugin.google.sheets.sink.utils.FlatternedRowsRecord;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
@@ -27,11 +27,11 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import java.io.IOException;
 
 /**
- * An OutputFormat that sends the output of a Hadoop job to the Google Drive record writer
+ * An OutputFormat that sends the output of a Hadoop job to the Google Sheets record writer.
  */
-public class GoogleSheetsOutputFormat extends OutputFormat<NullWritable, MultipleRowsRecord> {
+public class GoogleSheetsOutputFormat extends OutputFormat<NullWritable, FlatternedRowsRecord> {
   @Override
-  public RecordWriter<NullWritable, MultipleRowsRecord> getRecordWriter(TaskAttemptContext taskAttemptContext)
+  public RecordWriter<NullWritable, FlatternedRowsRecord> getRecordWriter(TaskAttemptContext taskAttemptContext)
     throws IOException {
     return new GoogleSheetsRecordWriter(taskAttemptContext);
   }

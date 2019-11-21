@@ -34,7 +34,7 @@ import java.util.concurrent.ExecutionException;
 /**
  * Base Google Drive Class with files search functionality.
  *
- * @param <C>
+ * @param <C> configuration.
  */
 public class GoogleDriveFilteringClient<C extends GoogleFilteringSourceConfig> extends GoogleDriveClient<C> {
   public static final String DRIVE_FOLDER_MIME = "application/vnd.google-apps.folder";
@@ -50,7 +50,7 @@ public class GoogleDriveFilteringClient<C extends GoogleFilteringSourceConfig> e
   public List<File> getFilesSummary(List<ExportedType> exportedTypes, int filesNumber)
       throws ExecutionException, RetryException {
     Retryer<List<File>> filesSummaryRetryer = APIRequestRetryer.getRetryer(config,
-        String.format("Get files summary, files: '%d'", filesNumber));
+        String.format("Get files summary, files: '%d'.", filesNumber));
     return filesSummaryRetryer.call(() -> {
       List<File> files = new ArrayList<>();
       String nextToken = "";

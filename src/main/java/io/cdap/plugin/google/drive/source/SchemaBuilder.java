@@ -17,7 +17,6 @@
 package io.cdap.plugin.google.drive.source;
 
 import io.cdap.cdap.api.data.schema.Schema;
-import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
 import io.cdap.plugin.google.drive.source.utils.BodyFormat;
 
 import java.util.ArrayList;

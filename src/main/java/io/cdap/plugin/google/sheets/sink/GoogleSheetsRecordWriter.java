@@ -18,12 +18,13 @@ package io.cdap.plugin.google.sheets.sink;
 
 import com.github.rholder.retry.RetryException;
 import com.google.api.services.sheets.v4.model.Request;
+import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
-import io.cdap.plugin.google.drive.common.FileFromFolder;
 import io.cdap.plugin.google.drive.sink.GoogleDriveOutputFormatProvider;
 import io.cdap.plugin.google.drive.sink.GoogleDriveSinkClient;
-import io.cdap.plugin.google.sheets.common.MultipleRowsRecord;
-import io.cdap.plugin.google.sheets.sink.utils.FlatternedRecordRequest;
+import io.cdap.plugin.google.sheets.sink.utils.DimensionType;
+import io.cdap.plugin.google.sheets.sink.utils.FlatternedRowsRecord;
+import io.cdap.plugin.google.sheets.sink.utils.FlatternedRowsRequest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.RecordWriter;
@@ -49,22 +50,22 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Writes {@link FileFromFolder} records to Google Drive via {@link GoogleDriveSinkClient}
+ * Writes {@link FlatternedRowsRecord} records to Google drive via {@link GoogleDriveSinkClient}.
  */
-public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, MultipleRowsRecord> {
+public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, FlatternedRowsRecord> {
   private static final Logger LOG = LoggerFactory.getLogger(GoogleSheetsRecordWriter.class);
-
-  private static final int DEFAULT_SHEET_LENGTH = 1000;
 
   private final Map<String, Map<String, Integer>> availableSheets = new HashMap<>();
   private final Map<String, String> availableFiles = new HashMap<>();
 
-  private final Queue<FlatternedRecordRequest> recordsQueue = new ConcurrentLinkedQueue<>();
-  private final Map<String, Map<String, Integer>> sheetContentShifts = new HashMap<>();
-  private final Map<String, Map<String, Integer>> sheetSize = new HashMap<>();
+  private final Queue<FlatternedRowsRequest> recordsQueue = new ConcurrentLinkedQueue<>();
+  private final Map<String, Map<String, Integer>> sheetsContentShift = new HashMap<>();
+  private final Map<String, Map<String, Integer>> sheetsRowCount = new HashMap<>();
+  private final Map<String, Map<String, Integer>> sheetsColumnCount = new HashMap<>();
   private final Semaphore threadsSemaphore;
   private final ExecutorService writeService;
   private final Semaphore queueSemaphore = new Semaphore(1);
+  private final int flushTimeout;
   private GoogleSheetsSinkClient sheetsSinkClient;
   private GoogleSheetsSinkConfig googleSheetsSinkConfig;
   private ScheduledExecutorService formerScheduledExecutorService;
@@ -81,72 +82,102 @@ public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, Multipl
     writeService = Executors.newFixedThreadPool(googleSheetsSinkConfig.getThreadsNumber());
     threadsSemaphore = new Semaphore(googleSheetsSinkConfig.getThreadsNumber());
 
+    flushTimeout = googleSheetsSinkConfig.getFlushExecutionTimeout();
+
     formerScheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     formerScheduledExecutorService.schedule(new TasksFormer(true),
-      googleSheetsSinkConfig.getFlushExecutionTimeout(), TimeUnit.SECONDS);
+      flushTimeout, TimeUnit.SECONDS);
+
   }
 
   @Override
-  public void write(NullWritable nullWritable, MultipleRowsRecord record) throws IOException, InterruptedException {
+  public void write(NullWritable nullWritable, FlatternedRowsRecord record) throws IOException, InterruptedException {
     try {
       String spreadSheetName = record.getSpreadSheetName();
       String sheetTitle = record.getSheetTitle();
-      if (!availableFiles.keySet().contains(spreadSheetName)) {
-        // create spreadsheet file with sheet
 
+      // create new spreadsheet file with sheet if needed
+      if (!availableFiles.keySet().contains(spreadSheetName)) {
         Spreadsheet spreadsheet = sheetsSinkClient.createEmptySpreadsheet(spreadSheetName, sheetTitle);
         String spreadSheetId = spreadsheet.getSpreadsheetId();
         Integer sheetId = spreadsheet.getSheets().get(0).getProperties().getSheetId();
+        int sheetRowCount = spreadsheet.getSheets().get(0).getProperties().getGridProperties().getRowCount();
+        int sheetColumnCount = spreadsheet.getSheets().get(0).getProperties().getGridProperties().getColumnCount();
 
-        sheetsSinkClient.moveSpreadsheetToDestinationFolder(spreadSheetId, spreadSheetName, sheetTitle);
+        sheetsSinkClient.moveSpreadsheetToDestinationFolder(spreadSheetId, spreadSheetName);
 
         availableFiles.put(spreadSheetName, spreadSheetId);
+
         availableSheets.put(spreadSheetName, new HashMap<>());
         availableSheets.get(spreadSheetName).put(sheetTitle, sheetId);
 
-        sheetContentShifts.put(spreadSheetName, new ConcurrentHashMap<>());
-        sheetContentShifts.get(spreadSheetName).put(sheetTitle, 0);
-        sheetSize.put(spreadSheetName, new ConcurrentHashMap<>());
-        sheetSize.get(spreadSheetName).put(sheetTitle, DEFAULT_SHEET_LENGTH);
+        sheetsContentShift.put(spreadSheetName, new ConcurrentHashMap<>());
+        sheetsContentShift.get(spreadSheetName).put(sheetTitle, 0);
+
+        sheetsRowCount.put(spreadSheetName, new ConcurrentHashMap<>());
+        sheetsRowCount.get(spreadSheetName).put(sheetTitle, sheetRowCount);
+
+        sheetsColumnCount.put(spreadSheetName, new ConcurrentHashMap<>());
+        sheetsColumnCount.get(spreadSheetName).put(sheetTitle, sheetColumnCount);
       }
       String spreadSheetId = availableFiles.get(spreadSheetName);
+
+      // create new sheet if needed
       if (!availableSheets.get(spreadSheetName).keySet().contains(sheetTitle)) {
+        SheetProperties sheetProperties = sheetsSinkClient.createEmptySheet(spreadSheetId, spreadSheetName, sheetTitle);
+        Integer sheetId = sheetProperties.getSheetId();
+        int sheetRowCount = sheetProperties.getGridProperties().getRowCount();
+        int sheetColumnCount = sheetProperties.getGridProperties().getColumnCount();
 
-        // create new sheet
-        Integer sheetId = sheetsSinkClient.createSheet(spreadSheetId, spreadSheetName, sheetTitle);
         availableSheets.get(spreadSheetName).put(sheetTitle, sheetId);
-        sheetContentShifts.get(spreadSheetName).put(sheetTitle, 0);
-        sheetSize.get(spreadSheetName).put(sheetTitle, DEFAULT_SHEET_LENGTH);
+        sheetsContentShift.get(spreadSheetName).put(sheetTitle, 0);
+        sheetsRowCount.get(spreadSheetName).put(sheetTitle, sheetRowCount);
+        sheetsColumnCount.get(spreadSheetName).put(sheetTitle, sheetColumnCount);
       }
 
-      // for each record
+      // for each flatterned record
       Integer sheetId = availableSheets.get(spreadSheetName).get(sheetTitle);
-      int currentShift = sheetContentShifts.get(spreadSheetName).get(sheetTitle);
-      // 1. flattern it and
-      FlatternedRecordRequest flatternedRecordRequest =
-        sheetsSinkClient.prepareFlatternedRequest(sheetId, record, currentShift == 0, currentShift);
-      flatternedRecordRequest.setSheetTitle(sheetTitle);
-      flatternedRecordRequest.setSpreadSheetName(spreadSheetName);
-      flatternedRecordRequest.setSpreadSheetId(spreadSheetId);
-      // 2. update shift
-      sheetContentShifts.get(spreadSheetName).put(sheetTitle, flatternedRecordRequest.getLastRowIndex());
+      int currentShift = sheetsContentShift.get(spreadSheetName).get(sheetTitle);
 
-      // 3. extend dimension
-      if (sheetContentShifts.get(spreadSheetName).get(sheetTitle) > sheetSize.get(spreadSheetName).get(sheetTitle)) {
-        int minimumAddition = sheetContentShifts.get(spreadSheetName).get(sheetTitle) -
-          sheetSize.get(spreadSheetName).get(sheetTitle);
-        int extensionSize = Math.max(minimumAddition, googleSheetsSinkConfig.getMinPageExtensionSize());
-        sheetsSinkClient.extendDimension(spreadSheetId, spreadSheetName, sheetTitle, sheetId, extensionSize);
-        sheetSize.get(spreadSheetName).put(sheetTitle, sheetSize.get(spreadSheetName).get(sheetTitle) + extensionSize);
+      // 1. prepare all needed content and merge requests
+      FlatternedRowsRequest flatternedRowsRequest =
+        sheetsSinkClient.prepareFlatternedRequest(sheetId, record, currentShift);
+      flatternedRowsRequest.setSheetTitle(sheetTitle);
+      flatternedRowsRequest.setSpreadSheetName(spreadSheetName);
+
+      // 2. update shift
+      sheetsContentShift.get(spreadSheetName).put(sheetTitle, flatternedRowsRequest.getLastRowIndex());
+
+      // 3. extend column dimension if needed
+      if (record.getHeader().getWidth() > sheetsColumnCount.get(spreadSheetName).get(sheetTitle)) {
+        int extensionSize = record.getHeader().getWidth() -
+          sheetsRowCount.get(spreadSheetName).get(sheetTitle);
+        sheetsSinkClient.extendDimension(spreadSheetId, spreadSheetName, sheetTitle, sheetId, extensionSize,
+          DimensionType.COLUMNS);
+        sheetsColumnCount.get(spreadSheetName).put(sheetTitle, record.getHeader().getWidth());
       }
 
+      // 4. extend rows dimension if needed
+      if (sheetsContentShift.get(spreadSheetName).get(sheetTitle) >
+        sheetsRowCount.get(spreadSheetName).get(sheetTitle)) {
+        int minimumAddition = sheetsContentShift.get(spreadSheetName).get(sheetTitle) -
+          sheetsRowCount.get(spreadSheetName).get(sheetTitle);
+        int extensionSize = Math.max(minimumAddition, googleSheetsSinkConfig.getMinPageExtensionSize());
+        sheetsSinkClient.extendDimension(spreadSheetId, spreadSheetName, sheetTitle, sheetId, extensionSize,
+          DimensionType.ROWS);
+        sheetsRowCount.get(spreadSheetName).put(sheetTitle,
+          sheetsRowCount.get(spreadSheetName).get(sheetTitle) + extensionSize);
+      }
+
+      // 5. offer flatterned requests to queue
       queueSemaphore.acquire();
       try {
-        recordsQueue.offer(flatternedRecordRequest);
+        recordsQueue.offer(flatternedRowsRequest);
       } finally {
         queueSemaphore.release();
       }
 
+      // 6. forcibly send requests to execution if the queue is exceeded
       if (recordsQueue.size() >= googleSheetsSinkConfig.getRecordsQueueLength()) {
         int counter = 0;
         while (recordsQueue.size() >= googleSheetsSinkConfig.getRecordsQueueLength() && !stopSignal) {
@@ -171,21 +202,21 @@ public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, Multipl
     formerScheduledExecutorService.awaitTermination(googleSheetsSinkConfig.getMaxFlushInterval() * 2,
       TimeUnit.SECONDS);
 
-    // we should guarantee at least one task former calling
+    // we should guarantee that at least one task former was called finally
     try {
       formerScheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
       formerScheduledExecutorService.submit(new TasksFormer(false)).get();
     } catch (ExecutionException e) {
-      throw new InterruptedException(e.getMessage());
+      throw new RuntimeException(e.getMessage());
     }
 
-    // wait for worker threads
+    // wait for worker threads completion
     writeService.shutdown();
-    writeService.awaitTermination(googleSheetsSinkConfig.getFlushExecutionTimeout(), TimeUnit.SECONDS);
+    writeService.awaitTermination(flushTimeout, TimeUnit.SECONDS);
   }
 
   /**
-   *
+   * Task that forms batches of requests and schedules tasks for writing the batches.
    */
   public class TasksFormer implements Callable {
     private final boolean rerun;
@@ -198,10 +229,10 @@ public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, Multipl
     public Object call() throws Exception {
       queueSemaphore.acquire();
       try {
-        Map<String, Queue<FlatternedRecordRequest>> groupedRequests = new HashMap<>();
+        Map<String, Queue<FlatternedRowsRequest>> groupedRequests = new HashMap<>();
 
         // pick up groups of elements
-        FlatternedRecordRequest element;
+        FlatternedRowsRequest element;
         while ((element = recordsQueue.poll()) != null) {
           String spreadSheetName = element.getSpreadSheetName();
 
@@ -211,43 +242,45 @@ public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, Multipl
           groupedRequests.get(spreadSheetName).add(element);
         }
 
-        List<GroupedRecord> recordsToSort = new ArrayList<>();
-        for (Map.Entry<String, Queue<FlatternedRecordRequest>> spreadSheetEntry : groupedRequests.entrySet()) {
+        // form batches of requests
+        List<RecordsBatch> recordsToSort = new ArrayList<>();
+        for (Map.Entry<String, Queue<FlatternedRowsRequest>> spreadSheetEntry : groupedRequests.entrySet()) {
           String spreadSheetName = spreadSheetEntry.getKey();
-          Queue<FlatternedRecordRequest> queue = spreadSheetEntry.getValue();
-          List<FlatternedRecordRequest> buffer = new ArrayList<>();
+          Queue<FlatternedRowsRequest> queue = spreadSheetEntry.getValue();
+          List<FlatternedRowsRequest> buffer = new ArrayList<>();
 
           while (!queue.isEmpty()) {
             buffer.add(queue.poll());
             if (buffer.size() == googleSheetsSinkConfig.getMaxBufferSize()) {
-              recordsToSort.add(new GroupedRecord(buffer, spreadSheetName));
+              recordsToSort.add(new RecordsBatch(buffer, spreadSheetName));
               buffer = new ArrayList<>();
             }
           }
           if (!buffer.isEmpty()) {
-            recordsToSort.add(new GroupedRecord(buffer, spreadSheetName));
+            recordsToSort.add(new RecordsBatch(buffer, spreadSheetName));
           }
         }
 
         // sort groups by size of records
         Collections.sort(recordsToSort);
 
-        // send biggest groups to threads
-        for (GroupedRecord groupedRecord : recordsToSort) {
+        // send biggest groups to threads, else back to queue
+        for (RecordsBatch recordsBatch : recordsToSort) {
           if (stopSignal) {
-            if (threadsSemaphore.tryAcquire(googleSheetsSinkConfig.getFlushExecutionTimeout(), TimeUnit.SECONDS)) {
+            if (threadsSemaphore.tryAcquire(flushTimeout, TimeUnit.SECONDS)) {
               // create new thread
               writeService.submit(
-                new MessagesProcessor(groupedRecord));
+                new MessagesProcessor(recordsBatch));
             } else {
-              throw new InterruptedException("It is not possible write out the record");
+              throw new RuntimeException(
+                String.format("It is not possible schedule of records batch during '%d' seconds.", flushTimeout));
             }
           } else {
             if (threadsSemaphore.tryAcquire()) {
               // create new thread
-              writeService.submit(new MessagesProcessor(groupedRecord));
+              writeService.submit(new MessagesProcessor(recordsBatch));
             } else {
-              groupedRecord.group.stream().forEach(r -> {
+              recordsBatch.group.stream().forEach(r -> {
                 recordsQueue.offer(r);
               });
             }
@@ -267,22 +300,22 @@ public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, Multipl
   }
 
   /**
-   *
+   * Batch of flatterned requests.
    */
-  private class GroupedRecord implements Comparable<GroupedRecord> {
-    private final List<FlatternedRecordRequest> group;
+  private class RecordsBatch implements Comparable<RecordsBatch> {
+    private final List<FlatternedRowsRequest> group;
     private final String spreadSheetName;
 
-    private GroupedRecord(List<FlatternedRecordRequest> group, String spreadSheetName) {
+    private RecordsBatch(List<FlatternedRowsRequest> group, String spreadSheetName) {
       this.group = group;
       this.spreadSheetName = spreadSheetName;
     }
 
-    public void add(FlatternedRecordRequest record) {
+    public void add(FlatternedRowsRequest record) {
       group.add(record);
     }
 
-    public List<FlatternedRecordRequest> getGroup() {
+    public List<FlatternedRowsRequest> getGroup() {
       return group;
     }
 
@@ -291,38 +324,38 @@ public class GoogleSheetsRecordWriter extends RecordWriter<NullWritable, Multipl
     }
 
     @Override
-    public int compareTo(GroupedRecord o) {
+    public int compareTo(RecordsBatch o) {
       return o.group.size() - this.group.size();
     }
   }
 
   /**
-   *
+   * Task that executes all requests from {@link RecordsBatch} by single Sheets API request.
    */
   private class MessagesProcessor implements Callable {
 
-    private final GroupedRecord groupedRecord;
+    private final RecordsBatch recordsBatch;
 
-    private MessagesProcessor(GroupedRecord groupedRecord) {
-      this.groupedRecord = groupedRecord;
+    private MessagesProcessor(RecordsBatch recordsBatch) {
+      this.recordsBatch = recordsBatch;
     }
 
     @Override
     public Object call() throws Exception {
       try {
-        List<FlatternedRecordRequest> recordsToProcess = groupedRecord.getGroup();
+        List<FlatternedRowsRequest> recordsToProcess = recordsBatch.getGroup();
         if (recordsToProcess.isEmpty()) {
           return null;
         }
-        String spreadSheetName = groupedRecord.getSpreadSheetName();
+        String spreadSheetName = recordsBatch.getSpreadSheetName();
 
         List<Request> contentRequests = new ArrayList<>();
         List<Request> mergeRequests = new ArrayList<>();
         List<String> sheetTitles = new ArrayList<>();
-        for (FlatternedRecordRequest flatternedRecordRequest : recordsToProcess) {
-          contentRequests.add(flatternedRecordRequest.getContentRequest());
-          mergeRequests.addAll(flatternedRecordRequest.getMergeRequests());
-          sheetTitles.add(flatternedRecordRequest.getSheetTitle());
+        for (FlatternedRowsRequest flatternedRowsRequest : recordsToProcess) {
+          contentRequests.add(flatternedRowsRequest.getContentRequest());
+          mergeRequests.addAll(flatternedRowsRequest.getMergeRequests());
+          sheetTitles.add(flatternedRowsRequest.getSheetTitle());
         }
 
         String spreadSheetId = availableFiles.get(spreadSheetName);
