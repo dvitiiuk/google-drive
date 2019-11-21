@@ -337,6 +337,38 @@
       ]
     },
     {
+      "label": "Retrying",
+      "properties": [
+        {
+          "widget-type": "number",
+          "label": "Max retry count",
+          "name": "maxRetryCount",
+          "widget-attributes": {
+            "min": "0",
+            "default": "8"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Max retry wait",
+          "name": "maxRetryWait",
+          "widget-attributes": {
+            "min": "0",
+            "default": "200"
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Max retry jitter wait",
+          "name": "maxRetryJitterWait",
+          "widget-attributes": {
+            "min": "0",
+            "default": "100"
+          }
+        }
+      ]
+    },
+    {
       "label": "Advanced",
       "properties": [
         {
