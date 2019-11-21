@@ -54,11 +54,19 @@ OAuth2 and Service account types are available.
 
 #### Service account properties
 
-**Account file path:** Path on the local file system of the service account key used for authorization.
-Can be set to 'auto-detect' when running on a Dataproc cluster. 
-When running on other clusters, the file must be present on every node in the cluster.
+**Account file path:** Path on the local file system of the service account key used for authorization. 
+Can be set to 'auto-detect' for getting service account from system variable.
+The file/system variable must be present on every node in the cluster.
 Service account json can be generated on Google Cloud 
 [Service Account page](https://console.cloud.google.com/iam-admin/serviceaccounts)
+
+### Retrying
+
+**Max retry count:** Maximum number of retry attempts.
+
+**Max retry wait:** Maximum wait time for attempt in seconds.
+
+**Max retry jitter wait:** Maximum additional wait time is milliseconds.
 
 ### Advanced
 
