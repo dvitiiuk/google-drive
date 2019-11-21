@@ -77,7 +77,7 @@ public class GoogleDriveRecordReader extends RecordReader<NullWritable, FileFrom
         return googleDriveSourceClient.getFile(fileId);
       }
     } catch (ExecutionException | RetryException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Exception during file or file part reading.", e);
     }
   }
 

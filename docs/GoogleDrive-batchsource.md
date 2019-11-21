@@ -9,9 +9,9 @@ Properties
 ----------
 ### Basic
 
-**Directory identifier:** Identifier of the source folder.
+**Directory Identifier:** Identifier of the source folder.
 
-**File metadata properties:** Properties that represent metadata of files. 
+**File Metadata Properties:** Properties that represent metadata of files. 
 They will be a part of output structured record. Descriptions for properties can be view at 
 [Drive API file reference](https://developers.google.com/drive/api/v3/reference/files).
 
@@ -20,41 +20,41 @@ They will be a part of output structured record. Descriptions for properties can
 **Filter:** Filter that can be applied to the files in the selected directory. 
 Filters follow the [Google Drive filters syntax](https://developers.google.com/drive/api/v3/ref-search-terms).
 
-**Modification date range:** Filter that narrows set of files by modified date range. 
+**Modification Date Range:** Filter that narrows set of files by modified date range. 
 User can select either among predefined or custom entered ranges. 
-For _Custom_ selection the dates range can be specified via **Start date** and **End date**. 
+For _Custom_ selection the dates range can be specified via **Start Date** and **End Date**. 
 
 **Start Date:** Start date for custom modification date range. 
-Is shown only when _Custom_ range is selected for **Modification date range** field. 
+Is shown only when _Custom_ range is selected for **Modification Rate Range** field. 
 [RFC3339](https://tools.ietf.org/html/rfc3339) format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.
 
 **End Date:** End date for custom modification date range. 
-Is shown only when _Custom_ range is selected for **Modification date range** field.
+Is shown only when _Custom_ range is selected for **Modification Date Range** field.
 [RFC3339](https://tools.ietf.org/html/rfc3339) format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.
 
-**File types to pull:** Types of files which should be pulled from a specified directory. 
+**File Types To Pull:** Types of files which should be pulled from a specified directory. 
 The following values are supported: binary (all non-Google Drive formats), Google Documents, Google Spreadsheets, 
 Google Drawings, Google Presentations and Google Apps Scripts. 
 For Google Drive formats user should specify exporting format in **Exporting** section.
 
 ### Authentication
 
-**Authentication type:** Type of authentication used to access Google API. 
+**Authentication Type:** Type of authentication used to access Google API. 
 OAuth2 and Service account types are available.
 
-#### OAuth2 properties
+#### OAuth2 Properties
 
 **Client ID:** OAuth2 client id.
 
-**Client secret:** OAuth2 client secret.
+**Client Secret:** OAuth2 client secret.
 
-**Refresh token:** OAuth2 refresh token.
+**Refresh Token:** OAuth2 refresh token.
 
-**Access token:** OAuth2 access token.
+**Access Token:** OAuth2 access token.
 
-#### Service account properties
+#### Service Account Properties
 
-**Account file path:** Path on the local file system of the service account key used for authorization. 
+**Account File Path:** Path on the local file system of the service account key used for authorization. 
 Can be set to 'auto-detect' for getting service account from system variable.
 The file/system variable must be present on every node in the cluster.
 Service account json can be generated on Google Cloud 
@@ -62,25 +62,25 @@ Service account json can be generated on Google Cloud
 
 ### Retrying
 
-**Max retry count:** Maximum number of retry attempts.
+**Max Retry Count:** Maximum number of retry attempts.
 
-**Max retry wait:** Maximum wait time for attempt in seconds.
+**Max Retry Wait:** Maximum wait time for attempt in seconds. Wait time starts from one second and grows exponentially.
 
-**Max retry jitter wait:** Maximum additional wait time is milliseconds.
+**Max Retry Jitter Wait:** Maximum additional wait time in milliseconds.
 
 ### Advanced
 
-**Maximum partition size:** Maximum body size for each structured record specified in bytes. 
+**Maximum Partition Size:** Maximum body size for each structured record specified in bytes. 
 Default 0 value means unlimited. Is not applicable for files in Google formats.
 
-**Body output format** Output format for body of file. "Bytes" and "String" values are available.
+**Body Output Format** Output format for body of file. "Bytes" and "String" values are available.
 
 ### Exporting
 
-**Google Documents export format:** MIME type which is used for Google Documents when converted to structured records.
+**Google Documents Export Format:** MIME type which is used for Google Documents when converted to structured records.
 
-**Google Spreadsheets export format:** MIME type which is used for Google Spreadsheets when converted to structured records.
+**Google Spreadsheets Export Format:** MIME type which is used for Google Spreadsheets when converted to structured records.
 
-**Google Drawings export format:** MIME type which is used for Google Drawings when converted to structured records.
+**Google Drawings Export Format:** MIME type which is used for Google Drawings when converted to structured records.
 
-**Google Presentations export format:** MIME type which is used for Google Presentations when converted to structured records.
+**Google Presentations Export Format:** MIME type which is used for Google Presentations when converted to structured records.

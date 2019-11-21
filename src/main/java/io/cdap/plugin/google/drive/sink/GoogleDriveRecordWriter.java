@@ -47,7 +47,7 @@ public class GoogleDriveRecordWriter extends RecordWriter<NullWritable, FileFrom
     try {
       driveSinkClient.createFile(fileFromFolder);
     } catch (ExecutionException | RetryException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Exception during file writing.", e);
     }
   }
 

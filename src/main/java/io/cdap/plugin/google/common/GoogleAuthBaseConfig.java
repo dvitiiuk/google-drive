@@ -112,8 +112,9 @@ public abstract class GoogleAuthBaseConfig extends PluginConfig {
           propertiesAreValid = validateAccountFilePath(collector);
           break;
         default:
-          throw new InvalidPropertyTypeException(GoogleAuthBaseConfig.AUTH_TYPE_LABEL, authType.toString(),
-            AuthType.getAllowedValues());
+          collector.addFailure(String.format("'%s' is not processed value.", authType.toString()), null)
+            .withConfigProperty(AUTH_TYPE);
+          return validationResult;
       }
       if (propertiesAreValid) {
         try {

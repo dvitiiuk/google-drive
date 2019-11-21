@@ -154,11 +154,11 @@ public abstract class APIRequestRetryer {
     TrueExponentialWaitStrategy(long multiplier,
                                 long maximumWait) {
       Preconditions.checkArgument(multiplier > 0L,
-        "multiplier must be > 0 but is %d", multiplier);
+        "multiplier must be > 0 but is '%d'", multiplier);
       Preconditions.checkArgument(maximumWait >= 0L,
-        "maximumWait must be >= 0 but is %d", maximumWait);
+        "maximumWait must be >= 0 but is '%d'", maximumWait);
       Preconditions.checkArgument(multiplier < maximumWait,
-        "multiplier must be < maximumWait but is %d", multiplier);
+        "multiplier must be < maximumWait but is '%d'", multiplier);
       this.multiplier = multiplier;
       this.maximumWait = maximumWait;
     }
