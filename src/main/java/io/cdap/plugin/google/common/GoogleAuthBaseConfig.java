@@ -19,7 +19,6 @@ package io.cdap.plugin.google.common;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.common.base.Strings;
 import io.cdap.cdap.api.annotation.Description;
-import io.cdap.cdap.api.annotation.Macro;
 import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.api.plugin.PluginConfig;
 import io.cdap.cdap.etl.api.FailureCollector;
@@ -60,25 +59,21 @@ public abstract class GoogleAuthBaseConfig extends PluginConfig {
   @Name(AUTH_TYPE)
   @Description("Type of authentication used to access Google API. \n" +
     "OAuth2 and Service account types are available.")
-  @Macro
   private String authType;
 
   @Nullable
   @Name(CLIENT_ID)
   @Description("OAuth2 client id.")
-  @Macro
   private String clientId;
 
   @Nullable
   @Name(CLIENT_SECRET)
   @Description("OAuth2 client secret.")
-  @Macro
   private String clientSecret;
 
   @Nullable
   @Name(REFRESH_TOKEN)
   @Description("OAuth2 refresh token.")
-  @Macro
   private String refreshToken;
 
   @Nullable
@@ -88,13 +83,11 @@ public abstract class GoogleAuthBaseConfig extends PluginConfig {
     "The file/system variable must be present on every node in the cluster. " +
     "Service account json can be generated on Google Cloud " +
     "Service Account page (https://console.cloud.google.com/iam-admin/serviceaccounts).")
-  @Macro
   private String accountFilePath;
   // end of workaround
 
   @Name(DIRECTORY_IDENTIFIER)
   @Description("Identifier of the folder.")
-  @Macro
   private String directoryIdentifier;
 
   public ValidationResult validate(FailureCollector collector) {
@@ -112,8 +105,9 @@ public abstract class GoogleAuthBaseConfig extends PluginConfig {
           propertiesAreValid = validateAccountFilePath(collector);
           break;
         default:
-          throw new InvalidPropertyTypeException(GoogleAuthBaseConfig.AUTH_TYPE_LABEL, authType.toString(),
-            AuthType.getAllowedValues());
+          collector.addFailure(String.format("'%s' is not processed value.", authType.toString()), null)
+            .withConfigProperty(AUTH_TYPE);
+          return validationResult;
       }
       if (propertiesAreValid) {
         try {

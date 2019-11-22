@@ -14,22 +14,22 @@
         },
         {
           "widget-type": "textbox",
-          "label": "File body field",
+          "label": "File Body Field",
           "name": "schemaBodyFieldName"
         },
         {
           "widget-type": "textbox",
-          "label": "File name field",
+          "label": "File Name Field",
           "name": "schemaNameFieldName"
         },
         {
           "widget-type": "textbox",
-          "label": "File mime field",
+          "label": "File Mime Field",
           "name": "schemaMimeFieldName"
         },
         {
           "widget-type": "textbox",
-          "label": "Directory identifier",
+          "label": "Directory Identifier",
           "name": "directoryIdentifier"
         }
       ]
@@ -39,7 +39,7 @@
       "properties": [
         {
           "widget-type": "radio-group",
-          "label": "Authentication type",
+          "label": "Authentication Type",
           "name": "authType",
           "widget-attributes": {
             "layout": "inline",
@@ -58,7 +58,7 @@
         },
         {
           "widget-type": "textbox",
-          "label": "Account file path",
+          "label": "Account File Path",
           "name": "accountFilePath",
           "widget-attributes": {
             "default": "auto-detect"
@@ -71,7 +71,7 @@
         },
         {
           "widget-type": "textbox",
-          "label": "Client secret",
+          "label": "Client Secret",
           "name": "clientSecret"
         },
         {
@@ -86,7 +86,7 @@
       "properties": [
         {
           "widget-type": "number",
-          "label": "Max retry count",
+          "label": "Max Retry Count",
           "name": "maxRetryCount",
           "widget-attributes": {
             "min": "0",
@@ -95,7 +95,7 @@
         },
         {
           "widget-type": "number",
-          "label": "Max retry wait",
+          "label": "Max Retry Wait",
           "name": "maxRetryWait",
           "widget-attributes": {
             "min": "0",
@@ -104,7 +104,7 @@
         },
         {
           "widget-type": "number",
-          "label": "Max retry jitter wait",
+          "label": "Max Retry Jitter Wait",
           "name": "maxRetryJitterWait",
           "widget-attributes": {
             "min": "0",

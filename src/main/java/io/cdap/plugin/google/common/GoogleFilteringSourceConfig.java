@@ -17,7 +17,6 @@
 package io.cdap.plugin.google.common;
 
 import io.cdap.cdap.api.annotation.Description;
-import io.cdap.cdap.api.annotation.Macro;
 import io.cdap.cdap.api.annotation.Name;
 import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.plugin.google.common.exceptions.InvalidPropertyTypeException;
@@ -45,14 +44,12 @@ public class GoogleFilteringSourceConfig extends GoogleRetryingConfig {
   @Name(FILTER)
   @Description("Filter that can be applied to the files in the selected directory. \n" +
     "Filters follow the [Google Drive filters syntax](https://developers.google.com/drive/api/v3/ref-search-terms).")
-  @Macro
   protected String filter;
 
   @Name(MODIFICATION_DATE_RANGE)
   @Description("Filter that narrows set of files by modified date range. \n" +
     "User can select either among predefined or custom entered ranges. \n" +
     "For _Custom_ selection the dates range can be specified via **Start date** and **End date**.")
-  @Macro
   protected String modificationDateRange;
 
   @Nullable
@@ -60,7 +57,6 @@ public class GoogleFilteringSourceConfig extends GoogleRetryingConfig {
   @Description("Start date for custom modification date range. \n" +
     "Is shown only when 'Custom' range is selected for 'Modification date range' field. \n" +
     "RFC3339 (https://tools.ietf.org/html/rfc3339) format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
-  @Macro
   protected String startDate;
 
   @Nullable
@@ -68,7 +64,6 @@ public class GoogleFilteringSourceConfig extends GoogleRetryingConfig {
   @Description("End date for custom modification date range. \n" +
     "Is shown only when 'Custom' range is selected for 'Modification date range' field.\n" +
     "RFC3339 (https://tools.ietf.org/html/rfc3339) format, default timezone is UTC, e.g., 2012-06-04T12:00:00-08:00.")
-  @Macro
   protected String endDate;
 
   public ValidationResult validate(FailureCollector collector) {

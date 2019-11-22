@@ -14,13 +14,13 @@
         },
         {
           "widget-type": "textbox",
-          "label": "Directory identifier",
+          "label": "Directory Identifier",
           "name": "directoryIdentifier"
         },
         {
           "name": "fileMetadataProperties",
           "widget-type": "multi-select",
-          "label": "File metadata properties",
+          "label": "File Metadata Properties",
           "widget-attributes": {
             "delimiter": ",",
             "options": [
@@ -215,7 +215,7 @@
         },
         {
           "widget-type": "select",
-          "label": "Modification date range",
+          "label": "Modification Date Range",
           "name": "modificationDateRange",
           "widget-attributes": {
             "default": "today",
@@ -255,7 +255,7 @@
         {
           "name": "fileTypesToPull",
           "widget-type": "multi-select",
-          "label": "File types to pull",
+          "label": "File Types To Pull",
           "widget-attributes": {
             "delimiter": ",",
             "default": "binary",
@@ -294,7 +294,7 @@
       "properties": [
         {
           "widget-type": "radio-group",
-          "label": "Authentication type",
+          "label": "Authentication Type",
           "name": "authType",
           "widget-attributes": {
             "layout": "inline",
@@ -313,7 +313,7 @@
         },
         {
           "widget-type": "textbox",
-          "label": "Account file path",
+          "label": "Account File Path",
           "name": "accountFilePath",
           "widget-attributes": {
             "default": "auto-detect"
@@ -326,7 +326,7 @@
         },
         {
           "widget-type": "textbox",
-          "label": "Client secret",
+          "label": "Client Secret",
           "name": "clientSecret"
         },
         {
@@ -341,7 +341,7 @@
       "properties": [
         {
           "widget-type": "number",
-          "label": "Max retry count",
+          "label": "Max Retry Count",
           "name": "maxRetryCount",
           "widget-attributes": {
             "min": "0",
@@ -350,7 +350,7 @@
         },
         {
           "widget-type": "number",
-          "label": "Max retry wait",
+          "label": "Max Retry Wait",
           "name": "maxRetryWait",
           "widget-attributes": {
             "min": "0",
@@ -359,7 +359,7 @@
         },
         {
           "widget-type": "number",
-          "label": "Max retry jitter wait",
+          "label": "Max Retry Jitter Wait",
           "name": "maxRetryJitterWait",
           "widget-attributes": {
             "min": "0",
@@ -373,7 +373,7 @@
       "properties": [
         {
           "widget-type": "number",
-          "label": "Maximum partition size",
+          "label": "Maximum Partition Size",
           "name": "maxPartitionSize",
           "widget-attributes": {
             "default": "0",
@@ -382,7 +382,7 @@
         },
         {
           "widget-type": "radio-group",
-          "label": "Body output format",
+          "label": "Body Output Format",
           "name": "bodyFormat",
           "widget-attributes": {
             "layout": "inline",
@@ -407,7 +407,7 @@
       "properties": [
         {
           "widget-type": "select",
-          "label": "Google Documents export format",
+          "label": "Google Documents Export Format",
           "name": "docsExportingFormat",
           "widget-attributes": {
             "default": "text/plain",
@@ -426,7 +426,7 @@
         {
           "widget-type": "select",
           "name": "sheetsExportingFormat",
-          "label": "Google Spreadsheets export format",
+          "label": "Google Spreadsheets Export Format",
           "widget-attributes": {
             "default": "text/csv",
             "values": [
@@ -442,7 +442,7 @@
         {
           "widget-type": "select",
           "name": "drawingsExportingFormat",
-          "label": "Google Drawings export format",
+          "label": "Google Drawings Export Format",
           "widget-attributes": {
             "default": "image/svg+xml",
             "values": [
@@ -456,7 +456,7 @@
         {
           "widget-type": "select",
           "name": "presentationsExportingFormat",
-          "label": "Google Presentations export format",
+          "label": "Google Presentations Export Format",
           "widget-attributes": {
             "default": "text/plain",
             "values": [
